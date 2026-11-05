@@ -297,12 +297,12 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06)
 - [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04)
 - [ ] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
-- [ ] Order codes and lifecycle (ORD-04, ORD-05); client tracking page (ORD-07)
+- [x] Order codes and lifecycle (ORD-04, ORD-05); client tracking page (ORD-07) (offline lifecycle; the Paid state waits for payments)
 - [ ] Payment provider adapter: MoMo and card collection, webhook verification (PAY-01, PAY-02, PAY-09)
 - [ ] Ledger and fee calculation (PAY-03, PAY-04)
 - [ ] Pay-offline / pay-on-delivery mode (ORD-08)
 - [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06)
-- [ ] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04)
+- [x] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04) (text alert with a dashboard link; action buttons wait for approved templates)
 - [ ] Client confirmation (WhatsApp template with opt-in, or on-page code) (NOT-02, CLI-05)
 - [ ] Chat commands: sold out, change price, my orders (ONB-22, ONB-23 partial)
 - [ ] Performance budget and Lighthouse checks on public pages
@@ -315,20 +315,19 @@ Backend detail, environment variables and the operational runbook live in
 
 **Exit criteria:** A real client completes a real MoMo payment to a design-partner vendor; vendor sees the order on WhatsApp within seconds; ledger balances match the aggregator; no oversold stock in race tests.
 
-**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. Online payment, notifications, tracking and inventory were deliberately not built in that slice. The table below is the deferred register.
+**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Online payment, stock decrement and holds, client notifications, interactive WhatsApp actions and phone verification for sensitive tracking details remain deferred. The table below is the deferred register.
 
-**Deferred from the cart and checkout slice**
+**Deferred or partial from the order loop**
 
 | Area | What ships now | Deferred | Requirement | Target |
 |---|---|---|---|---|
 | Online payments | Pay on delivery, pickup or appointment | MoMo/card collection, signed webhooks, retries | PAY-01, PAY-02, PAY-09 | Phase 2, after aggregator KYC |
 | Ledger and fees | None | Double-entry ledger, platform fee, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
 | Delivery fee | Fixed GH₵15, free for pickup | Vendor-configurable free/fixed/confirm-after | ORD-03 | Phase 2 |
-| Order lifecycle | Orders start `pending` | Paid, confirmed, ready, fulfilled; vendor actions; cancellation/refund | ORD-05, ORD-10 | Phase 2/3 |
-| Vendor notification | None | WhatsApp order alert with action buttons | ORD-06, ONB-24, NOT-01 | Phase 2 (needs templates) |
-| Client tracking | Order code and static ETA on the success card | `/o/{code}` tracking page, phone verification, live status and ETA | ORD-07 | Phase 2/3 |
+| Order lifecycle | `pending → confirmed → ready → completed` or `cancelled` from the dashboard; the tracking page follows it | Paid and Refunded states, cancellation reason, refunds, WhatsApp action buttons | ORD-05, ORD-10 | Phase 2/3 |
+| Vendor notification | WhatsApp text with the code, items, total, customer, delivery details and a dashboard login link | Interactive Confirm/Decline/Mark ready buttons, approved templates, delivery fallback | ORD-06, ONB-24, NOT-01, NOT-04 | Phase 2 |
+| Client tracking | `/o/{code}` shows status, items, total and ETA; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA, reorder | ORD-07, ORD-12 | Phase 2/3 |
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
-| Vendor contact shortcut | None | One-tap WhatsApp reply with the order code | ORD-09 | Phase 2 |
 | Order tools | None | CSV export, reorder | ORD-11, ORD-12 | P1/P2 |
 | Inventory | Stock checked at checkout | Stock decrement, holds, race protection | INV-01 to INV-03 | Phase 2 |
 | Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |

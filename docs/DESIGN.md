@@ -793,8 +793,8 @@ Replace the first column with verified figures before launch.
 
 ## 14. Public storefront and checkout
 
-Status: Binding. Version 0.4 (draft), 2026-11-05.
-Applies to: the public vendor page, product grid, cart, guest checkout and order success. Payment waiting and tracking are deferred, see 14.7.
+Status: Binding. Version 0.5 (draft), 2026-11-05.
+Applies to: the public vendor page, product grid, cart, guest checkout, order success and tracking. Payment waiting and tracking are deferred, see 14.7.
 Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accent (3.1) applies here only. The storefront stays quiet: grey page, white cards, ink text.
 
 ### 14.1 Structure and container
@@ -832,9 +832,11 @@ Motion on hover and focus follows 8.3. On touch the Add button is always visible
 - Payment is not connected. The copy says pay on delivery, at pickup or at the appointment. Never claim a payment was received.
 - On success the cart clears and the modal stays open on the ticket card. The form slides left and the ticket fades in from the right, per 8.3.
 
-### 14.6 Order success
+### 14.6 Order success and tracking
 
-Defined in 5.11. Order ID, amount, placed time, ETA and email sit on a dashed ticket with a barcode and a black Done button. ETA is an estimate: delivery 45 to 60 minutes, pickup about 30 minutes, appointment at the chosen date and time.
+Success is defined in 5.11. Order ID, amount, placed time, ETA and email sit on a dashed ticket with a barcode and a black Done button. ETA is an estimate: delivery 45 to 60 minutes, pickup about 30 minutes, appointment at the chosen date and time.
+
+Tracking lives at `/o/{code}` and is `noindex`. Four steps: Placed, Confirmed, Ready (Out for delivery or Ready for pickup), Completed (Delivered or Picked up). A cancelled order replaces the stepper with a danger alert. The page shows items, totals, fulfilment type and ETA, plus Message vendor and Back to shop. It must not show the customer's address, email or phone; the code is the capability. The stepper progress animates over 200ms.
 
 ### 14.7 Deferred storefront states
 
@@ -850,6 +852,7 @@ Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o
 - [ ] Add is a white plus circle. The cart is icon-only with a corner count and fades in on first add.
 - [ ] The segmented thumb slides with the spring and the active chip is ink fill.
 - [ ] Dialogs fade and rise in and out. Success slides left then fades in from the right.
+- [ ] Tracking shows four steps, hides customer contact details and handles cancelled orders.
 - [ ] Nothing appears, disappears or changes layout abruptly. Under reduced motion every transform and spring is removed.
 - [ ] Muted text, stock captions and CTA labels reach 4.5:1.
 
@@ -878,7 +881,7 @@ Same tokens and radii as the public site, with tighter density. No gallery effec
 ### 15.3 Screens
 
 - **Home:** greeting with the first name, today's bookings, orders needing action, and a "Share your page" card with copy link and QR.
-- **Orders:** filter chips (New, To fulfil, Done). Order cards show code, items, buyer, a status badge and quick-action Secondary buttons.
+- **Orders (shipped single-page dashboard):** newest first, one column. Each card shows the code, date, status badge, total, items, buyer with a Message link, fulfilment, email, note, and quick actions (Confirm, Mark ready, Mark completed, Cancel). A Track page link and copy link sit beside the actions. Filter chips and the five-item nav remain proposed.
 - **Catalogue:** the same gallery-style grid as the public page, so vendors see what clients see. A 56px circular add button (`--green-main`, `--ink` icon) sits bottom right above the nav and opens the camera first.
 - **Calendar:** day and week views. Tap a slot to block time.
 - **More:** payments and payouts, page editor and theme, notifications, language, support, sessions. Rows are 64px, Lucide icon left, chevron right, hairline dividers.

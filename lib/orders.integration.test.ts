@@ -1,6 +1,11 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { db, query } from '@/lib/db';
-import { placeOrder } from '@/lib/orders';
+import {
+  getOrderByCode,
+  listVendorOrders,
+  placeOrder,
+  updateOrderStatus,
+} from '@/lib/orders';
 
 let vendorId = '';
 let itemId = '';
@@ -114,6 +119,49 @@ describe('placeOrder', () => {
         checkoutForm({ cart: JSON.stringify([{ id: soldOutId, quantity: 1 }]) }),
       ),
     ).toMatchObject({ ok: false });
+  });
+
+  it('moves through the lifecycle and rejects skips', async () => {
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const placed = await getOrderByCode(result.order.code);
+    expect(placed).not.toBeNull();
+    expect(placed?.status).toBe('pending');
+    expect(placed?.lines).toEqual([
+      { name: 'Vitamin C serum', quantity: 2, pricePesewas: 12000, lineTotalPesewas: 24000 },
+    ]);
+
+    const confirmed = await updateOrderStatus(placed!.id, vendorId, 'confirmed');
+    expect(confirmed).toEqual({ ok: true, status: 'confirmed' });
+
+    const skipped = await updateOrderStatus(placed!.id, vendorId, 'completed');
+    expect(skipped.ok).toBe(false);
+
+    expect((await updateOrderStatus(placed!.id, vendorId, 'ready')).ok).toBe(true);
+    expect((await updateOrderStatus(placed!.id, vendorId, 'completed')).ok).toBe(true);
+
+    const done = await getOrderByCode(result.order.code);
+    expect(done?.status).toBe('completed');
+
+    expect(await listVendorOrders(vendorId)).toHaveLength(1);
+  });
+
+  it('does not let another vendor move an order', async () => {
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const other = await query<{ id: string }>(
+      `insert into vendors (phone, name, handle, type, status, consent_at)
+       values ('+233249999999', 'Other Shop', 'othershop', 'products', 'live', now())
+       returning id`,
+    );
+
+    const order = await getOrderByCode(result.order.code);
+    const attempt = await updateOrderStatus(order!.id, other[0].id, 'confirmed');
+    expect(attempt).toMatchObject({ ok: false });
   });
 
   it('rejects delivery without an address', async () => {

@@ -235,3 +235,209 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     client.release();
   }
 }
+
+export type OrderStatus = 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed',
+  'ready',
+  'completed',
+  'cancelled',
+];
+
+const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['ready', 'cancelled'],
+  ready: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+};
+
+export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
+  return TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+export function nextStatuses(from: OrderStatus): OrderStatus[] {
+  return TRANSITIONS[from] ?? [];
+}
+
+export type OrderLine = {
+  name: string;
+  quantity: number;
+  pricePesewas: number;
+  lineTotalPesewas: number;
+};
+
+export type OrderRecord = {
+  id: string;
+  code: string;
+  vendorId: string;
+  vendorName: string;
+  vendorHandle: string;
+  vendorPhone: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  fulfilment: Fulfilment;
+  address: string | null;
+  notes: string | null;
+  bookingAt: string | null;
+  subtotalPesewas: number;
+  deliveryPesewas: number;
+  totalPesewas: number;
+  status: OrderStatus;
+  eta: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lines: OrderLine[];
+};
+
+type OrderRow = {
+  id: string;
+  code: string;
+  vendor_id: string;
+  vendor_name: string;
+  vendor_handle: string;
+  vendor_phone: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  fulfilment: Fulfilment;
+  address: string | null;
+  notes: string | null;
+  booking_at: Date | null;
+  subtotal_pesewas: number;
+  delivery_pesewas: number;
+  total_pesewas: number;
+  status: OrderStatus;
+  eta_text: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+const ORDER_SELECT = `
+  select o.id, o.code, o.vendor_id, v.name as vendor_name, v.handle as vendor_handle,
+         v.phone as vendor_phone, o.customer_name, o.customer_phone, o.customer_email,
+         o.fulfilment, o.address, o.notes, o.booking_at, o.subtotal_pesewas,
+         o.delivery_pesewas, o.total_pesewas, o.status, o.eta_text, o.created_at, o.updated_at
+    from orders o
+    join vendors v on v.id = o.vendor_id
+`;
+
+async function loadLines(orderIds: string[]): Promise<Map<string, OrderLine[]>> {
+  const grouped = new Map<string, OrderLine[]>();
+  if (!orderIds.length) return grouped;
+
+  const rows = await db().query<{
+    order_id: string;
+    name: string;
+    quantity: number;
+    price_pesewas: number;
+    line_total_pesewas: number;
+  }>(
+    `select order_id, name, quantity, price_pesewas, line_total_pesewas
+       from order_items where order_id = any($1::uuid[]) order by id`,
+    [orderIds],
+  );
+
+  for (const row of rows.rows) {
+    const list = grouped.get(row.order_id) ?? [];
+    list.push({
+      name: row.name,
+      quantity: row.quantity,
+      pricePesewas: row.price_pesewas,
+      lineTotalPesewas: row.line_total_pesewas,
+    });
+    grouped.set(row.order_id, list);
+  }
+  return grouped;
+}
+
+function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
+  return {
+    id: row.id,
+    code: row.code,
+    vendorId: row.vendor_id,
+    vendorName: row.vendor_name,
+    vendorHandle: row.vendor_handle,
+    vendorPhone: row.vendor_phone,
+    customerName: row.customer_name,
+    customerPhone: row.customer_phone,
+    customerEmail: row.customer_email,
+    fulfilment: row.fulfilment,
+    address: row.address,
+    notes: row.notes,
+    bookingAt: row.booking_at ? row.booking_at.toISOString() : null,
+    subtotalPesewas: row.subtotal_pesewas,
+    deliveryPesewas: row.delivery_pesewas,
+    totalPesewas: row.total_pesewas,
+    status: row.status,
+    eta: row.eta_text,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+    lines,
+  };
+}
+
+export async function listVendorOrders(vendorId: string, limit = 50): Promise<OrderRecord[]> {
+  const rows = await db().query<OrderRow>(
+    `${ORDER_SELECT} where o.vendor_id = $1 order by o.created_at desc limit $2`,
+    [vendorId, limit],
+  );
+  const lines = await loadLines(rows.rows.map((row) => row.id));
+  return rows.rows.map((row) => toOrder(row, lines.get(row.id) ?? []));
+}
+
+export async function getOrderByCode(rawCode: string): Promise<OrderRecord | null> {
+  const code = rawCode.trim().toUpperCase();
+  if (!/^ORD-[0-9A-HJKMNP-TV-Z]{4}$/.test(code)) return null;
+
+  const rows = await db().query<OrderRow>(`${ORDER_SELECT} where o.code = $1`, [code]);
+  const row = rows.rows[0];
+  if (!row) return null;
+  const lines = await loadLines([row.id]);
+  return toOrder(row, lines.get(row.id) ?? []);
+}
+
+export type StatusUpdate =
+  | { ok: true; status: OrderStatus }
+  | { ok: false; error: string };
+
+export async function updateOrderStatus(
+  orderId: string,
+  vendorId: string,
+  next: OrderStatus,
+): Promise<StatusUpdate> {
+  if (!ORDER_STATUSES.includes(next)) return { ok: false, error: 'Unknown status.' };
+
+  const client = await db().connect();
+  try {
+    await client.query('begin');
+    const current = await client.query<{ status: OrderStatus }>(
+      'select status from orders where id = $1 and vendor_id = $2 for update',
+      [orderId, vendorId],
+    );
+    const row = current.rows[0];
+    if (!row) {
+      await client.query('rollback');
+      return { ok: false, error: 'Order not found.' };
+    }
+    if (!canTransition(row.status, next)) {
+      await client.query('rollback');
+      return { ok: false, error: `Cannot move an order from ${row.status} to ${next}.` };
+    }
+
+    await client.query('update orders set status = $2, updated_at = now() where id = $1', [
+      orderId,
+      next,
+    ]);
+    await client.query('commit');
+    return { ok: true, status: next };
+  } catch (error) {
+    await client.query('rollback').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}

@@ -279,16 +279,22 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 
 The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, note), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
 
-The following are deliberately deferred and must not be described as working:
+The order loop now continues after checkout:
+
+- **Vendor orders.** `/dashboard` lists orders newest first with items, customer, fulfilment, email, notes and total. Vendors move an order through `pending → confirmed → ready → completed` or cancel it from `pending`, `confirmed` or `ready`. The transition is enforced in the database transaction and scoped to the order's vendor.
+- **Vendor alert.** A new order sends a WhatsApp text to the vendor with the code, items, total, customer, delivery details, note and a single-use dashboard login link. It runs after the checkout response, so a slow provider cannot delay the client. Interactive action buttons are not built.
+- **Client tracking.** `/o/{code}` shows a four-step status, items, total, fulfilment type and ETA. It deliberately hides the customer's address, email and phone, so no phone verification is needed for the data shown. The page updates when the vendor changes the status.
+- **Vendor contact.** The dashboard has a Message link that opens WhatsApp with the order code prefilled.
+
+The following behaviours remain deferred or partial and must not be described as fully working:
 
 | Requirement | Deferred behaviour | Target |
 |---|---|---|
 | ORD-03 | Delivery fee is a fixed GH₵15 and free for pickup; vendor configuration (free / fixed / confirm-after) is deferred | Phase 2 |
-| ORD-05 | Orders start `pending`; the Paid/Confirmed/Ready/Fulfilled transitions and vendor actions are deferred | Phase 2/3 |
-| ORD-06 | Vendor WhatsApp order notification is deferred | Phase 2, once templates are approved |
-| ORD-07 | The `/o/{code}` tracking page and phone verification are deferred; the ETA is a static estimate, not live tracking | Phase 2/3 |
-| ORD-09 | One-tap vendor-to-client WhatsApp contact is deferred | Phase 2 |
-| ORD-10 | Cancellation and refunds are deferred | Phase 2/3 |
+| ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
+| ORD-06 | The vendor receives a WhatsApp text with the order details and a dashboard link. Interactive Confirm/Decline buttons and approved templates are deferred | Phase 2 |
+| ORD-07 | `/o/{code}` tracking is implemented with the code as the capability. Sensitive customer details are not shown; phone verification and live ETA are deferred | Phase 2/3 |
+| ORD-10 | Cancel is available, but a cancellation reason, client notification and refunds are deferred | Phase 2/3 |
 | ORD-11, ORD-12 | CSV export and reorder are deferred | P1/P2 |
 
 Additional scope notes:
