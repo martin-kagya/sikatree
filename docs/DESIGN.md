@@ -862,6 +862,7 @@ Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o
 - [ ] Dialogs fade and rise in and out. Success slides left then fades in from the right.
 - [ ] Tracking shows four steps, hides customer contact details and handles cancelled orders.
 - [ ] The Message vendor button keeps its label inside the pill at 320px, truncating a long store name instead of touching the edge.
+- [ ] Both tracking buttons are 48px high and equal height at 320px, with no flex-basis squash.
 - [ ] Every button and button-like link has hover, press and focus feedback; every route fades in.
 - [ ] Nothing appears, disappears or changes layout abruptly. Under reduced motion every transform and spring is removed.
 - [ ] Muted text, stock captions and CTA labels reach 4.5:1.

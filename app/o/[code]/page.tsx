@@ -212,20 +212,20 @@ export default async function TrackOrderPage({
             <p className="mt-3 text-[12px] text-ink-muted">{fulfilmentNote(order)}</p>
           </section>
 
-          <section className="flex flex-col gap-3 sm:flex-row">
+          <section className="grid gap-3 sm:flex sm:flex-row">
             <a
               href={vendorHref}
               target="_blank"
               rel="noreferrer"
               aria-label={`Message ${order.vendorName} on WhatsApp`}
-              className="pressable inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-pill bg-green-main px-5 text-[14px] text-ink hover:bg-green-main/90 sm:text-label"
+              className="pressable inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-pill bg-green-main px-5 text-[14px] text-ink hover:bg-green-main/90 sm:w-auto sm:flex-1 sm:text-label"
             >
               <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="truncate">Message {order.vendorName}</span>
             </a>
             <Link
               href={`/${order.vendorHandle}`}
-              className="pressable inline-flex h-12 w-full items-center justify-center rounded-pill border border-hairline bg-white px-6 text-label text-ink hover:border-ink/40 sm:w-auto"
+              className="pressable inline-flex h-12 w-full shrink-0 items-center justify-center rounded-pill border border-hairline bg-white px-6 text-label text-ink hover:border-ink/40 sm:w-auto"
             >
               Back to the shop
             </Link>
