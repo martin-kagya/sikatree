@@ -6,6 +6,7 @@ import {
   placeOrder,
   setOrderDeliveryFee,
   updateDeliverySettings,
+  updateEtaSettings,
   updateOrderStatus,
 } from '@/lib/orders';
 
@@ -111,6 +112,19 @@ describe('placeOrder', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.order.totalPesewas).toBe(24000);
+  });
+
+  it('uses vendor-configured ETA text', async () => {
+    await updateEtaSettings(vendorId, 'Delivered within 2 hours', 'Ready in 1 hour');
+    const delivery = await placeOrder(checkoutForm());
+    expect(delivery.ok).toBe(true);
+    if (!delivery.ok) return;
+    expect(delivery.order.eta).toBe('Delivered within 2 hours');
+
+    const pickup = await placeOrder(checkoutForm({ fulfilment: 'pickup', address: '' }));
+    expect(pickup.ok).toBe(true);
+    if (!pickup.ok) return;
+    expect(pickup.order.eta).toBe('Ready in 1 hour');
   });
 
   it('charges no delivery in free mode', async () => {

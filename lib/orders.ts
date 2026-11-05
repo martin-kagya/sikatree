@@ -49,7 +49,12 @@ export function newOrderCode(): string {
   return `ORD-${code}`;
 }
 
-export function etaFor(fulfilment: Fulfilment, bookingAt: Date | null): string {
+export function etaFor(
+  fulfilment: Fulfilment,
+  bookingAt: Date | null,
+  deliveryText = 'Delivery in 45 to 60 minutes',
+  pickupText = 'Ready for pickup in about 30 minutes',
+): string {
   if (fulfilment === 'appointment' && bookingAt) {
     const when = new Intl.DateTimeFormat('en-GB', {
       dateStyle: 'medium',
@@ -58,8 +63,8 @@ export function etaFor(fulfilment: Fulfilment, bookingAt: Date | null): string {
     }).format(bookingAt);
     return `Appointment on ${when}`;
   }
-  if (fulfilment === 'pickup') return 'Ready for pickup in about 30 minutes';
-  return 'Delivery in 45 to 60 minutes';
+  if (fulfilment === 'pickup') return pickupText;
+  return deliveryText;
 }
 
 type CartLine = { id: string; quantity: number };
@@ -116,8 +121,12 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     delivery_fee_mode: DeliveryFeeMode;
     delivery_fee_pesewas: number;
     delivery_fee_outside_pesewas: number;
+    eta_delivery_text: string;
+    eta_pickup_text: string;
   }>(
-    'select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas from vendors where handle = $1',
+    `select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas,
+            delivery_fee_outside_pesewas, eta_delivery_text, eta_pickup_text
+       from vendors where handle = $1`,
     [handle],
   );
   const vendor = vendors.rows[0];
@@ -209,7 +218,7 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     (deliveryOnArrivalRaw === 'on' || deliveryOnArrivalRaw === 'true');
 
   const total = subtotal + (deliveryOnArrival ? 0 : delivery);
-  const eta = etaFor(fulfilment, bookingAt);
+  const eta = etaFor(fulfilment, bookingAt, vendor.eta_delivery_text, vendor.eta_pickup_text);
   const reservesStock = orderItems.some((item) => byId.get(item.id)?.stock !== null);
 
   const limit = await hitRateLimit(`order:phone:${phone}`, 5, 3600).catch(() => null);
@@ -630,4 +639,33 @@ export async function setOrderDeliveryFee(
   } finally {
     client.release();
   }
+}
+
+export type EtaSettingsUpdate = { ok: true } | { ok: false; error: string };
+
+// Vendor-configurable ETA text for delivery and pickup. Appointment orders keep
+// the computed date/time, so only the two product-fulfilment strings are stored.
+export async function updateEtaSettings(
+  vendorId: string,
+  deliveryText: string,
+  pickupText: string,
+): Promise<EtaSettingsUpdate> {
+  const delivery = deliveryText.trim();
+  const pickup = pickupText.trim();
+  if (delivery.length < 3 || delivery.length > 120) {
+    return { ok: false, error: 'Delivery time must be 3 to 120 characters.' };
+  }
+  if (pickup.length < 3 || pickup.length > 120) {
+    return { ok: false, error: 'Pickup time must be 3 to 120 characters.' };
+  }
+
+  const rows = await db().query<{ id: string }>(
+    `update vendors
+        set eta_delivery_text = $2, eta_pickup_text = $3, updated_at = now()
+      where id = $1
+      returning id`,
+    [vendorId, delivery, pickup],
+  );
+  if (!rows.rows[0]) return { ok: false, error: 'Vendor not found.' };
+  return { ok: true };
 }

@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Settings } from '@/components/icons';
 import { site } from '@/lib/brand';
 import { query } from '@/lib/db';
 import { formatCedis } from '@/lib/money';
 import { listVendorOrders, nextStatuses, type OrderRecord, type OrderStatus } from '@/lib/orders';
 import { formatGhanaPhone } from '@/lib/phone';
-import type { DeliveryFeeMode } from '@/lib/shop';import { requireVendor } from '@/lib/vendor-auth';
+import { requireVendor } from '@/lib/vendor-auth';
 import { cn } from '@/lib/utils';
 import { logoutAction, setOrderDeliveryFeeAction, updateOrderStatusAction } from './actions';
 import { setItemStatusAction } from './items/actions';
 import { CopyLink } from './copy-link';
-import { DeliverySettings } from './delivery-settings';
 
 export const metadata: Metadata = {
   title: 'Dashboard | sikatree',
@@ -26,9 +26,6 @@ type Vendor = {
   handle: string;
   type: string | null;
   phone: string;
-  delivery_fee_mode: string;
-  delivery_fee_pesewas: number;
-  delivery_fee_outside_pesewas: number;
 };
 type Item = {
   id: string;
@@ -211,7 +208,7 @@ export default async function DashboardPage({
 
   const [vendors, items, orders] = await Promise.all([
     query<Vendor>(
-      'select id, name, handle, type, phone, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas from vendors where id = $1',
+      'select id, name, handle, type, phone from vendors where id = $1',
       [vendorId],
     ),
     query<Item>(
@@ -228,7 +225,6 @@ export default async function DashboardPage({
   const pageUrl = `${site.domain}/${vendor.handle}`;
   const shareMessage = `Shop with me on sikatree: ${site.domain}/${vendor.handle}`;
   const newOrders = orders.filter((order) => order.status === 'pending').length;
-  const deliveryFeeMode = vendor.delivery_fee_mode as DeliveryFeeMode;
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
@@ -238,6 +234,13 @@ export default async function DashboardPage({
             sikatree
           </Link>
           <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/settings"
+              aria-label="Settings"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-pill border border-hairline bg-white text-ink hover:border-ink/40"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
             <Link
               href="/dashboard/support"
               className="inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
@@ -285,18 +288,6 @@ export default async function DashboardPage({
               Your customers can order from your page or message you on WhatsApp. Online payments
               arrive in a later phase.
             </p>
-          </section>
-
-          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
-            <h2 className="text-h2 text-ink">Delivery fee</h2>
-            <p className="mt-1 text-small text-ink-muted">
-              How customers are charged for delivery. Pickup is always free.
-            </p>
-            <DeliverySettings
-              mode={deliveryFeeMode}
-              fixedPesewas={vendor.delivery_fee_pesewas}
-              outsidePesewas={vendor.delivery_fee_outside_pesewas}
-            />
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">

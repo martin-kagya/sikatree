@@ -374,7 +374,7 @@ Backend detail, environment variables and the operational runbook live in
 **Build**
 - [ ] PWA shell, manifest, install prompt, service worker (DASH-01, DASH-16)
 - [x] Catalogue management: create, edit, hide, manual sold out, stock and one photo (DASH-05, DASH-06 partial)
-- [ ] Home, order screens, page editor, settings (DASH-02, 03, 09, 15)
+- [ ] Home, order screens, page editor, settings (DASH-02, 03, 09, 15) (partial: `/dashboard/settings` holds delivery-fee configuration and delivery/pickup ETA text)
 - [ ] Image upload from camera, drag reorder, hide and show items
 - [ ] Inventory screens and sold-out toggles (DASH-06)
 - [ ] Payments screen: balance, transactions, fees, payout settings (DASH-08)

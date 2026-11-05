@@ -9,6 +9,7 @@ import {
   ORDER_STATUSES,
   setOrderDeliveryFee,
   updateDeliverySettings,
+  updateEtaSettings,
   updateOrderStatus,
   type OrderStatus,
 } from '@/lib/orders';
@@ -77,4 +78,20 @@ export async function setOrderDeliveryFeeAction(formData: FormData): Promise<voi
 
   await setOrderDeliveryFee(id, vendorId, fee);
   revalidatePath('/dashboard');
+}
+
+export type EtaSettingsState = { error?: string; saved?: boolean };
+
+export async function updateEtaSettingsAction(
+  _previous: EtaSettingsState,
+  formData: FormData,
+): Promise<EtaSettingsState> {
+  const vendorId = await requireVendor();
+  const deliveryText = String(formData.get('etaDelivery') ?? '');
+  const pickupText = String(formData.get('etaPickup') ?? '');
+
+  const result = await updateEtaSettings(vendorId, deliveryText, pickupText);
+  if (!result.ok) return { error: result.error };
+
+  return { saved: true };
 }

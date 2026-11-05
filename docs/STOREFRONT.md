@@ -74,7 +74,8 @@ as hover.
   the order for updates; no email is sent yet.
 - Orders are written server-side to `orders` and `order_items` with a unique
   `ORD-` code, then the modal shows the ticket-style success card with the code,
-  amount, ETA and email.
+  amount, ETA and email. The ETA is the vendor's configured delivery/pickup text
+  (set in `/dashboard/settings`); appointments use the chosen date and time.
 - Payment is **not** connected. Orders are pay on delivery, at pickup or at the
   appointment, and the copy says so.
 

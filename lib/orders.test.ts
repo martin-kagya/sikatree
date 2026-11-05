@@ -16,4 +16,11 @@ describe('eta labels', () => {
     const when = new Date('2026-11-06T10:00:00Z');
     expect(etaFor('appointment', when)).toContain('Appointment on');
   });
+
+  it('uses vendor-supplied ETA text', () => {
+    expect(etaFor('delivery', null, 'Delivered in 2 hours', 'Ready in 1 hour')).toBe(
+      'Delivered in 2 hours',
+    );
+    expect(etaFor('pickup', null, 'Delivered in 2 hours', 'Ready in 1 hour')).toBe('Ready in 1 hour');
+  });
 });
