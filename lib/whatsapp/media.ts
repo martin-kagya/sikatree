@@ -91,12 +91,38 @@ export async function saveItemImage(input: {
       return null;
     }
 
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (!bytes.length || bytes.length > MAX_BYTES) {
-      console.error('[media] rejected size', bytes.length);
-      return null;
-    }
+    return uploadItemImage({
+      vendorId: input.vendorId,
+      bytes: Buffer.from(await response.arrayBuffer()),
+      mime,
+    });
+  } catch (error) {
+    console.error('[media] save failed', error);
+    return null;
+  }
+}
 
+// Shared byte upload for files coming from the dashboard as well as WhatsApp.
+export async function uploadItemImage(input: {
+  vendorId: string;
+  bytes: Buffer;
+  mime: string;
+}): Promise<string | null> {
+  const config = storageConfig();
+  if (!config) return null;
+
+  const mime = input.mime.split(';')[0].trim().toLowerCase();
+  const extension = extensionFor(mime);
+  if (!extension) {
+    console.error('[media] unsupported type', mime);
+    return null;
+  }
+  if (!input.bytes.length || input.bytes.length > MAX_BYTES) {
+    console.error('[media] rejected size', input.bytes.length);
+    return null;
+  }
+
+  try {
     const path = `${input.vendorId}/${randomUUID()}.${extension}`;
     const upload = await fetch(`${config.url}/storage/v1/object/${config.bucket}/${path}`, {
       method: 'POST',
@@ -107,7 +133,7 @@ export async function saveItemImage(input: {
         'cache-control': '31536000',
         'x-upsert': 'true',
       },
-      body: new Uint8Array(bytes),
+      body: new Uint8Array(input.bytes),
       signal: AbortSignal.timeout(30_000),
     });
 
@@ -119,7 +145,7 @@ export async function saveItemImage(input: {
 
     return publicObjectUrl(config, path);
   } catch (error) {
-    console.error('[media] save failed', error);
+    console.error('[media] upload failed', error);
     return null;
   }
 }

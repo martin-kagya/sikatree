@@ -315,7 +315,7 @@ Backend detail, environment variables and the operational runbook live in
 
 **Exit criteria:** A real client completes a real MoMo payment to a design-partner vendor; vendor sees the order on WhatsApp within seconds; ledger balances match the aggregator; no oversold stock in race tests.
 
-**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Tracked stock now decrements atomically at placement and restores on cancellation. The support inbox and the ONB-21 time-to-live metric are live in admin. Online payment, payment-time stock holds, the stock movement log, low-stock alerts, client notifications, interactive WhatsApp actions and phone verification for sensitive tracking details remain deferred. The table below is the deferred register.
+**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Tracked stock now decrements atomically at placement and restores on cancellation. The support inbox and the ONB-21 time-to-live metric are live in admin. Vendors can now add and edit items, upload one photo, set price, stock, category, visibility and manual sold out from the dashboard. Online payment, payment-time stock holds, the stock movement log, low-stock alerts, multiple images, variants, drag reorder, category management, client notifications and interactive WhatsApp actions remain deferred. The table below is the deferred register.
 
 **Deferred or partial from the order loop**
 
@@ -329,7 +329,8 @@ Backend detail, environment variables and the operational runbook live in
 | Client tracking | `/o/{code}` shows status, items, total and ETA; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA, reorder | ORD-07, ORD-12 | Phase 2/3 |
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
 | Order tools | None | CSV export, reorder | ORD-11, ORD-12 | P1/P2 |
-| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null | Payment-time 15-minute holds, stock movement log, low-stock alerts, manual sold-out toggle UI | INV-01 to INV-06 | Phase 2/3 |
+| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out from the dashboard | Payment-time 15-minute holds, stock movement log, low-stock alerts | INV-01 to INV-06 | Phase 2/3 |
+| Catalogue tools | Create and edit items with one photo, price, compare-at, description, category, stock, visibility, badge and position; hide and manual sold out | Multiple images, variants, drag reorder, category management, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
 | Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
 
@@ -343,7 +344,8 @@ Backend detail, environment variables and the operational runbook live in
 
 **Build**
 - [ ] PWA shell, manifest, install prompt, service worker (DASH-01, DASH-16)
-- [ ] Home, orders, catalogue management, page editor, settings (DASH-02, 03, 05, 09, 15)
+- [x] Catalogue management: create, edit, hide, manual sold out, stock and one photo (DASH-05, DASH-06 partial)
+- [ ] Home, order screens, page editor, settings (DASH-02, 03, 09, 15)
 - [ ] Image upload from camera, drag reorder, hide and show items
 - [ ] Inventory screens and sold-out toggles (DASH-06)
 - [ ] Payments screen: balance, transactions, fees, payout settings (DASH-08)

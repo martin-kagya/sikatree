@@ -32,6 +32,7 @@ import {
   DELIVERY_FEE_PESEWAS,
   formatShopPrice,
   hasDescription,
+  isSoldOut,
   pageWindow,
   PAGE_SIZE,
   soldOutLast,
@@ -122,8 +123,8 @@ function storeWhatsappHref(phone: string, name: string): string {
     tint: string;
     onAdd: (id: string) => void;
   }) {
-    const soldOut = item.stock !== null && item.stock <= 0;
-    const low = stockLabel(item.stock);
+    const soldOut = isSoldOut(item);
+    const low = soldOut ? null : stockLabel(item.stock);
     const badge = badgeLabel(item.badge);
     const desc = hasDescription(item);
     const focal = `${(item.focalX ?? 0.5) * 100}% ${(item.focalY ?? 0.5) * 100}%`;

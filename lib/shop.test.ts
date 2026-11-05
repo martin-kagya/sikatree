@@ -4,6 +4,7 @@ import {
   filterItems,
   formatShopPrice,
   hasDescription,
+  isSoldOut,
   pageWindow,
   soldOutLast,
   sortItems,
@@ -45,6 +46,13 @@ describe('stock and badges', () => {
     expect(stockLabel(5)).toBe('Only 5 left');
     expect(stockLabel(6)).toBeNull();
     expect(stockLabel(null)).toBeNull();
+  });
+
+  it('treats a manual sold-out status as sold out even with stock', () => {
+    expect(isSoldOut(item({ status: 'sold_out', stock: 8 }))).toBe(true);
+    expect(isSoldOut(item({ status: 'active', stock: 0 }))).toBe(true);
+    expect(isSoldOut(item({ status: 'active', stock: 8 }))).toBe(false);
+    expect(isSoldOut(item({ status: 'hidden' }))).toBe(false);
   });
 
   it('labels badges', () => {

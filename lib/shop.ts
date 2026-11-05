@@ -17,6 +17,7 @@ export type ShopItem = {
   focalX: number | null;
   focalY: number | null;
   createdAt: string;
+  status?: 'active' | 'sold_out' | 'hidden';
 };
 
 export const PAGE_SIZE = 24;
@@ -61,13 +62,17 @@ export type Filters = {
   inStockOnly: boolean;
 };
 
+export function isSoldOut(item: ShopItem): boolean {
+  return item.status === 'sold_out' || (item.stock !== null && item.stock <= 0);
+}
+
 export function filterItems(items: ShopItem[], filters: Filters): ShopItem[] {
   const query = filters.q.trim().toLowerCase();
   const category = filters.category === 'All' ? '' : filters.category;
 
   return items.filter((item) => {
     if (category && item.category !== category) return false;
-    if (filters.inStockOnly && item.stock !== null && item.stock <= 0) return false;
+    if (filters.inStockOnly && isSoldOut(item)) return false;
     if (filters.minPesewas !== null && item.pricePesewas < filters.minPesewas) return false;
     if (filters.maxPesewas !== null && item.pricePesewas > filters.maxPesewas) return false;
     if (!query) return true;
@@ -93,8 +98,8 @@ export function sortItems(items: ShopItem[], sort: SortKey): ShopItem[] {
 // Sold-out products stay visible but sort last in the featured order.
 export function soldOutLast(items: ShopItem[]): ShopItem[] {
   return [...items].sort((a, b) => {
-    const aOut = a.stock !== null && a.stock <= 0 ? 1 : 0;
-    const bOut = b.stock !== null && b.stock <= 0 ? 1 : 0;
+    const aOut = isSoldOut(a) ? 1 : 0;
+    const bOut = isSoldOut(b) ? 1 : 0;
     return aOut - bOut;
   });
 }

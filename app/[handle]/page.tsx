@@ -27,6 +27,7 @@ type ItemRow = {
   price_pesewas: number;
   compare_at_pesewas: number | null;
   stock: number | null;
+  status: 'active' | 'sold_out';
   category: string | null;
   badge: 'discount' | 'popular' | 'new' | null;
   focal_x: string | null;
@@ -52,7 +53,7 @@ async function loadVendor(
   if (!vendor) return null;
 
   const rows = await query<ItemRow>(
-    `select id, name, description, price_pesewas, compare_at_pesewas, stock, category,
+    `select id, name, description, price_pesewas, compare_at_pesewas, stock, status, category,
             badge, focal_x, focal_y, image_url, image_url_alt, created_at
        from items
       where vendor_id = (select id from vendors where handle = $1)
@@ -68,6 +69,7 @@ async function loadVendor(
     pricePesewas: row.price_pesewas,
     compareAtPesewas: row.compare_at_pesewas,
     stock: row.stock,
+    status: row.status,
     category: row.category,
     badge: row.badge,
     imageUrl: row.image_url,

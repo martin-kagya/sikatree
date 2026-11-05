@@ -229,6 +229,10 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | CAT-08 | Bulk import from CSV and from a WhatsApp Business catalogue export (if feasible). | P2 |
 | CAT-09 | Drag-and-drop ordering and "featured" flag. | P1 |
 
+**Implementation (2026-11-05):** `/dashboard/items/new` and `/dashboard/items/[id]` create and edit an item with one photo, name, description, price, compare-at price, category, stock, visibility, badge and numeric position. Photos upload to the `items` bucket (JPG, PNG, WebP or AVIF, up to 10MB) and can be replaced or removed. Manual sold out is a status, independent of the stock count. The storefront reflects price, stock, hidden and sold-out changes immediately.
+
+Still deferred: multiple images, variants, drag-and-drop order, category management, image compression and responsive sizes, and bulk import. The current position field is numeric, not drag-and-drop.
+
 ### 6.5 Inventory (INV)
 
 | ID | Requirement | P |
@@ -366,6 +370,8 @@ Channels: **WhatsApp** (primary), **PWA push** (secondary), **SMS** (fallback, P
 | DASH-14 | In-app notification center mirroring WhatsApp notifications. | P0 |
 | DASH-15 | Language toggle and settings (profile, notifications, sessions, plan). | P0 |
 | DASH-16 | Installation prompt and onboarding checklist ("Add 3 items", "Share your link", "Set payout"). | P0 |
+
+**Implementation (2026-11-05):** DASH-03 (orders) and DASH-05/06 (catalogue and stock basics) are partially live in the single-page dashboard: order list and status actions, item list with add, edit, hide, manual sold out and stock. The shell, home, bookings, payments, page editor, customers, analytics and settings remain deferred.
 
 ### 6.11 Client experience (CLI)
 
