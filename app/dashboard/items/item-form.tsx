@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
-import { ChevronDown } from '@/components/icons';
+import { Dropdown } from '@/components/ui/dropdown';
 import type { EditableItem } from '@/lib/catalogue';
 import { saveItemAction, type ItemFormState } from './actions';
 
@@ -10,7 +10,6 @@ const initial: ItemFormState = {};
 
 const field =
   'h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:border-ink/20 focus:border-green-deep focus:ring-2 focus:ring-green-deep';
-const select = `${field} appearance-none pr-10`;
 const label = 'mb-1.5 block text-[13px] font-medium text-ink';
 
 export function ItemForm({
@@ -191,38 +190,36 @@ export function ItemForm({
             <label htmlFor="status" className={label}>
               Visibility
             </label>
-            <div className="relative">
-              <select
-                id="status"
-                name="status"
-                defaultValue={item?.status ?? 'active'}
-                className={`${select} peer`}
-              >
-                <option value="active">Active</option>
-                <option value="sold_out">Sold out</option>
-                <option value="hidden">Hidden</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted transition-transform duration-200 peer-focus:rotate-180" />
-            </div>
+            <Dropdown
+              id="status"
+              name="status"
+              defaultValue={item?.status ?? 'active'}
+              ariaLabel="Visibility"
+              size="lg"
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'sold_out', label: 'Sold out' },
+                { value: 'hidden', label: 'Hidden' },
+              ]}
+            />
           </div>
           <div>
             <label htmlFor="badge" className={label}>
               Badge
             </label>
-            <div className="relative">
-              <select
-                id="badge"
-                name="badge"
-                defaultValue={item?.badge ?? ''}
-                className={`${select} peer`}
-              >
-                <option value="">None</option>
-                <option value="discount">Discount</option>
-                <option value="popular">Popular</option>
-                <option value="new">New</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted transition-transform duration-200 peer-focus:rotate-180" />
-            </div>
+            <Dropdown
+              id="badge"
+              name="badge"
+              defaultValue={item?.badge ?? ''}
+              ariaLabel="Badge"
+              size="lg"
+              options={[
+                { value: '', label: 'None' },
+                { value: 'discount', label: 'Discount' },
+                { value: 'popular', label: 'Popular' },
+                { value: 'new', label: 'New' },
+              ]}
+            />
           </div>
         </div>
 

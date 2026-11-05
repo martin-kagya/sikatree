@@ -264,7 +264,7 @@ Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in check
 
 - Height 52px, padding 0 16px, radius `--r-inner`, 16px text, fill `--surface-soft`, 1px `--hairline` border. Focus: border `--green-main` plus the focus ring.
 - Compact checkout fields use `--r-control` 12px and 44 to 48px height. Standard forms keep `--r-inner`.
-- Selects remove the native arrow and use a 16px chevron 12px from the right edge, vertically centred. Reserve 40px of right padding so the value never runs under it.
+- Selects and dropdowns do not use the native popup. A button with a 16px chevron opens a listbox 4px below the trigger, flipping above when the viewport is short. The menu matches the field width, with a 180px minimum and 420px maximum, renders in a portal above the page, and closes on select, Escape or an outside click. The selected row uses `--mint-100` with `--green-deep` text.
 - Label above (15px medium), always visible, never placeholder-only. Helper or error below, 14px. Placeholders show example values only.
 - Phone field: fixed `+233` prefix, number formatting, numeric keyboard (`inputmode="tel"`). Set `autocomplete` and `enterkeyhint` on every field.
 - Validate inline on blur and on submit. Error: border `--danger`, message 14px `--danger` with a 16px alert-circle icon, plain language, `aria-invalid="true"` and `aria-describedby`.
@@ -573,6 +573,7 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 | Page entry | opacity fade over 220ms. The page wrapper must not transform, so fixed dialogs and sticky bars keep the viewport as their containing block |
 | Section entry | opacity and a 10px rise over 320ms, staggered 40ms for up to 4 children |
 | Status change | colour and small scale over 200ms; never a single-frame swap |
+| Dropdown | opens 4px under the trigger with the chevron rotating 180deg over 200ms; flips above when the viewport is short; selected row uses mint-100 |
 | Dialog open | panel opacity 0, 16px rise and `scale(0.97)`, 280ms standard; backdrop fades 200ms |
 | Dialog close | panel fades and scales to 0.98 over 180ms; backdrop fades 180ms |
 | Checkout success | form fades and slides left 28px over 200ms; success fades in from 26px right over 340ms |
@@ -925,7 +926,8 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] The desktop dashboard uses the 960px container, not a narrow 760px column.
 - [ ] Support shows the vendor's own tickets and never exposes another vendor's ticket.
 - [ ] On mobile the admin support table swipes to the status and Open columns.
-- [ ] Admin filters and row selects use the custom chevron with 12px right alignment.
+- [ ] Admin filters and row selects use the custom dropdown, anchored 4px under the trigger and flipping above when needed.
+- [ ] Item form Visibility and Badge use the same dropdown; no native select popup is reachable.
 - [ ] A manually sold-out item keeps its stock count but shows Sold out and has no Add button.
 - [ ] Reduced motion makes all transitions instant.
 
