@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Check } from '@/components/icons';
+import { Check, MessageCircle } from '@/components/icons';
 import { OstraMark } from '@/components/ui/ostra-mark';
 import { site } from '@/lib/brand';
 import { formatCedis } from '@/lib/money';
@@ -104,7 +104,7 @@ export default async function TrackOrderPage({
           </Link>
         </header>
 
-        <main className="mt-6 space-y-5">
+        <main className="mt-6 space-y-5 stagger">
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -217,13 +217,15 @@ export default async function TrackOrderPage({
               href={vendorHref}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-12 flex-1 items-center justify-center rounded-pill bg-green-main px-6 text-label text-ink transition-transform hover:-translate-y-px active:scale-[0.98]"
+              aria-label={`Message ${order.vendorName} on WhatsApp`}
+              className="pressable inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-pill bg-green-main px-5 text-[14px] text-ink hover:bg-green-main/90 sm:text-label"
             >
-              Message {order.vendorName}
+              <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">Message {order.vendorName}</span>
             </a>
             <Link
               href={`/${order.vendorHandle}`}
-              className="inline-flex h-12 items-center justify-center rounded-pill border border-hairline bg-white px-6 text-label text-ink hover:border-ink/40"
+              className="pressable inline-flex h-12 w-full items-center justify-center rounded-pill border border-hairline bg-white px-6 text-label text-ink hover:border-ink/40 sm:w-auto"
             >
               Back to the shop
             </Link>

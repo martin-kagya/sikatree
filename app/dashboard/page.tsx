@@ -139,7 +139,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
 
         <Link
           href={`/o/${order.code}`}
-          className="inline-flex h-9 items-center rounded-pill border border-hairline px-3 text-[12px] font-medium text-ink hover:border-ink/40"
+          className="pressable inline-flex h-9 items-center rounded-pill border border-hairline px-3 text-[12px] font-medium text-ink hover:border-ink/40"
         >
           Track page
         </Link>
@@ -191,7 +191,7 @@ export default async function DashboardPage({
           </form>
         </header>
 
-        <main className="mt-6 space-y-5">
+        <main className="mt-6 space-y-5 stagger">
           {params.item ? (
             <p className="rounded-card bg-mint-100 p-4 text-small text-green-deep">
               Item saved. Your page is up to date.
@@ -211,7 +211,7 @@ export default async function DashboardPage({
                 href={`https://wa.me/?text=${encodeURIComponent(shareMessage)}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-9 items-center rounded-pill bg-green-main px-4 text-small text-ink transition-transform hover:-translate-y-px"
+                className="pressable inline-flex h-9 items-center rounded-pill bg-green-main px-4 text-small text-ink hover:bg-green-main/90"
               >
                 Share on WhatsApp
               </a>
@@ -261,7 +261,7 @@ export default async function DashboardPage({
               </div>
               <Link
                 href="/dashboard/items/new"
-                className="inline-flex h-10 items-center rounded-pill bg-ink px-4 text-small text-white hover:bg-ink/90"
+                className="pressable inline-flex h-10 items-center rounded-pill bg-ink px-4 text-small text-white hover:bg-ink/90"
               >
                 Add item
               </Link>
@@ -307,7 +307,7 @@ export default async function DashboardPage({
                         </span>
                         <Link
                           href={`/dashboard/items/${item.id}`}
-                          className="inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                          className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
                         >
                           Edit
                         </Link>
@@ -317,7 +317,7 @@ export default async function DashboardPage({
                             <input type="hidden" name="status" value="sold_out" />
                             <button
                               type="submit"
-                              className="inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                              className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
                             >
                               Sold out
                             </button>
@@ -328,7 +328,7 @@ export default async function DashboardPage({
                             <input type="hidden" name="status" value="active" />
                             <button
                               type="submit"
-                              className="inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                              className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
                             >
                               Show
                             </button>

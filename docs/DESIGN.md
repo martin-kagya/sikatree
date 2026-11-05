@@ -264,6 +264,7 @@ Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in check
 
 - Height 52px, padding 0 16px, radius `--r-inner`, 16px text, fill `--surface-soft`, 1px `--hairline` border. Focus: border `--green-main` plus the focus ring.
 - Compact checkout fields use `--r-control` 12px and 44 to 48px height. Standard forms keep `--r-inner`.
+- Selects remove the native arrow and use a 16px chevron 12px from the right edge, vertically centred. Reserve 40px of right padding so the value never runs under it.
 - Label above (15px medium), always visible, never placeholder-only. Helper or error below, 14px. Placeholders show example values only.
 - Phone field: fixed `+233` prefix, number formatting, numeric keyboard (`inputmode="tel"`). Set `autocomplete` and `enterkeyhint` on every field.
 - Validate inline on blur and on submit. Error: border `--danger`, message 14px `--danger` with a 16px alert-circle icon, plain language, `aria-invalid="true"` and `aria-describedby`.
@@ -567,6 +568,11 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 | Choice chip | colour 200ms; selected is ink fill with white text; no size change |
 | Segmented control | black thumb slides 280ms spring; labels fade colour 200ms |
 | Compact press | scale 0.96 with 180ms spring on release; hover lifts 1px |
+| Every button | hover lifts 1px and press scales 0.96 to 0.97 over 180ms spring; a 2px focus ring remains. Applies to every button on every surface, including auth, dashboard, admin, tracking and storefront |
+| Button-like link | the same lift, press and focus treatment through the shared pressable class |
+| Page entry | opacity fade over 220ms. The page wrapper must not transform, so fixed dialogs and sticky bars keep the viewport as their containing block |
+| Section entry | opacity and a 10px rise over 320ms, staggered 40ms for up to 4 children |
+| Status change | colour and small scale over 200ms; never a single-frame swap |
 | Dialog open | panel opacity 0, 16px rise and `scale(0.97)`, 280ms standard; backdrop fades 200ms |
 | Dialog close | panel fades and scales to 0.98 over 180ms; backdrop fades 180ms |
 | Checkout success | form fades and slides left 28px over 200ms; success fades in from 26px right over 340ms |
@@ -580,11 +586,13 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 - Never slide an entering element more than 26px or scale a panel above 1.0.
 - Never bounce a panel. Only badges may overshoot, and only to 1.18.
 - Never add motion that delays reading, checkout or the success state.
+- Never ship a button or button-like link without hover, press and focus feedback.
+- Never swap a route or a section without a fade. A hard page change is a bug on every surface.
 - No parallax, cursor effects, scroll-jacking, autoplay video, marquees or drifting tiles.
 
 ### 8.5 Reduced motion
 
-`prefers-reduced-motion: reduce` or `Save-Data`: all entries become instant opacity changes with no transform, no spring, no stagger and no zoom. Dialogs open and close instantly. Success swaps instantly. Focus rings and status changes remain. Spinners stay.
+`prefers-reduced-motion: reduce` or `Save-Data`: all entries become instant opacity changes with no transform, no spring, no stagger, no press scale and no zoom. Dialogs open and close instantly. Success swaps instantly. Focus rings and status changes remain. Spinners stay.
 
 ## 9. Content and copy rules (these override the reference)
 
@@ -853,6 +861,8 @@ Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o
 - [ ] The segmented thumb slides with the spring and the active chip is ink fill.
 - [ ] Dialogs fade and rise in and out. Success slides left then fades in from the right.
 - [ ] Tracking shows four steps, hides customer contact details and handles cancelled orders.
+- [ ] The Message vendor button keeps its label inside the pill at 320px, truncating a long store name instead of touching the edge.
+- [ ] Every button and button-like link has hover, press and focus feedback; every route fades in.
 - [ ] Nothing appears, disappears or changes layout abruptly. Under reduced motion every transform and spring is removed.
 - [ ] Muted text, stock captions and CTA labels reach 4.5:1.
 
@@ -905,6 +915,8 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] Support ticket opens with vendor context and history, and a reply appears in the thread.
 - [ ] Funnel shows conversations, live pages, orders and median time to live.
 - [ ] Adding an item with a photo shows it on the storefront; editing price, hiding or marking sold out updates the page.
+- [ ] Selects in the item form use the custom chevron, not the browser arrow.
+- [ ] Every dashboard button and button-like link has a pressed state and a visible focus ring.
 - [ ] A manually sold-out item keeps its stock count but shows Sold out and has no Add button.
 - [ ] Reduced motion makes all transitions instant.
 

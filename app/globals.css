@@ -38,6 +38,10 @@
   --glass-border: rgba(255, 255, 255, 0.22);
   --scrim: rgba(16, 17, 31, 0.4);
   --hero-scrim: linear-gradient(180deg, rgba(10, 10, 10, 0.25) 0%, rgba(10, 10, 10, 0.55) 100%);
+
+  /* Motion tokens (DESIGN.md 8.1) */
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 * {
@@ -107,6 +111,112 @@ body {
   background: linear-gradient(180deg, transparent 0%, var(--bg-page) 100%);
 }
 
+/* Every button gets a tactile press, and every page and section enters with a
+   short fade. See DESIGN.md 8.3. */
+button:not(:disabled) {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 180ms var(--ease-spring),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 180ms ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.pressable {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 180ms var(--ease-spring),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 180ms ease;
+}
+
+.pressable:hover {
+  transform: translateY(-1px);
+}
+
+.pressable:active {
+  transform: scale(0.96);
+}
+
+.pressable:focus-visible,
+button:focus-visible,
+a[class*='rounded-pill']:focus-visible {
+  outline: 2px solid var(--green-deep);
+  outline-offset: 2px;
+}
+
+/* Button-like links share the button feel even when they are anchors. */
+a[class*='rounded-pill'] {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 180ms var(--ease-spring),
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+a[class*='rounded-pill']:hover {
+  transform: translateY(-1px);
+}
+
+a[class*='rounded-pill']:active {
+  transform: scale(0.97);
+}
+
+/* Opacity only: a transform here would change the containing block for fixed
+   dialogs and the storefront sticky bar. */
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.route-fade {
+  animation: route-fade-in 220ms var(--ease-standard) both;
+}
+
+@keyframes section-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stagger > * {
+  animation: section-rise 320ms var(--ease-standard) both;
+}
+
+.stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.stagger > *:nth-child(n + 5) {
+  animation-delay: 150ms;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -115,5 +225,26 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled),
+  .pressable,
+  a[class*='rounded-pill'] {
+    transition: none;
+  }
+
+  button:not(:disabled):active,
+  .pressable:hover,
+  .pressable:active,
+  a[class*='rounded-pill']:hover,
+  a[class*='rounded-pill']:active {
+    transform: none;
+  }
+
+  .route-fade,
+  .stagger > * {
+    animation: none;
   }
 }
