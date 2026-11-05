@@ -14,7 +14,6 @@ import {
 import {
   ArrowRight,
   Check,
-  ChevronDown,
   ChevronRight,
   Copy,
   MessageCircle,
@@ -25,6 +24,7 @@ import {
 import { submitOrder } from '@/lib/checkout-actions';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { OstraMark } from '@/components/ui/ostra-mark';
+import { Dropdown } from '@/components/ui/dropdown';
 import { accentFor } from '@/lib/shop-accent';
 import {
   badgeLabel,
@@ -791,21 +791,19 @@ export function Storefront({
 
               <div className="flex items-center gap-2 sm:ml-auto">
                 {showSort ? (
-                  <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
-                    <span className="sr-only">Sort products</span>
-                    <select
+                  <div className="flex min-w-0 flex-1 items-center sm:flex-none">
+                    <Dropdown
+                      ariaLabel="Sort products"
                       value={sort}
-                      onChange={(event) => navigate({ sort: event.target.value })}
-                      className="h-11 w-full appearance-none rounded-[12px] border border-[var(--shop-hair)] bg-[var(--shop-card)] pl-3 pr-9 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--shop-accent-deep)] sm:w-auto"
-                    >
-                      {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-                        <option key={key} value={key}>
-                          {SORT_LABELS[key]}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-[var(--shop-muted)]" />
-                  </label>
+                      onChange={(next) => navigate({ sort: next as SortKey })}
+                      options={(Object.keys(SORT_LABELS) as SortKey[]).map((key) => ({
+                        value: key,
+                        label: SORT_LABELS[key],
+                      }))}
+                      size="shop"
+                      buttonClassName="sm:w-auto"
+                    />
+                  </div>
                 ) : null}
 
                 <div className="relative h-11 w-11 shrink-0">
@@ -1170,18 +1168,15 @@ export function Storefront({
                     </label>
                     <label className="block text-[13px] font-medium text-[var(--shop-ink)]">
                       Time
-                      <select
+                      <Dropdown
+                        ariaLabel="Appointment time"
                         name="bookingTime"
                         value={bookingTime}
-                        onChange={(event) => setBookingTime(event.target.value)}
-                        className={`${fieldCls} mt-1.5`}
-                      >
-                        {BOOKING_TIMES.map((time) => (
-                          <option key={time} value={time}>
-                            {time}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setBookingTime}
+                        options={BOOKING_TIMES.map((time) => ({ value: time, label: time }))}
+                        size="shop"
+                        buttonClassName="mt-1.5"
+                      />
                     </label>
                   </section>
                 ) : (

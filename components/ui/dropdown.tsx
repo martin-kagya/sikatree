@@ -14,23 +14,31 @@ export function Dropdown({
   name,
   options,
   defaultValue = '',
+  value: controlledValue,
+  onChange,
   ariaLabel,
   size = 'md',
   tone = 'white',
+  buttonClassName,
   menuClassName,
 }: {
   id?: string;
-  name: string;
+  name?: string;
   options: Option[];
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
   ariaLabel: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'shop';
   tone?: 'page' | 'white';
+  buttonClassName?: string;
   menuClassName?: string;
 }) {
-  const [value, setValue] = useState(defaultValue);
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const value = controlledValue ?? internalValue;
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const listId = useId();
@@ -51,6 +59,15 @@ export function Dropdown({
       left: Math.min(trigger.left, window.innerWidth - width - 8),
       width,
     });
+    // The storefront menu must stay inside .shop-root so it inherits the
+    // --shop-* variables; admin and dashboard menus can use the body.
+    setPortalTarget(
+      size === 'shop'
+        ? ((root.current?.closest('dialog') as HTMLElement | null) ??
+          (root.current?.closest('.shop-root') as HTMLElement | null) ??
+          document.body)
+        : document.body,
+    );
   }
 
   useEffect(() => {
@@ -82,7 +99,7 @@ export function Dropdown({
 
   return (
     <div ref={root} className="relative">
-      <input type="hidden" name={name} value={value} />
+      {name ? <input type="hidden" name={name} value={value} /> : null}
       <button
         id={id}
         type="button"
@@ -102,26 +119,33 @@ export function Dropdown({
           }
         }}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-inner border border-hairline text-left outline-none transition-colors focus:border-green-deep focus:ring-2 focus:ring-green-deep',
+          'flex w-full items-center justify-between gap-2 border text-left outline-none transition-colors',
+          size === 'shop'
+            ? 'h-11 rounded-[12px] border-[var(--shop-hair)] bg-[var(--shop-card)] pl-3 pr-3 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]'
+            : 'rounded-inner border-hairline focus:border-green-deep focus:ring-2 focus:ring-green-deep',
           size === 'sm'
             ? 'h-8 pl-2 pr-2 text-[12px]'
             : size === 'lg'
               ? 'h-11 pl-3 pr-3 text-[14px]'
-              : 'h-10 pl-3 pr-3 text-small',
-          tone === 'page' ? 'bg-page text-ink' : 'bg-white text-ink',
+              : size === 'shop'
+                ? ''
+                : 'h-10 pl-3 pr-3 text-small',
+          size === 'shop' ? '' : tone === 'page' ? 'bg-page text-ink' : 'bg-white text-ink',
+          buttonClassName,
         )}
       >
         <span className="truncate">{selected?.label ?? 'Select'}</span>
         <ChevronDown
           className={cn(
-            'shrink-0 text-ink-muted transition-transform duration-200',
+            'shrink-0 transition-transform duration-200',
+            size === 'shop' ? 'text-[var(--shop-muted)]' : 'text-ink-muted',
             size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4',
             open && 'rotate-180',
           )}
         />
       </button>
 
-      {open && position
+      {open && position && portalTarget
         ? createPortal(
             <div
               ref={menu}
@@ -135,7 +159,10 @@ export function Dropdown({
                 width: position.width,
               }}
               className={cn(
-                'z-50 max-h-[260px] overflow-y-auto rounded-[12px] border border-hairline bg-white p-1 shadow-card',
+                'z-[60] max-h-[260px] overflow-y-auto rounded-[12px] border p-1 shadow-card',
+                size === 'shop'
+                  ? 'border-[var(--shop-hair)] bg-[var(--shop-card)]'
+                  : 'border-hairline bg-white',
                 menuClassName,
               )}
             >
@@ -146,21 +173,26 @@ export function Dropdown({
                   role="option"
                   aria-selected={option.value === value}
                   onClick={() => {
-                    setValue(option.value);
+                    if (controlledValue === undefined) setInternalValue(option.value);
+                    onChange?.(option.value);
                     setOpen(false);
                   }}
                   className={cn(
                     'block w-full whitespace-nowrap rounded-[8px] px-3 py-2 text-left text-[13px] transition-colors',
                     option.value === value
-                      ? 'bg-mint-100 font-medium text-green-deep'
-                      : 'text-ink hover:bg-page',
+                      ? size === 'shop'
+                        ? 'bg-[var(--shop-ink)] font-medium text-white'
+                        : 'bg-mint-100 font-medium text-green-deep'
+                      : size === 'shop'
+                        ? 'text-[var(--shop-ink)] hover:bg-[var(--shop-bg)]'
+                        : 'text-ink hover:bg-page',
                   )}
                 >
                   {option.label}
                 </button>
               ))}
             </div>,
-            document.body,
+            portalTarget,
           )
         : null}
     </div>

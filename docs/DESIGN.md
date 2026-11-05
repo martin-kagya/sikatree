@@ -264,7 +264,7 @@ Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in check
 
 - Height 52px, padding 0 16px, radius `--r-inner`, 16px text, fill `--surface-soft`, 1px `--hairline` border. Focus: border `--green-main` plus the focus ring.
 - Compact checkout fields use `--r-control` 12px and 44 to 48px height. Standard forms keep `--r-inner`.
-- Selects and dropdowns do not use the native popup. A button with a 16px chevron opens a listbox 4px below the trigger, flipping above when the viewport is short. The menu matches the field width, with a 180px minimum and 420px maximum, renders in a portal above the page, and closes on select, Escape or an outside click. The selected row uses `--mint-100` with `--green-deep` text.
+- Every select in the system uses the same custom Dropdown. No native select remains. A button with a 16px chevron opens a listbox 4px below the trigger, flipping above when the viewport is short. The menu matches the field width, with a 180px minimum and 420px maximum. It renders in a portal: the page body for admin and dashboard, `.shop-root` for the storefront, and the open dialog for checkout so it stays in the top layer. It closes on select, Escape or an outside click. The selected row uses `--mint-100` with `--green-deep` text, or ink with white text on the storefront.
 - Label above (15px medium), always visible, never placeholder-only. Helper or error below, 14px. Placeholders show example values only.
 - Phone field: fixed `+233` prefix, number formatting, numeric keyboard (`inputmode="tel"`). Set `autocomplete` and `enterkeyhint` on every field.
 - Validate inline on blur and on submit. Error: border `--danger`, message 14px `--danger` with a 16px alert-circle icon, plain language, `aria-invalid="true"` and `aria-describedby`.
@@ -823,7 +823,7 @@ The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badge
 ### 14.3 Toolbar and cart
 
 - Category chips when the store has at least 2 categories: one horizontal scroll-snap row with no visible scrollbar, 44px high, `--r-chip` 10px. Inactive white with a hairline, active `--ink` fill with white text, colour transition 200ms.
-- Sort appears above 8 products, search above 12. The Featured select uses `--r-control` 12px and a trailing chevron 12px from the right edge, so it aligns at every width. URL state keeps `q`, `category`, `sort` and `page`.
+- Sort appears above 8 products, search above 12. The Featured control uses the shared Dropdown at `--r-control` 12px, with a trailing chevron and a menu anchored 4px below. URL state keeps `q`, `category`, `sort` and `page`.
 - The cart control sits beside the sort control. 44px white circle, 1px `--hairline`, cart glyph, count in a black corner badge. It is hidden at zero and fades and scales in on the first add. Its slot is reserved so the sort control does not jump. The same control appears in the sticky bar.
 - Sidebar filters only at 40 products or more and 1024px or more. Below that, filters use a bottom sheet. Otherwise the grid uses the full container.
 
@@ -837,7 +837,7 @@ Motion on hover and focus follows 8.3. On touch the Add button is always visible
 
 - The cart is single-vendor, persists per store in `localStorage`, and is summarised by item total, delivery fee and total.
 - Checkout is a modal, not a page. Two columns on desktop (form left, summary right) and one column on mobile. Maximum height 92vh with internal scroll.
-- Items list with thumbnails and a quantity stepper. Delivery or pickup uses the segmented control with a black sliding thumb and a 280ms spring. Pickup shows the store location; delivery requires an address. Service vendors show date and time instead.
+- Items list with thumbnails and a quantity stepper. Delivery or pickup uses the segmented control with a black sliding thumb and a 280ms spring. Pickup shows the store location; delivery requires an address. Service vendors show a date picker and the shared time Dropdown instead of a native select.
 - Contact: name, Ghana WhatsApp number and email. Email is required and stored on the order for updates. No email is sent yet. Note is optional.
 - Summary: item total, fixed GH₵15 delivery (free for pickup), total. Place order is the mint green Primary, full width, `--r-control` 12px, with a forward chevron inside the same button and the press spring.
 - Payment is not connected. The copy says pay on delivery, at pickup or at the appointment. Never claim a payment was received.
@@ -928,6 +928,7 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] On mobile the admin support table swipes to the status and Open columns.
 - [ ] Admin filters and row selects use the custom dropdown, anchored 4px under the trigger and flipping above when needed.
 - [ ] Item form Visibility and Badge use the same dropdown; no native select popup is reachable.
+- [ ] Storefront sort and appointment time, admin filters and row status, and item form fields all use the shared Dropdown. No `<select>` remains in the app.
 - [ ] A manually sold-out item keeps its stock count but shows Sold out and has no Add button.
 - [ ] Reduced motion makes all transitions instant.
 
