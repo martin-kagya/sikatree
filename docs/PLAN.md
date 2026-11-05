@@ -170,7 +170,36 @@ A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, b
 - Performance budget enforced in CI (bundle size checks, Lighthouse on key pages).
 
 ### 6.8 Security checklist
-RLS tests per table, webhook signature verification (WhatsApp and payments), rate limits on public endpoints and the bot, input validation on all parsed data, signed upload URLs, content-type checks on media, secrets management, dependency scanning, audit logging for admin actions.
+RLS tests per table, webhook signature verification (WhatsApp and payments), rate limits on public endpoints and the bot, input validation on all parsed data, signed upload URLs, content-type checks on media, secrets management, dependency scanning, audit logging for admin actions. Account takeover is handled separately in 6.9.
+
+### 6.9 Account takeover hardening (deferred, not launch-blocking)
+
+The launch flow stays as it is: a WhatsApp magic link, single use, 15 minutes, then a 30-day device session. No PIN, no recovery codes and no second app during onboarding. That is a deliberate onboarding trade-off.
+
+The risk is WhatsApp account takeover. With no second factor, whoever controls the vendor's WhatsApp can request a link and see customer contact details and the catalogue. We accept that for launch and stage the mitigation so it arrives after the vendor has seen value.
+
+**Wave 1: before payouts are enabled, and no later than Phase 3 exit**
+- Magic link confirmation page with a Continue button. Redeem only on POST, so previews and scanners cannot consume the token.
+- Link lifetime 5 to 10 minutes, one use, rate limits per phone and IP.
+- Device and session list with last seen, plus Sign out everywhere.
+- Freeze process: support revokes sessions and pauses the page when a vendor reports a takeover.
+- WhatsApp two-step verification nudge after go-live.
+- Mask customer phone and address until the vendor taps reveal.
+- Optional passkey or PIN prompt after the first order, skippable.
+
+**Wave 2: before payouts go live**
+- Step-up re-authentication for payout number, phone, email and PIN changes.
+- Admin TOTP (AUTH-05).
+- Recovery through support identity checks and one-time recovery codes, never WhatsApp alone.
+- Payout changes held for manual review at first.
+
+**Wave 3: after pilot**
+- Passkeys as the primary new-device factor.
+- Login alerts on a second channel.
+- Anomaly checks on link requests and device changes.
+- Support can revoke sessions without a database console.
+
+**Do not** add a PIN or recovery codes to the onboarding chat, block go-live on these items, or make the magic link harder to use before Wave 1 ships. The current link plus 30-day session is the launch behaviour.
 
 ---
 
@@ -354,6 +383,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Notification routing with fallback logic (NOT-03 to NOT-05)
 - [ ] Refunds and cancellations (ORD-10, PAY-06)
 - [ ] Admin v1: vendor list, order/payment views, support inbox, fee settings, audit log (ADM-01 to ADM-03, ADM-05 to ADM-07)
+- [ ] Account takeover hardening wave 1 before payouts, wave 2 with payouts (6.9)
 - [ ] Twi translations for the bot's core flow (ONB-04, if time allows)
 
 **Test**
@@ -396,7 +426,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Monitoring and alerting (payment failures, webhook failures, queue backlog, WhatsApp quality rating)
 - [ ] Backup and restore drill
 - [ ] Terms, Privacy Policy and Refund Policy published; Data Protection registration complete
-- [ ] Support playbook: common issues, response times, escalation
+- [ ] Support playbook: common issues, response times, escalation, and the takeover freeze drill (6.9)
 - [ ] Cost review per vendor (messaging, AI parsing, storage) and fee adjustments
 - [ ] Referral links and "Founding Vendor" configuration (BIL-04)
 - [ ] Share cards and QR codes (PG-06)
