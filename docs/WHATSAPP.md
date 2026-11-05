@@ -104,7 +104,7 @@ and `WA_SIM_URL` to point at another host.
 ## Magic link dashboard
 
 The bot's `Open dashboard` button creates a single-use 15-minute link
-(`login_link` stores only the token hash). Tapping it exchanges the token for a
+(`login_link` stores only the token hash). Tapping it hits `/auth/verify`, which exchanges the token for a
 30-day HTTP-only cookie (`AUTH_SECRET` is the signing key) and opens
 `/dashboard`, which shows the vendor's name, live link, share message and items.
 

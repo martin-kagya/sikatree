@@ -24,6 +24,7 @@ describe('login links', () => {
   it('creates a link that redeems exactly once', async () => {
     const vendorId = await seedVendor();
     const { url } = await createLoginLink(vendorId);
+    expect(url).toContain('/auth/verify?token=');
     const token = new URL(url).searchParams.get('token');
     expect(token).toBeTruthy();
 

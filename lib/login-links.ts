@@ -23,7 +23,7 @@ export async function createLoginLink(vendorId: string): Promise<{ url: string }
      values ($1, $2, now() + make_interval(mins => $3))`,
     [vendorId, hash, LINK_TTL_MINUTES],
   );
-  return { url: `${site.url}/auth/login?token=${raw}` };
+  return { url: `${site.url}/auth/verify?token=${raw}` };
 }
 
 export type RedeemResult =
