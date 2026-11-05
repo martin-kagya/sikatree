@@ -315,6 +315,27 @@ Backend detail, environment variables and the operational runbook live in
 
 **Exit criteria:** A real client completes a real MoMo payment to a design-partner vendor; vendor sees the order on WhatsApp within seconds; ledger balances match the aggregator; no oversold stock in race tests.
 
+**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. Online payment, notifications, tracking and inventory were deliberately not built in that slice. The table below is the deferred register.
+
+**Deferred from the cart and checkout slice**
+
+| Area | What ships now | Deferred | Requirement | Target |
+|---|---|---|---|---|
+| Online payments | Pay on delivery, pickup or appointment | MoMo/card collection, signed webhooks, retries | PAY-01, PAY-02, PAY-09 | Phase 2, after aggregator KYC |
+| Ledger and fees | None | Double-entry ledger, platform fee, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
+| Delivery fee | Fixed GH₵15, free for pickup | Vendor-configurable free/fixed/confirm-after | ORD-03 | Phase 2 |
+| Order lifecycle | Orders start `pending` | Paid, confirmed, ready, fulfilled; vendor actions; cancellation/refund | ORD-05, ORD-10 | Phase 2/3 |
+| Vendor notification | None | WhatsApp order alert with action buttons | ORD-06, ONB-24, NOT-01 | Phase 2 (needs templates) |
+| Client tracking | Order code and static ETA on the success card | `/o/{code}` tracking page, phone verification, live status and ETA | ORD-07 | Phase 2/3 |
+| Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
+| Vendor contact shortcut | None | One-tap WhatsApp reply with the order code | ORD-09 | Phase 2 |
+| Order tools | None | CSV export, reorder | ORD-11, ORD-12 | P1/P2 |
+| Inventory | Stock checked at checkout | Stock decrement, holds, race protection | INV-01 to INV-03 | Phase 2 |
+| Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
+| Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
+
+**Payment framing:** the success card confirms an **order**, not a payment. It must not claim money was received until PAY-01/PAY-02 exist.
+
 ---
 
 ### Phase 3: Vendor PWA and notifications (Week 5 to 7)

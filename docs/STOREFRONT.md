@@ -59,3 +59,22 @@ square within 1px at 375, 768, 1280 and 1920; CLS 0; no long tasks while
 hovering every card; muted, low-stock and CTA text are 5.33, 6.54 and 6.01;
 reduced motion removes every transform; keyboard focus reveals the same overlay
 as hover.
+
+## Cart and checkout
+
+- Add to cart sits opposite Enquire on each card; the toolbar and the sticky bar
+  show the count. The cart persists in `localStorage` per store.
+- Checkout is a modal with items and quantities on the left and the summary on
+  the right: item total, a fixed GH₵15 delivery fee (free for pickup), and the
+  total. Delivery asks for an address; services ask for a date and time.
+- Name, Ghana WhatsApp number and email are required. The email is stored on
+  the order for updates; no email is sent yet.
+- Orders are written server-side to `orders` and `order_items` with a unique
+  `ORD-` code, then the modal shows the ticket-style success card with the code,
+  amount, ETA and email.
+- Payment is **not** connected. Orders are pay on delivery, at pickup or at the
+  appointment, and the copy says so.
+
+Deferred items and their requirement IDs are recorded in `PLAN.md` and
+`requirement.md` (delivery fee config, online payment, vendor notifications,
+tracking, inventory, service slots, email sending).

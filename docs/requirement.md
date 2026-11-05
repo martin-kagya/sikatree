@@ -275,7 +275,33 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | ORD-11 | Order history export (CSV). | P1 |
 | ORD-12 | Client "reorder" button from the tracking page. | P2 |
 
+**Implementation notes: cart and checkout slice (2026-11-05)**
+
+The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, note), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
+
+The following are deliberately deferred and must not be described as working:
+
+| Requirement | Deferred behaviour | Target |
+|---|---|---|
+| ORD-03 | Delivery fee is a fixed GH₵15 and free for pickup; vendor configuration (free / fixed / confirm-after) is deferred | Phase 2 |
+| ORD-05 | Orders start `pending`; the Paid/Confirmed/Ready/Fulfilled transitions and vendor actions are deferred | Phase 2/3 |
+| ORD-06 | Vendor WhatsApp order notification is deferred | Phase 2, once templates are approved |
+| ORD-07 | The `/o/{code}` tracking page and phone verification are deferred; the ETA is a static estimate, not live tracking | Phase 2/3 |
+| ORD-09 | One-tap vendor-to-client WhatsApp contact is deferred | Phase 2 |
+| ORD-10 | Cancellation and refunds are deferred | Phase 2/3 |
+| ORD-11, ORD-12 | CSV export and reorder are deferred | P1/P2 |
+
+Additional scope notes:
+
+- **Email capture.** Checkout collects and stores `customer_email` for order updates. No email is sent yet. Email is an optional P2 channel in NOT-02; sending depends on that notification work. The UI says the email is saved, not that a message was sent.
+- **Payment.** Online payments are not connected. Orders are pay on delivery, at pickup, or at the appointment. Nothing in the UI may claim a payment was received until PAY-01/PAY-02 exist.
+- **Services.** A service order is an appointment request with date and time only. Availability rules, slots and deposits remain Phase 4 work.
+- **Inventory.** Stock is checked at order time but not decremented or held. Concurrent orders can oversell until INV-01 to INV-03 land.
+- **Cart storage.** The cart lives in the browser (`localStorage`) per store and is not a server-side cart. Clearing browser storage clears it.
+
 ### 6.8 Payments and payouts (PAY)
+
+**Current state (2026-11-05):** no payment provider is connected. Checkout orders are pay-on-delivery, pay-at-pickup or pay-at-appointment. PAY-01, PAY-02, PAY-03, PAY-09 and the ledger are deferred; see the note under 6.7.
 
 | ID | Requirement | P |
 |---|---|---|

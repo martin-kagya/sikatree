@@ -20,6 +20,8 @@ export type ShopItem = {
 };
 
 export const PAGE_SIZE = 24;
+// Flat delivery fee for this slice (ORD-03 vendor config comes later).
+export const DELIVERY_FEE_PESEWAS = 1500;
 
 const priceFormat = new Intl.NumberFormat('en-GH', {
   style: 'currency',

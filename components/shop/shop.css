@@ -40,6 +40,16 @@
 .shop-view {
   opacity: 0;
   transform: translateX(-8px);
+  pointer-events: none;
+}
+
+.shop-add {
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1)),
+    transform 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
 }
 
 .shop-touch-desc {
@@ -100,6 +110,14 @@
   .shop-card:focus-within .shop-view {
     opacity: 1;
     transform: none;
+    pointer-events: auto;
+  }
+
+  .shop-card:hover .shop-add,
+  .shop-card:focus-within .shop-add {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
   }
 }
 
@@ -115,6 +133,12 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+  }
+
+  .shop-add {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
   }
 
   .shop-card:active {
@@ -145,8 +169,13 @@
   }
 
   .shop-desc,
-  .shop-view {
+  .shop-view,
+  .shop-add {
     transform: none !important;
+  }
+
+  .shop-add {
+    transition: none !important;
   }
 
   .shop-scrim {
@@ -170,4 +199,25 @@
   inset: auto 0 0 0;
   margin: 0 auto;
   width: min(520px, 100%);
+}
+
+.shop-checkout {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.shop-checkout::backdrop {
+  background: rgba(16, 17, 31, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.shop-barcode {
+  background-image: repeating-linear-gradient(
+    90deg,
+    #10111f 0 2px,
+    transparent 2px 5px,
+    #10111f 5px 6px,
+    transparent 6px 10px
+  );
 }

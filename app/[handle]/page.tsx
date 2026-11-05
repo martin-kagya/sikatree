@@ -12,6 +12,7 @@ type VendorRow = {
   name: string;
   handle: string;
   phone: string;
+  type: 'products' | 'services' | 'both' | null;
   bio: string | null;
   location: string | null;
   category: string | null;
@@ -42,7 +43,7 @@ async function loadVendor(
   if (!handle) return null;
 
   const vendors = await query<VendorRow>(
-    `select name, handle, phone, bio, location, category, accent, card_image_ratio
+    `select name, handle, phone, type, bio, location, category, accent, card_image_ratio
        from vendors
       where handle = $1 and status = 'live'`,
     [handle],
@@ -122,6 +123,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         category: vendor.category,
         accent: vendor.accent,
         cardImageRatio: vendor.card_image_ratio,
+        type: vendor.type,
       }}
       items={items}
       pageUrl={`https://${site.domain}/${vendor.handle}`}

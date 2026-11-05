@@ -9,12 +9,16 @@ import {
   useState,
   useTransition,
   type CSSProperties,
+  type FormEvent,
 } from 'react';
-import { ArrowRight, Check, Copy, MessageCircle } from '@/components/icons';
+import { ArrowRight, Check, Copy, MessageCircle, ShoppingCart, X } from '@/components/icons';
+import { submitOrder } from '@/lib/checkout-actions';
+import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { accentFor } from '@/lib/shop-accent';
 import {
   badgeLabel,
   filterItems,
+  DELIVERY_FEE_PESEWAS,
   formatShopPrice,
   hasDescription,
   pageWindow,
@@ -37,6 +41,7 @@ export type StorefrontVendor = {
   category: string | null;
   accent: string | null;
   cardImageRatio: string;
+  type: 'products' | 'services' | 'both' | null;
 };
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -61,10 +66,31 @@ function whatsappNumber(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
-function orderHref(phone: string, item: ShopItem): string {
-  const message = `Hi, I'd like to order ${item.name} (${formatShopPrice(item.pricePesewas)})`;
+function enquiryHref(phone: string, item: ShopItem): string {
+  const message = `Hi, I'm interested in ${item.name} (${formatShopPrice(
+    item.pricePesewas,
+  )}). Is it available?`;
   return `https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(message)}`;
 }
+
+const BOOKING_TIMES = Array.from({ length: 17 }, (_, index) => {
+  const minutes = 9 * 60 + index * 30;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
+
+function formatOrderDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Africa/Accra',
+  }).format(new Date(iso));
+}
+
+const fieldCls =
+  'h-11 w-full rounded-[10px] border border-[var(--shop-hair)] bg-white px-3 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
+
+const areaCls =
+  'min-h-[84px] w-full rounded-[10px] border border-[var(--shop-hair)] bg-white px-3 py-2 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
 
 function storeWhatsappHref(phone: string, name: string): string {
   return `https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(
@@ -77,18 +103,20 @@ function storeWhatsappHref(phone: string, name: string): string {
     phone,
     priority,
     tint,
+    onAdd,
   }: {
     item: ShopItem;
     phone: string;
     priority: boolean;
     tint: string;
+    onAdd: (id: string) => void;
   }) {
     const soldOut = item.stock !== null && item.stock <= 0;
     const low = stockLabel(item.stock);
     const badge = badgeLabel(item.badge);
     const desc = hasDescription(item);
     const focal = `${(item.focalX ?? 0.5) * 100}% ${(item.focalY ?? 0.5) * 100}%`;
-    const href = orderHref(phone, item);
+    const href = enquiryHref(phone, item);
     const price = formatShopPrice(item.pricePesewas);
 
     return (
@@ -164,9 +192,33 @@ function storeWhatsappHref(phone: string, name: string): string {
             </>
           ) : null}
 
-          <span className="shop-view pointer-events-none absolute bottom-2 left-2 z-30 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--shop-ink)]">
-            View <ArrowRight className="h-3 w-3" />
-          </span>
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="shop-view absolute bottom-2 left-2 z-30 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--shop-ink)]"
+          >
+            Enquire <ArrowRight className="h-3 w-3" />
+          </a>
+
+          {!soldOut ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onAdd(item.id);
+              }}
+              aria-label={`Add ${item.name} to cart`}
+              className="shop-add absolute bottom-2 right-2 z-30 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+              style={{
+                backgroundColor: 'var(--shop-accent)',
+                color: 'var(--shop-accent-label)',
+              }}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" /> Add
+            </button>
+          ) : null}
         </div>
 
         <div className="flex flex-1 flex-col px-1 pb-0.5 pt-2 sm:px-1.5 sm:pt-3">
@@ -309,7 +361,42 @@ export function Storefront({
 
   const headerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
+  const checkoutRef = useRef<HTMLDialogElement>(null);
   const [stuck, setStuck] = useState(false);
+
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [cartReady, setCartReady] = useState(false);
+  const [placing, setPlacing] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [order, setOrder] = useState<CheckoutOrder | null>(null);
+  const [fulfilment, setFulfilment] = useState<Fulfilment>(
+    vendor.type === 'services' ? 'appointment' : 'delivery',
+  );
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('09:00');
+
+  const cartKey = `sikatree-cart-${vendor.handle}`;
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(cartKey);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') setCart(parsed as Record<string, number>);
+      }
+    } catch {
+      /* ignore corrupt storage */
+    }
+    setCartReady(true);
+  }, [cartKey]);
+
+  useEffect(() => {
+    if (!cartReady) return;
+    try {
+      window.localStorage.setItem(cartKey, JSON.stringify(cart));
+    } catch {
+      /* storage full or private mode */
+    }
+  }, [cart, cartKey, cartReady]);
   useEffect(() => {
     const element = headerRef.current;
     if (!element) return;
@@ -361,6 +448,25 @@ export function Storefront({
   const showChips = categories.length >= 2;
   const showSidebar = items.length >= 40;
   const hasProducts = items.length > 0;
+  const sellingServices = vendor.type === 'services';
+
+  const cartLines = useMemo(
+    () =>
+      Object.entries(cart).flatMap(([id, quantity]) => {
+        const item = items.find((candidate) => candidate.id === id);
+        return item ? [{ item, quantity }] : [];
+      }),
+    [cart, items],
+  );
+  const cartCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
+  const subtotalPesewas = cartLines.reduce(
+    (sum, line) => sum + line.item.pricePesewas * line.quantity,
+    0,
+  );
+  const deliveryPesewas =
+    !sellingServices && fulfilment === 'delivery' ? DELIVERY_FEE_PESEWAS : 0;
+  const totalPesewas = subtotalPesewas + deliveryPesewas;
+  const today = new Date().toISOString().slice(0, 10);
 
   const accent = accentFor(vendor.accent);
   const themeStyle = {
@@ -425,6 +531,65 @@ export function Storefront({
     }
   }
 
+  function addToCart(id: string) {
+    setCart((previous) => ({
+      ...previous,
+      [id]: Math.min((previous[id] ?? 0) + 1, 20),
+    }));
+  }
+
+  function changeQuantity(id: string, quantity: number) {
+    setCart((previous) => {
+      const next = { ...previous };
+      if (quantity <= 0) delete next[id];
+      else next[id] = Math.min(quantity, 20);
+      return next;
+    });
+  }
+
+  function openCheckout() {
+    if (!cartCount) return;
+    setCheckoutError(null);
+    setOrder(null);
+    checkoutRef.current?.showModal();
+  }
+
+  function closeCheckout() {
+    checkoutRef.current?.close();
+  }
+
+  async function onCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!cartCount || placing) return;
+
+    setPlacing(true);
+    setCheckoutError(null);
+
+    const data = new FormData(event.currentTarget);
+    data.set('handle', vendor.handle);
+    data.set(
+      'cart',
+      JSON.stringify(cartLines.map((line) => ({ id: line.item.id, quantity: line.quantity }))),
+    );
+    data.set('fulfilment', sellingServices ? 'appointment' : fulfilment);
+    data.set('bookingDate', bookingDate);
+    data.set('bookingTime', bookingTime);
+
+    try {
+      const result = await submitOrder(data);
+      if (result.ok) {
+        setOrder(result.order);
+        setCart({});
+      } else {
+        setCheckoutError(result.error);
+      }
+    } catch {
+      setCheckoutError('Could not place the order. Try again.');
+    } finally {
+      setPlacing(false);
+    }
+  }
+
   const locationLine = [vendor.category, vendor.location].filter(Boolean).join(', ');
   const ctaHref = storeWhatsappHref(vendor.phone, vendor.name);
 
@@ -433,6 +598,7 @@ export function Storefront({
       {/* Sticky bar appears once the header leaves the viewport. */}
       <div
         aria-hidden={!stuck}
+        inert={!stuck}
         className={cn(
           'fixed inset-x-0 top-0 z-30 transition-all duration-300 ease-[cubic-bezier(0.2,0.7,0.2,1)]',
           stuck ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-full opacity-0',
@@ -444,16 +610,38 @@ export function Storefront({
               {vendor.name}
             </span>
             {hasProducts ? (
-              <a
-                href={ctaHref}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-pill px-3 text-[13px] font-medium min-[400px]:px-4"
-                style={{ backgroundColor: 'var(--shop-accent)', color: 'var(--shop-accent-label)' }}
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span className="hidden min-[400px]:inline">Chat on WhatsApp</span>
-              </a>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openCheckout}
+                  disabled={!cartCount}
+                  aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] disabled:opacity-40"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {cartCount > 0 ? (
+                    <span
+                      className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: 'var(--shop-accent)',
+                        color: 'var(--shop-accent-label)',
+                      }}
+                    >
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </button>
+                <a
+                  href={ctaHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-pill px-3 text-[13px] font-medium min-[400px]:px-4"
+                  style={{ backgroundColor: 'var(--shop-accent)', color: 'var(--shop-accent-label)' }}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="hidden min-[400px]:inline">Chat on WhatsApp</span>
+                </a>
+              </div>
             ) : null}
           </div>
         </div>
@@ -595,22 +783,46 @@ export function Storefront({
                 <div className="flex-1" />
               )}
 
-              {showSort ? (
-                <label className="flex shrink-0 items-center gap-2 sm:ml-auto">
-                  <span className="sr-only">Sort products</span>
-                  <select
-                    value={sort}
-                    onChange={(event) => navigate({ sort: event.target.value })}
-                    className="h-11 w-full rounded-pill border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--shop-accent-deep)] sm:w-auto"
-                  >
-                    {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
-                      <option key={key} value={key}>
-                        {SORT_LABELS[key]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
+              <div className="flex items-center gap-2 sm:ml-auto">
+                {showSort ? (
+                  <label className="flex min-w-0 flex-1 items-center sm:flex-none">
+                    <span className="sr-only">Sort products</span>
+                    <select
+                      value={sort}
+                      onChange={(event) => navigate({ sort: event.target.value })}
+                      className="h-11 w-full rounded-pill border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--shop-accent-deep)] sm:w-auto"
+                    >
+                      {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
+                        <option key={key} value={key}>
+                          {SORT_LABELS[key]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={openCheckout}
+                  disabled={!cartCount}
+                  aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                  className="relative inline-flex h-11 shrink-0 items-center gap-2 rounded-pill border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px] font-medium text-[var(--shop-ink)] disabled:opacity-40 sm:px-4"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cart</span>
+                  {cartCount > 0 ? (
+                    <span
+                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold"
+                      style={{
+                        backgroundColor: 'var(--shop-accent)',
+                        color: 'var(--shop-accent-label)',
+                      }}
+                    >
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -664,6 +876,7 @@ export function Storefront({
                   phone={vendor.phone}
                   priority={index < 4}
                   tint={FALLBACK_TINTS[index % FALLBACK_TINTS.length]}
+                  onAdd={addToCart}
                 />
               ))}
             </div>
@@ -771,6 +984,357 @@ export function Storefront({
               sheetRef.current?.close();
             }}
           />
+        </div>
+      </dialog>
+
+      <dialog
+        ref={checkoutRef}
+        aria-label="Checkout"
+        className="shop-checkout"
+        onClose={() => {
+          setOrder(null);
+          setCheckoutError(null);
+        }}
+      >
+        <div className="w-[min(960px,calc(100vw-24px))] max-h-[92vh] overflow-y-auto rounded-[24px] bg-white p-5 sm:p-7">
+          {order ? (
+            <div className="mx-auto max-w-[520px] py-2 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mint-100 text-green-deep">
+                <Check className="h-8 w-8" />
+              </div>
+              <h2 className="mt-4 text-h2 text-ink">Thank you!</h2>
+              <p className="mt-1 text-[14px] text-[var(--shop-muted)]">Your order has been placed.</p>
+
+              <div className="my-6 border-t border-dashed border-[var(--shop-hair)]" />
+
+              <div className="flex items-start justify-between text-left">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--shop-muted)]">
+                    Order ID
+                  </p>
+                  <p className="mt-1 text-[18px] font-medium text-[var(--shop-ink)]">{order.code}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] uppercase tracking-wide text-[var(--shop-muted)]">
+                    Amount
+                  </p>
+                  <p className="mt-1 text-[18px] font-medium text-[var(--shop-ink)]">
+                    {formatShopPrice(order.totalPesewas)}
+                  </p>
+                </div>
+              </div>
+
+              <dl className="mt-5 space-y-2 text-left text-[13px] text-[var(--shop-ink)]">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[var(--shop-muted)]">Placed</dt>
+                  <dd>{formatOrderDate(order.createdAt)}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[var(--shop-muted)]">ETA</dt>
+                  <dd className="text-right">{order.eta}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-[var(--shop-muted)]">Email</dt>
+                  <dd className="truncate text-right">{order.email}</dd>
+                </div>
+              </dl>
+
+              <div className="my-6 border-t border-dashed border-[var(--shop-hair)]" />
+
+              <div className="shop-barcode mx-auto h-12 w-full max-w-[280px]" aria-hidden="true" />
+              <p className="mt-2 font-mono text-[11px] tracking-[0.3em] text-[var(--shop-muted)]">
+                {order.code.replace('ORD-', '')}
+              </p>
+
+              <p className="mt-4 text-[12px] leading-relaxed text-[var(--shop-muted)]">
+                {order.fulfilment === 'delivery'
+                  ? 'Pay on delivery.'
+                  : order.fulfilment === 'pickup'
+                    ? 'Pay at pickup.'
+                    : 'Pay at your appointment.'}{' '}
+                {order.vendorName} will confirm shortly.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOrder(null);
+                  checkoutRef.current?.close();
+                }}
+                className="mt-6 h-12 w-full rounded-pill text-[15px] font-medium"
+                style={{
+                  backgroundColor: 'var(--shop-accent)',
+                  color: 'var(--shop-accent-label)',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={onCheckoutSubmit} className="grid gap-6 md:grid-cols-[1fr_340px]">
+              <div className="min-w-0 space-y-5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-h2 text-ink">Checkout</h2>
+                  <button
+                    type="button"
+                    onClick={closeCheckout}
+                    aria-label="Close checkout"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--shop-hair)]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <section>
+                  <p className="text-[13px] font-medium text-[var(--shop-ink)]">Your items</p>
+                  {cartLines.length ? (
+                    <ul className="mt-2 divide-y divide-[var(--shop-hair)]">
+                      {cartLines.map(({ item, quantity }) => (
+                        <li key={item.id} className="flex gap-3 py-3">
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-page">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[14px] font-medium text-[var(--shop-ink)]">
+                              {item.name}
+                            </p>
+                            <p className="text-[12px] text-[var(--shop-muted)]">
+                              {formatShopPrice(item.pricePesewas)}
+                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => changeQuantity(item.id, quantity - 1)}
+                                aria-label={`Remove one ${item.name}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
+                              >
+                                −
+                              </button>
+                              <span className="w-6 text-center text-[13px] text-[var(--shop-ink)]">
+                                {quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => changeQuantity(item.id, quantity + 1)}
+                                aria-label={`Add one ${item.name}`}
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                          <p className="whitespace-nowrap text-[13px] font-medium text-[var(--shop-ink)]">
+                            {formatShopPrice(item.pricePesewas * quantity)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 rounded-[10px] bg-page p-3 text-[13px] text-[var(--shop-muted)]">
+                      Your cart is empty. Close this and add an item first.
+                    </p>
+                  )}
+                </section>
+
+                {sellingServices ? (
+                  <section className="grid gap-3 sm:grid-cols-2">
+                    <p className="text-[13px] font-medium text-[var(--shop-ink)] sm:col-span-2">
+                      Appointment
+                    </p>
+                    <label className="block text-[13px] font-medium text-[var(--shop-ink)]">
+                      Date
+                      <input
+                        type="date"
+                        name="bookingDate"
+                        required
+                        min={today}
+                        value={bookingDate}
+                        onChange={(event) => setBookingDate(event.target.value)}
+                        className={`${fieldCls} mt-1.5`}
+                      />
+                    </label>
+                    <label className="block text-[13px] font-medium text-[var(--shop-ink)]">
+                      Time
+                      <select
+                        name="bookingTime"
+                        value={bookingTime}
+                        onChange={(event) => setBookingTime(event.target.value)}
+                        className={`${fieldCls} mt-1.5`}
+                      >
+                        {BOOKING_TIMES.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </section>
+                ) : (
+                  <section>
+                    <p className="text-[13px] font-medium text-[var(--shop-ink)]">
+                      How would you like it?
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {(['delivery', 'pickup'] as const).map((option) => {
+                        const active = fulfilment === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            aria-pressed={active}
+                            onClick={() => setFulfilment(option)}
+                            className={cn(
+                              'h-11 rounded-[10px] border text-[13px] font-medium capitalize',
+                              active
+                                ? 'border-transparent'
+                                : 'border-[var(--shop-hair)] bg-white text-[var(--shop-ink)]',
+                            )}
+                            style={
+                              active
+                                ? {
+                                    backgroundColor: 'var(--shop-accent)',
+                                    color: 'var(--shop-accent-label)',
+                                  }
+                                : undefined
+                            }
+                          >
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {fulfilment === 'delivery' ? (
+                      <label className="mt-3 block text-[13px] font-medium text-[var(--shop-ink)]">
+                        Delivery address
+                        <textarea
+                          name="address"
+                          required
+                          minLength={8}
+                          rows={3}
+                          placeholder="Area, street and a landmark"
+                          className={`${areaCls} mt-1.5`}
+                        />
+                      </label>
+                    ) : (
+                      <p className="mt-3 rounded-[10px] bg-page p-3 text-[12px] text-[var(--shop-muted)]">
+                        Pick up at {vendor.location ?? 'the shop'}. {vendor.name} will confirm the
+                        time with you.
+                      </p>
+                    )}
+                  </section>
+                )}
+
+                <section className="grid gap-3 sm:grid-cols-2">
+                  <p className="text-[13px] font-medium text-[var(--shop-ink)] sm:col-span-2">
+                    Your details
+                  </p>
+                  <label className="block text-[13px] font-medium text-[var(--shop-ink)]">
+                    Name
+                    <input
+                      name="name"
+                      required
+                      minLength={2}
+                      autoComplete="name"
+                      className={`${fieldCls} mt-1.5`}
+                    />
+                  </label>
+                  <label className="block text-[13px] font-medium text-[var(--shop-ink)]">
+                    WhatsApp
+                    <input
+                      name="phone"
+                      type="tel"
+                      required
+                      autoComplete="tel"
+                      placeholder="024 123 4567"
+                      className={`${fieldCls} mt-1.5`}
+                    />
+                  </label>
+                  <label className="block text-[13px] font-medium text-[var(--shop-ink)] sm:col-span-2">
+                    Email
+                    <input
+                      name="email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      className={`${fieldCls} mt-1.5`}
+                    />
+                    <span className="mt-1 block text-[11px] font-normal text-[var(--shop-muted)]">
+                      For delivery and order updates.
+                    </span>
+                  </label>
+                  <label className="block text-[13px] font-medium text-[var(--shop-ink)] sm:col-span-2">
+                    Note <span className="font-normal text-[var(--shop-muted)]">(optional)</span>
+                    <textarea
+                      name="notes"
+                      rows={2}
+                      placeholder="Anything the vendor should know"
+                      className={`${areaCls} mt-1.5`}
+                    />
+                  </label>
+                </section>
+
+                <p className="rounded-[10px] bg-page p-3 text-[12px] text-[var(--shop-muted)]">
+                  {sellingServices
+                    ? 'Pay at your appointment.'
+                    : fulfilment === 'delivery'
+                      ? 'Pay on delivery.'
+                      : 'Pay at pickup.'}{' '}
+                  Online payment is not enabled yet.
+                </p>
+              </div>
+
+              <aside className="md:sticky md:top-0 md:self-start">
+                <div className="rounded-[20px] border border-[var(--shop-hair)] p-5">
+                  <p className="text-[15px] font-medium text-[var(--shop-ink)]">Order Summary</p>
+                  <dl className="mt-4 space-y-2 text-[13px] text-[var(--shop-ink)]">
+                    <div className="flex justify-between">
+                      <dt className="text-[var(--shop-muted)]">Item total</dt>
+                      <dd>{formatShopPrice(subtotalPesewas)}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-[var(--shop-muted)]">Delivery</dt>
+                      <dd>{deliveryPesewas ? formatShopPrice(deliveryPesewas) : 'Free'}</dd>
+                    </div>
+                    <div className="mt-2 flex justify-between border-t border-[var(--shop-hair)] pt-2 text-[15px] font-medium">
+                      <dt>Total</dt>
+                      <dd>{formatShopPrice(totalPesewas)}</dd>
+                    </div>
+                  </dl>
+
+                  {checkoutError ? (
+                    <p role="alert" className="mt-3 text-[12px] text-danger">
+                      {checkoutError}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={placing || !cartCount}
+                    className="mt-4 h-12 w-full rounded-pill text-[15px] font-medium disabled:opacity-50"
+                    style={{
+                      backgroundColor: 'var(--shop-accent)',
+                      color: 'var(--shop-accent-label)',
+                    }}
+                  >
+                    {placing ? 'Placing order…' : `Place order · ${formatShopPrice(totalPesewas)}`}
+                  </button>
+
+                  <p className="mt-3 text-[11px] leading-snug text-[var(--shop-muted)]">
+                    Your email is saved for delivery and order updates. Payment happens on
+                    delivery, at pickup, or at your appointment.
+                  </p>
+                </div>
+              </aside>
+            </form>
+          )}
         </div>
       </dialog>
     </div>
