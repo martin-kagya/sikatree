@@ -3,6 +3,9 @@
 /.pnp
 .pnp.*
 
+# local pnpm content-addressable store (never commit)
+/.pnpm-store/
+
 # next.js
 /.next/
 /out/
