@@ -296,7 +296,7 @@ The order loop now continues after checkout:
 - **Client tracking.** `/o/{code}` shows a four-step status, items, total, fulfilment type and ETA. It deliberately hides the customer's address, email and phone, so no phone verification is needed for the data shown. The page updates when the vendor changes the status.
 - **Vendor contact.** The dashboard has a Message link that opens WhatsApp with the order code prefilled.
 - **Vendor support view.** `/dashboard/support` shows the vendor's own tickets with Open or Resolved state, last message and updated time. Replies and the full conversation remain in WhatsApp and the admin inbox.
-- **Vendor settings.** `/dashboard/settings` holds the delivery fee configuration (free / fixed with within-region and outside-region rates / confirm-after) and the delivery/pickup ETA text, linked from the dashboard header next to Support.
+- **Vendor settings.** `/dashboard/settings` holds the delivery fee configuration (free / fixed with within-region and outside-region rates / confirm-after) and the zonal delivery (within/outside region) and pickup ETA text, linked from the dashboard header next to Support.
 
 The following behaviours remain deferred or partial and must not be described as fully working:
 

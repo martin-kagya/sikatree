@@ -114,12 +114,23 @@ describe('placeOrder', () => {
     expect(result.order.totalPesewas).toBe(24000);
   });
 
-  it('uses vendor-configured ETA text', async () => {
-    await updateEtaSettings(vendorId, 'Delivered within 2 hours', 'Ready in 1 hour');
-    const delivery = await placeOrder(checkoutForm());
-    expect(delivery.ok).toBe(true);
-    if (!delivery.ok) return;
-    expect(delivery.order.eta).toBe('Delivered within 2 hours');
+  it('uses zonal vendor-configured ETA text', async () => {
+    await updateEtaSettings(
+      vendorId,
+      'Delivered in 2 hours',
+      'Delivered in 2 days',
+      'Ready in 1 hour',
+    );
+
+    const within = await placeOrder(checkoutForm({ deliveryZone: 'within' }));
+    expect(within.ok).toBe(true);
+    if (!within.ok) return;
+    expect(within.order.eta).toBe('Delivered in 2 hours');
+
+    const outside = await placeOrder(checkoutForm({ deliveryZone: 'outside' }));
+    expect(outside.ok).toBe(true);
+    if (!outside.ok) return;
+    expect(outside.order.eta).toBe('Delivered in 2 days');
 
     const pickup = await placeOrder(checkoutForm({ fulfilment: 'pickup', address: '' }));
     expect(pickup.ok).toBe(true);

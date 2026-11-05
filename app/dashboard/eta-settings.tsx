@@ -9,10 +9,12 @@ const field =
   'h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-green-deep focus:ring-2 focus:ring-green-deep';
 
 export function EtaSettings({
-  deliveryText,
+  withinText,
+  outsideText,
   pickupText,
 }: {
-  deliveryText: string;
+  withinText: string;
+  outsideText: string;
   pickupText: string;
 }) {
   const [state, action, pending] = useActionState(updateEtaSettingsAction, initial);
@@ -32,13 +34,28 @@ export function EtaSettings({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink">Delivery time</span>
+          <span className="mb-1.5 block text-[13px] font-medium text-ink">
+            Delivery time in your region
+          </span>
           <input
-            name="etaDelivery"
+            name="etaWithin"
             maxLength={120}
             required
-            defaultValue={deliveryText}
+            defaultValue={withinText}
             placeholder="Delivery in 45 to 60 minutes"
+            className={field}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-medium text-ink">
+            Delivery time outside your region
+          </span>
+          <input
+            name="etaOutside"
+            maxLength={120}
+            required
+            defaultValue={outsideText}
+            placeholder="Delivery in 1 to 2 days"
             className={field}
           />
         </label>
@@ -55,7 +72,8 @@ export function EtaSettings({
         </label>
       </div>
       <p className="mt-1.5 text-[11px] text-ink-muted">
-        Shown to the customer after they order. Appointments use the chosen date and time.
+        Shown to the customer after they order, based on their delivery zone. Appointments use the
+        chosen date and time.
       </p>
 
       <button

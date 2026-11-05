@@ -1252,44 +1252,42 @@ export function Storefront({
                           />
                         </label>
 
-                        {zonal ? (
-                          <div className="mt-3">
-                            <p className="text-[13px] font-medium text-[var(--shop-ink)]">
-                              Delivery zone
-                            </p>
-                            <div className="relative mt-2 grid grid-cols-2 rounded-[12px] border border-[var(--shop-hair)] bg-white p-1">
-                              <span
-                                aria-hidden="true"
-                                className="shop-segment pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-[9px] bg-[var(--shop-ink)]"
-                                style={{
-                                  transform:
-                                    deliveryZone === 'outside' ? 'translateX(100%)' : 'translateX(0)',
-                                }}
-                              />
-                              {(['within', 'outside'] as const).map((zone) => {
-                                const active = deliveryZone === zone;
-                                return (
-                                  <button
-                                    key={zone}
-                                    type="button"
-                                    aria-pressed={active}
-                                    onClick={() => setDeliveryZone(zone)}
-                                    className={cn(
-                                      'relative z-10 h-10 rounded-[9px] text-[13px] font-medium transition-colors duration-200',
-                                      active ? 'text-white' : 'text-[var(--shop-ink)]',
-                                    )}
-                                  >
-                                    {zone === 'within' ? 'Same region' : 'Other region'}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <p className="mt-1.5 text-[11px] text-[var(--shop-muted)]">
-                              Same region means {vendor.location ?? 'near the shop'} and nearby
-                              areas.
-                            </p>
+                        <div className="mt-3">
+                          <p className="text-[13px] font-medium text-[var(--shop-ink)]">
+                            Delivery zone
+                          </p>
+                          <div className="relative mt-2 grid grid-cols-2 rounded-[12px] border border-[var(--shop-hair)] bg-white p-1">
+                            <span
+                              aria-hidden="true"
+                              className="shop-segment pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-[9px] bg-[var(--shop-ink)]"
+                              style={{
+                                transform:
+                                  deliveryZone === 'outside' ? 'translateX(100%)' : 'translateX(0)',
+                              }}
+                            />
+                            {(['within', 'outside'] as const).map((zone) => {
+                              const active = deliveryZone === zone;
+                              return (
+                                <button
+                                  key={zone}
+                                  type="button"
+                                  aria-pressed={active}
+                                  onClick={() => setDeliveryZone(zone)}
+                                  className={cn(
+                                    'relative z-10 h-10 rounded-[9px] text-[13px] font-medium transition-colors duration-200',
+                                    active ? 'text-white' : 'text-[var(--shop-ink)]',
+                                  )}
+                                >
+                                  {zone === 'within' ? 'Same region' : 'Other region'}
+                                </button>
+                              );
+                            })}
                           </div>
-                        ) : null}
+                          <p className="mt-1.5 text-[11px] text-[var(--shop-muted)]">
+                            Same region means {vendor.location ?? 'near the shop'} and nearby
+                            areas.
+                          </p>
+                        </div>
 
                         {zonal ? (
                           <label className="mt-3 flex items-start gap-2 text-[12px] text-[var(--shop-ink)]">

@@ -121,11 +121,13 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     delivery_fee_mode: DeliveryFeeMode;
     delivery_fee_pesewas: number;
     delivery_fee_outside_pesewas: number;
-    eta_delivery_text: string;
+    eta_delivery_within_text: string;
+    eta_delivery_outside_text: string;
     eta_pickup_text: string;
   }>(
     `select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas,
-            delivery_fee_outside_pesewas, eta_delivery_text, eta_pickup_text
+            delivery_fee_outside_pesewas, eta_delivery_within_text,
+            eta_delivery_outside_text, eta_pickup_text
        from vendors where handle = $1`,
     [handle],
   );
@@ -193,9 +195,10 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     ? vendor.delivery_fee_mode
     : 'fixed';
 
-  // Zonal rates apply only to fixed-mode delivery; the client picks the zone.
+  // The zone drives both the delivery fee (fixed mode) and the ETA, so it is
+  // captured for every delivery order.
   const deliveryZone: DeliveryZone | null =
-    deliveryFeeMode === 'fixed' && fulfilment === 'delivery'
+    fulfilment === 'delivery'
       ? DELIVERY_ZONES.includes(deliveryZoneRaw as DeliveryZone)
         ? (deliveryZoneRaw as DeliveryZone)
         : 'within'
@@ -218,7 +221,9 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     (deliveryOnArrivalRaw === 'on' || deliveryOnArrivalRaw === 'true');
 
   const total = subtotal + (deliveryOnArrival ? 0 : delivery);
-  const eta = etaFor(fulfilment, bookingAt, vendor.eta_delivery_text, vendor.eta_pickup_text);
+  const deliveryEta =
+    deliveryZone === 'outside' ? vendor.eta_delivery_outside_text : vendor.eta_delivery_within_text;
+  const eta = etaFor(fulfilment, bookingAt, deliveryEta, vendor.eta_pickup_text);
   const reservesStock = orderItems.some((item) => byId.get(item.id)?.stock !== null);
 
   const limit = await hitRateLimit(`order:phone:${phone}`, 5, 3600).catch(() => null);
@@ -643,17 +648,22 @@ export async function setOrderDeliveryFee(
 
 export type EtaSettingsUpdate = { ok: true } | { ok: false; error: string };
 
-// Vendor-configurable ETA text for delivery and pickup. Appointment orders keep
-// the computed date/time, so only the two product-fulfilment strings are stored.
+// Vendor-configurable ETA text for delivery (within/outside the region) and
+// pickup. Appointment orders keep the computed date/time.
 export async function updateEtaSettings(
   vendorId: string,
-  deliveryText: string,
+  withinText: string,
+  outsideText: string,
   pickupText: string,
 ): Promise<EtaSettingsUpdate> {
-  const delivery = deliveryText.trim();
+  const within = withinText.trim();
+  const outside = outsideText.trim();
   const pickup = pickupText.trim();
-  if (delivery.length < 3 || delivery.length > 120) {
-    return { ok: false, error: 'Delivery time must be 3 to 120 characters.' };
+  if (within.length < 3 || within.length > 120) {
+    return { ok: false, error: 'Delivery time in your region must be 3 to 120 characters.' };
+  }
+  if (outside.length < 3 || outside.length > 120) {
+    return { ok: false, error: 'Delivery time outside your region must be 3 to 120 characters.' };
   }
   if (pickup.length < 3 || pickup.length > 120) {
     return { ok: false, error: 'Pickup time must be 3 to 120 characters.' };
@@ -661,10 +671,11 @@ export async function updateEtaSettings(
 
   const rows = await db().query<{ id: string }>(
     `update vendors
-        set eta_delivery_text = $2, eta_pickup_text = $3, updated_at = now()
+        set eta_delivery_within_text = $2, eta_delivery_outside_text = $3,
+            eta_pickup_text = $4, updated_at = now()
       where id = $1
       returning id`,
-    [vendorId, delivery, pickup],
+    [vendorId, within, outside, pickup],
   );
   if (!rows.rows[0]) return { ok: false, error: 'Vendor not found.' };
   return { ok: true };

@@ -87,10 +87,11 @@ export async function updateEtaSettingsAction(
   formData: FormData,
 ): Promise<EtaSettingsState> {
   const vendorId = await requireVendor();
-  const deliveryText = String(formData.get('etaDelivery') ?? '');
+  const withinText = String(formData.get('etaWithin') ?? '');
+  const outsideText = String(formData.get('etaOutside') ?? '');
   const pickupText = String(formData.get('etaPickup') ?? '');
 
-  const result = await updateEtaSettings(vendorId, deliveryText, pickupText);
+  const result = await updateEtaSettings(vendorId, withinText, outsideText, pickupText);
   if (!result.ok) return { error: result.error };
 
   return { saved: true };

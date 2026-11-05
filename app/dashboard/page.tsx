@@ -236,10 +236,10 @@ export default async function DashboardPage({
           <div className="flex items-center gap-2">
             <Link
               href="/dashboard/settings"
-              aria-label="Settings"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-pill border border-hairline bg-white text-ink hover:border-ink/40"
+              className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-hairline bg-white px-3 text-small text-ink hover:border-ink/40"
             >
               <Settings className="h-4 w-4" />
+              Settings
             </Link>
             <Link
               href="/dashboard/support"
