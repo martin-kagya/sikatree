@@ -65,8 +65,9 @@ as hover.
 - Add to cart sits opposite Enquire on each card; the toolbar and the sticky bar
   show the count. The cart persists in `localStorage` per store.
 - Checkout is a modal with items and quantities on the left and the summary on
-  the right: item total, a fixed GH₵15 delivery fee (free for pickup), and the
-  total. Delivery asks for an address; services ask for a date and time.
+  the right: item total, a vendor-configurable delivery fee (free, a fixed fee,
+  or "confirm after order"; pickup is always free), and the total. Delivery asks
+  for an address; services ask for a date and time.
 - Name, Ghana WhatsApp number and email are required. The email is stored on
   the order for updates; no email is sent yet.
 - Orders are written server-side to `orders` and `order_items` with a unique
@@ -76,8 +77,8 @@ as hover.
   appointment, and the copy says so.
 
 Deferred items and their requirement IDs are recorded in `PLAN.md` and
-`requirement.md` (delivery fee config, online payment, vendor notifications,
-tracking, inventory, service slots, email sending).
+`requirement.md` (online payment, vendor notifications, tracking, inventory,
+service slots, email sending).
 
 ## Motion
 

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 import { normalizeGhanaPhone } from '@/lib/phone';
 import { hitRateLimit } from '@/lib/rate-limit';
-import { DELIVERY_FEE_PESEWAS } from '@/lib/shop';
+import { DELIVERY_FEE_MODES, deliveryFeePesewas, type DeliveryFeeMode } from '@/lib/shop';
 
 // Guest checkout (ORD-04). Prices are always recomputed from the database; the
 // browser only sends item ids and quantities.
@@ -26,6 +26,7 @@ export type CheckoutOrder = {
   email: string;
   vendorName: string;
   fulfilment: Fulfilment;
+  deliveryFeeMode: DeliveryFeeMode;
   createdAt: string;
 };
 
@@ -38,10 +39,6 @@ export function newOrderCode(): string {
   let code = '';
   for (let index = 0; index < 4; index += 1) code += CROCKFORD[bytes[index] % CROCKFORD.length];
   return `ORD-${code}`;
-}
-
-export function deliveryFeeFor(fulfilment: Fulfilment): number {
-  return fulfilment === 'delivery' ? DELIVERY_FEE_PESEWAS : 0;
 }
 
 export function etaFor(fulfilment: Fulfilment, bookingAt: Date | null): string {
@@ -106,7 +103,12 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     name: string;
     type: 'products' | 'services' | 'both' | null;
     status: string;
-  }>('select id, name, type, status from vendors where handle = $1', [handle]);
+    delivery_fee_mode: DeliveryFeeMode;
+    delivery_fee_pesewas: number;
+  }>(
+    'select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas from vendors where handle = $1',
+    [handle],
+  );
   const vendor = vendors.rows[0];
   if (!vendor || vendor.status !== 'live') return { ok: false, error: 'Shop not found.' };
 
@@ -167,7 +169,12 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   }
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
-  const delivery = deliveryFeeFor(fulfilment);
+  const deliveryFeeMode: DeliveryFeeMode = DELIVERY_FEE_MODES.includes(vendor.delivery_fee_mode)
+    ? vendor.delivery_fee_mode
+    : 'fixed';
+  const delivery = fulfilment === 'delivery'
+    ? deliveryFeePesewas(deliveryFeeMode, vendor.delivery_fee_pesewas)
+    : 0;
   const total = subtotal + delivery;
   const eta = etaFor(fulfilment, bookingAt);
   const reservesStock = orderItems.some((item) => byId.get(item.id)?.stock !== null);
@@ -187,8 +194,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
           `insert into orders
              (code, vendor_id, customer_name, customer_phone, customer_email, fulfilment,
               address, notes, booking_at, subtotal_pesewas, delivery_pesewas, total_pesewas,
-              status, eta_text, stock_reserved)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14)
+              status, eta_text, stock_reserved, delivery_fee_mode)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14,$15)
            returning id, created_at`,
           [
             code,
@@ -205,6 +212,7 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             total,
             eta,
             reservesStock,
+            deliveryFeeMode,
           ],
         );
         const orderId = inserted.rows[0].id;
@@ -239,6 +247,7 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             email,
             vendorName: vendor.name,
             fulfilment,
+            deliveryFeeMode,
             createdAt: inserted.rows[0].created_at.toISOString(),
           },
         };
@@ -312,6 +321,7 @@ export type OrderRecord = {
   bookingAt: string | null;
   subtotalPesewas: number;
   deliveryPesewas: number;
+  deliveryFeeMode: DeliveryFeeMode;
   totalPesewas: number;
   status: OrderStatus;
   eta: string | null;
@@ -336,6 +346,7 @@ type OrderRow = {
   booking_at: Date | null;
   subtotal_pesewas: number;
   delivery_pesewas: number;
+  delivery_fee_mode: DeliveryFeeMode;
   total_pesewas: number;
   status: OrderStatus;
   eta_text: string | null;
@@ -347,7 +358,8 @@ const ORDER_SELECT = `
   select o.id, o.code, o.vendor_id, v.name as vendor_name, v.handle as vendor_handle,
          v.phone as vendor_phone, o.customer_name, o.customer_phone, o.customer_email,
          o.fulfilment, o.address, o.notes, o.booking_at, o.subtotal_pesewas,
-         o.delivery_pesewas, o.total_pesewas, o.status, o.eta_text, o.created_at, o.updated_at
+         o.delivery_pesewas, o.delivery_fee_mode, o.total_pesewas, o.status, o.eta_text,
+         o.created_at, o.updated_at
     from orders o
     join vendors v on v.id = o.vendor_id
 `;
@@ -398,6 +410,7 @@ function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
     bookingAt: row.booking_at ? row.booking_at.toISOString() : null,
     subtotalPesewas: row.subtotal_pesewas,
     deliveryPesewas: row.delivery_pesewas,
+    deliveryFeeMode: row.delivery_fee_mode,
     totalPesewas: row.total_pesewas,
     status: row.status,
     eta: row.eta_text,
@@ -479,6 +492,89 @@ export async function updateOrderStatus(
 
     await client.query('commit');
     return { ok: true, status: next };
+  } catch (error) {
+    await client.query('rollback').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export type DeliverySettingsUpdate = { ok: true } | { ok: false; error: string };
+
+// ORD-03: vendors choose free, a fixed fee, or "confirm after order". The fee
+// amount is only read in "fixed" mode, but is always stored so switching modes
+// never loses it.
+export async function updateDeliverySettings(
+  vendorId: string,
+  mode: DeliveryFeeMode,
+  fixedPesewas: number,
+): Promise<DeliverySettingsUpdate> {
+  if (!DELIVERY_FEE_MODES.includes(mode)) return { ok: false, error: 'Choose a delivery fee mode.' };
+  if (!Number.isInteger(fixedPesewas) || fixedPesewas < 0 || fixedPesewas > 10_000_000) {
+    return { ok: false, error: 'Enter a delivery fee between GH₵0 and GH₵100,000.' };
+  }
+
+  const rows = await db().query<{ id: string }>(
+    `update vendors
+        set delivery_fee_mode = $2, delivery_fee_pesewas = $3, updated_at = now()
+      where id = $1
+      returning id`,
+    [vendorId, mode, fixedPesewas],
+  );
+  if (!rows.rows[0]) return { ok: false, error: 'Vendor not found.' };
+  return { ok: true };
+}
+
+export type DeliveryFeeUpdate = { ok: true; totalPesewas: number } | { ok: false; error: string };
+
+// ORD-03 "confirm after": the vendor sets the real fee once they see the order.
+// Only a pending delivery order can change, and the total is recomputed from the
+// stored subtotal so the two can never diverge.
+export async function setOrderDeliveryFee(
+  orderId: string,
+  vendorId: string,
+  deliveryPesewas: number,
+): Promise<DeliveryFeeUpdate> {
+  if (!Number.isInteger(deliveryPesewas) || deliveryPesewas < 0 || deliveryPesewas > 10_000_000) {
+    return { ok: false, error: 'Enter a delivery fee between GH₵0 and GH₵100,000.' };
+  }
+
+  const client = await db().connect();
+  try {
+    await client.query('begin');
+    const current = await client.query<{
+      status: OrderStatus;
+      fulfilment: Fulfilment;
+      delivery_fee_mode: DeliveryFeeMode;
+      subtotal_pesewas: number;
+    }>(
+      `select status, fulfilment, delivery_fee_mode, subtotal_pesewas
+         from orders where id = $1 and vendor_id = $2 for update`,
+      [orderId, vendorId],
+    );
+    const row = current.rows[0];
+    if (!row) {
+      await client.query('rollback');
+      return { ok: false, error: 'Order not found.' };
+    }
+    if (row.fulfilment !== 'delivery' || row.delivery_fee_mode !== 'confirm_after') {
+      await client.query('rollback');
+      return { ok: false, error: 'This order does not need a delivery fee.' };
+    }
+    if (row.status !== 'pending') {
+      await client.query('rollback');
+      return { ok: false, error: 'The delivery fee can only be set before the order is confirmed.' };
+    }
+
+    const total = row.subtotal_pesewas + deliveryPesewas;
+    await client.query(
+      `update orders set delivery_pesewas = $2, total_pesewas = $3, updated_at = now()
+        where id = $1`,
+      [orderId, deliveryPesewas, total],
+    );
+    await client.query('commit');
+    return { ok: true, totalPesewas: total };
   } catch (error) {
     await client.query('rollback').catch(() => {});
     throw error;

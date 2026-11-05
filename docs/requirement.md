@@ -287,7 +287,7 @@ Still deferred: the 15-minute payment-time hold (INV-03), the stock movement log
 
 **Implementation notes: cart and checkout slice (2026-11-05)**
 
-The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, note), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
+The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, note), ORD-03 (vendor-configurable delivery fee: free, fixed, or confirm-after), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
 
 The order loop now continues after checkout:
 
@@ -301,7 +301,7 @@ The following behaviours remain deferred or partial and must not be described as
 
 | Requirement | Deferred behaviour | Target |
 |---|---|---|
-| ORD-03 | Delivery fee is a fixed GH₵15 and free for pickup; vendor configuration (free / fixed / confirm-after) is deferred | Phase 2 |
+| ORD-03 | Delivery fee is vendor-configurable (free / fixed / confirm-after) with the fixed amount set from the dashboard. Confirm-after orders show "fee to confirm" and the vendor sets the fee on the order | Done (2026-11-05) |
 | ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
 | ORD-06 | The vendor receives a WhatsApp text with the order details and a dashboard link. Interactive Confirm/Decline buttons and approved templates are deferred | Phase 2 |
 | ORD-07 | `/o/{code}` tracking is implemented with the code as the capability. Sensitive customer details are not shown; phone verification and live ETA are deferred | Phase 2/3 |

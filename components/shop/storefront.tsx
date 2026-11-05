@@ -29,7 +29,7 @@ import { accentFor } from '@/lib/shop-accent';
 import {
   badgeLabel,
   filterItems,
-  DELIVERY_FEE_PESEWAS,
+  deliveryFeePesewas,
   formatShopPrice,
   hasDescription,
   isSoldOut,
@@ -38,6 +38,7 @@ import {
   soldOutLast,
   sortItems,
   stockLabel,
+  type DeliveryFeeMode,
   type ShopItem,
   type SortKey,
 } from '@/lib/shop';
@@ -54,6 +55,8 @@ export type StorefrontVendor = {
   accent: string | null;
   cardImageRatio: string;
   type: 'products' | 'services' | 'both' | null;
+  deliveryFeeMode: DeliveryFeeMode;
+  deliveryFeePesewas: number;
 };
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -473,7 +476,11 @@ export function Storefront({
     0,
   );
   const deliveryPesewas =
-    !sellingServices && fulfilment === 'delivery' ? DELIVERY_FEE_PESEWAS : 0;
+    !sellingServices && fulfilment === 'delivery'
+      ? deliveryFeePesewas(vendor.deliveryFeeMode, vendor.deliveryFeePesewas)
+      : 0;
+  const deliveryToConfirm =
+    !sellingServices && fulfilment === 'delivery' && vendor.deliveryFeeMode === 'confirm_after';
   const totalPesewas = subtotalPesewas + deliveryPesewas;
   const today = new Date().toISOString().slice(0, 10);
 
@@ -1063,6 +1070,9 @@ export function Storefront({
                   : order.fulfilment === 'pickup'
                     ? 'Pay at pickup.'
                     : 'Pay at your appointment.'}{' '}
+                {order.deliveryFeeMode === 'confirm_after'
+                  ? 'The vendor will confirm the delivery fee. '
+                  : ''}
                 {order.vendorName} will confirm shortly.
               </p>
 
@@ -1287,7 +1297,9 @@ export function Storefront({
                   {sellingServices
                     ? 'Pay at your appointment.'
                     : fulfilment === 'delivery'
-                      ? 'Pay on delivery.'
+                      ? deliveryToConfirm
+                        ? 'Pay on delivery. The vendor will confirm the delivery fee.'
+                        : 'Pay on delivery.'
                       : 'Pay at pickup.'}{' '}
                   Online payment is not enabled yet.
                 </p>
@@ -1303,7 +1315,13 @@ export function Storefront({
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-[var(--shop-muted)]">Delivery</dt>
-                      <dd>{deliveryPesewas ? formatShopPrice(deliveryPesewas) : 'Free'}</dd>
+                      <dd>
+                        {deliveryToConfirm
+                          ? 'To be confirmed'
+                          : deliveryPesewas
+                            ? formatShopPrice(deliveryPesewas)
+                            : 'Free'}
+                      </dd>
                     </div>
                     <div className="mt-2 flex justify-between border-t border-[var(--shop-hair)] pt-2 text-[15px] font-medium">
                       <dt>Total</dt>

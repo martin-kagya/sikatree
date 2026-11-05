@@ -57,9 +57,20 @@ function stepsFor(order: OrderRecord) {
 }
 
 function paymentNote(order: OrderRecord): string {
-  if (order.fulfilment === 'delivery') return 'Pay on delivery.';
+  if (order.fulfilment === 'delivery') {
+    return order.deliveryFeeMode === 'confirm_after'
+      ? 'Pay on delivery. The vendor will confirm the delivery fee.'
+      : 'Pay on delivery.';
+  }
   if (order.fulfilment === 'pickup') return 'Pay at pickup.';
   return 'Pay at your appointment.';
+}
+
+function deliveryLabel(order: OrderRecord): string {
+  if (order.fulfilment === 'delivery' && order.deliveryFeeMode === 'confirm_after') {
+    return order.deliveryPesewas ? formatCedis(order.deliveryPesewas) : 'To be confirmed';
+  }
+  return order.deliveryPesewas ? formatCedis(order.deliveryPesewas) : 'Free';
 }
 
 function fulfilmentNote(order: OrderRecord): string {
@@ -199,9 +210,7 @@ export default async function TrackOrderPage({
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Delivery</dt>
-                <dd className="text-ink">
-                  {order.deliveryPesewas ? formatCedis(order.deliveryPesewas) : 'Free'}
-                </dd>
+                <dd className="text-ink">{deliveryLabel(order)}</dd>
               </div>
               <div className="flex justify-between text-[15px] font-medium">
                 <dt>Total</dt>

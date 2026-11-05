@@ -4,6 +4,8 @@ import {
   getOrderByCode,
   listVendorOrders,
   placeOrder,
+  setOrderDeliveryFee,
+  updateDeliverySettings,
   updateOrderStatus,
 } from '@/lib/orders';
 
@@ -109,6 +111,53 @@ describe('placeOrder', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.order.totalPesewas).toBe(24000);
+  });
+
+  it('charges no delivery in free mode', async () => {
+    await updateDeliverySettings(vendorId, 'free', 0);
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.order.totalPesewas).toBe(24000);
+    expect(result.order.deliveryFeeMode).toBe('free');
+  });
+
+  it('charges the configured fixed fee', async () => {
+    await updateDeliverySettings(vendorId, 'fixed', 2500);
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.order.totalPesewas).toBe(24000 + 2500);
+    expect(result.order.deliveryFeeMode).toBe('fixed');
+  });
+
+  it('snapshots confirm-after and lets the vendor set the fee later', async () => {
+    await updateDeliverySettings(vendorId, 'confirm_after', 0);
+    const placed = await placeOrder(checkoutForm());
+    expect(placed.ok).toBe(true);
+    if (!placed.ok) return;
+    expect(placed.order.totalPesewas).toBe(24000);
+    expect(placed.order.deliveryFeeMode).toBe('confirm_after');
+
+    const order = await getOrderByCode(placed.order.code);
+    expect(order?.deliveryFeeMode).toBe('confirm_after');
+    expect(order?.deliveryPesewas).toBe(0);
+
+    const update = await setOrderDeliveryFee(order!.id, vendorId, 3000);
+    expect(update).toEqual({ ok: true, totalPesewas: 27000 });
+
+    const after = await getOrderByCode(placed.order.code);
+    expect(after?.deliveryPesewas).toBe(3000);
+    expect(after?.totalPesewas).toBe(27000);
+  });
+
+  it('rejects setting a delivery fee on a non-confirm-after order', async () => {
+    const placed = await placeOrder(checkoutForm());
+    expect(placed.ok).toBe(true);
+    if (!placed.ok) return;
+
+    const order = await getOrderByCode(placed.order.code);
+    expect(await setOrderDeliveryFee(order!.id, vendorId, 3000)).toMatchObject({ ok: false });
   });
 
   it('rejects bad email, bad phone and sold-out items', async () => {

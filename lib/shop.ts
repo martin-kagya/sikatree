@@ -21,8 +21,16 @@ export type ShopItem = {
 };
 
 export const PAGE_SIZE = 24;
-// Flat delivery fee for this slice (ORD-03 vendor config comes later).
-export const DELIVERY_FEE_PESEWAS = 1500;
+
+export type DeliveryFeeMode = 'free' | 'fixed' | 'confirm_after';
+export const DELIVERY_FEE_MODES: readonly DeliveryFeeMode[] = ['free', 'fixed', 'confirm_after'];
+export const DEFAULT_DELIVERY_FEE_PESEWAS = 1500;
+
+// ORD-03. Only "fixed" charges at checkout; "free" and "confirm_after" (the
+// vendor quotes the fee once the order is in) contribute zero until confirmed.
+export function deliveryFeePesewas(mode: DeliveryFeeMode, fixedPesewas: number): number {
+  return mode === 'fixed' ? fixedPesewas : 0;
+}
 
 const priceFormat = new Intl.NumberFormat('en-GH', {
   style: 'currency',

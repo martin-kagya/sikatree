@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   badgeLabel,
+  deliveryFeePesewas,
   filterItems,
   formatShopPrice,
   hasDescription,
@@ -39,8 +40,16 @@ describe('formatShopPrice', () => {
   });
 });
 
-describe('stock and badges', () => {
-  it('only reveals low stock, never exact counts', () => {
+describe('delivery fees', () => {
+  it('charges only in fixed mode, and only the configured amount', () => {
+    expect(deliveryFeePesewas('fixed', 1500)).toBe(1500);
+    expect(deliveryFeePesewas('fixed', 2500)).toBe(2500);
+    expect(deliveryFeePesewas('free', 1500)).toBe(0);
+    expect(deliveryFeePesewas('confirm_after', 1500)).toBe(0);
+  });
+});
+
+describe('stock and badges', () => {  it('only reveals low stock, never exact counts', () => {
     expect(stockLabel(0)).toBeNull();
     expect(stockLabel(1)).toBe('Only 1 left');
     expect(stockLabel(5)).toBe('Only 5 left');

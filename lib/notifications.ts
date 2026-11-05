@@ -35,9 +35,13 @@ export function vendorOrderMessage(order: OrderRecord, dashboardUrl: string): st
     `New order ${order.code}`,
     items,
     `Total ${formatCedis(order.totalPesewas)} (${paymentLine(order)})`,
-    `${order.customerName} · ${order.customerPhone}`,
-    fulfilmentLine(order),
   ];
+
+  if (order.fulfilment === 'delivery' && order.deliveryFeeMode === 'confirm_after') {
+    parts.push('Delivery fee to confirm');
+  }
+
+  parts.push(`${order.customerName} · ${order.customerPhone}`, fulfilmentLine(order));
 
   if (order.notes) parts.push(`Note: ${order.notes}`);
   parts.push(`Open your dashboard: ${dashboardUrl}`);

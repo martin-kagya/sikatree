@@ -4,7 +4,7 @@ import { Storefront } from '@/components/shop/storefront';
 import { site } from '@/lib/brand';
 import { query } from '@/lib/db';
 import { normalizeHandle } from '@/lib/handle';
-import type { ShopItem } from '@/lib/shop';
+import { DELIVERY_FEE_MODES, type DeliveryFeeMode, type ShopItem } from '@/lib/shop';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,8 @@ type VendorRow = {
   category: string | null;
   accent: string | null;
   card_image_ratio: string;
+  delivery_fee_mode: string;
+  delivery_fee_pesewas: number;
 };
 
 type ItemRow = {
@@ -44,7 +46,8 @@ async function loadVendor(
   if (!handle) return null;
 
   const vendors = await query<VendorRow>(
-    `select name, handle, phone, type, bio, location, category, accent, card_image_ratio
+    `select name, handle, phone, type, bio, location, category, accent, card_image_ratio,
+            delivery_fee_mode, delivery_fee_pesewas
        from vendors
       where handle = $1 and status = 'live'`,
     [handle],
@@ -124,6 +127,12 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
 
   const { vendor, items } = data;
 
+  const deliveryFeeMode: DeliveryFeeMode = DELIVERY_FEE_MODES.includes(
+    vendor.delivery_fee_mode as DeliveryFeeMode,
+  )
+    ? (vendor.delivery_fee_mode as DeliveryFeeMode)
+    : 'fixed';
+
   return (
     <Storefront
       vendor={{
@@ -136,6 +145,8 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         accent: vendor.accent,
         cardImageRatio: vendor.card_image_ratio,
         type: vendor.type,
+        deliveryFeeMode,
+        deliveryFeePesewas: vendor.delivery_fee_pesewas,
       }}
       items={items}
       pageUrl={`https://${site.domain}/${vendor.handle}`}

@@ -18,6 +18,7 @@ const order: OrderRecord = {
   bookingAt: null,
   subtotalPesewas: 24000,
   deliveryPesewas: 1500,
+  deliveryFeeMode: 'fixed',
   totalPesewas: 25500,
   status: 'pending',
   eta: 'Delivery in 45 to 60 minutes',
@@ -48,5 +49,13 @@ describe('vendor order notification', () => {
     expect(vendorOrderMessage({ ...order, fulfilment: 'appointment' }, 'https://x')).toContain(
       'pay at the appointment',
     );
+  });
+
+  it('flags a confirm-after delivery fee', () => {
+    const message = vendorOrderMessage(
+      { ...order, deliveryFeeMode: 'confirm_after', deliveryPesewas: 0, totalPesewas: 24000 },
+      'https://x',
+    );
+    expect(message).toContain('Delivery fee to confirm');
   });
 });

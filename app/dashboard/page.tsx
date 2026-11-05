@@ -6,11 +6,12 @@ import { query } from '@/lib/db';
 import { formatCedis } from '@/lib/money';
 import { listVendorOrders, nextStatuses, type OrderRecord, type OrderStatus } from '@/lib/orders';
 import { formatGhanaPhone } from '@/lib/phone';
-import { requireVendor } from '@/lib/vendor-auth';
+import type { DeliveryFeeMode } from '@/lib/shop';import { requireVendor } from '@/lib/vendor-auth';
 import { cn } from '@/lib/utils';
-import { logoutAction, updateOrderStatusAction } from './actions';
+import { logoutAction, setOrderDeliveryFeeAction, updateOrderStatusAction } from './actions';
 import { setItemStatusAction } from './items/actions';
 import { CopyLink } from './copy-link';
+import { DeliverySettings } from './delivery-settings';
 
 export const metadata: Metadata = {
   title: 'Dashboard | sikatree',
@@ -19,7 +20,15 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-type Vendor = { id: string; name: string; handle: string; type: string | null; phone: string };
+type Vendor = {
+  id: string;
+  name: string;
+  handle: string;
+  type: string | null;
+  phone: string;
+  delivery_fee_mode: string;
+  delivery_fee_pesewas: number;
+};
 type Item = {
   id: string;
   name: string;
@@ -114,6 +123,13 @@ function OrderCard({ order }: { order: OrderRecord }) {
           </a>
         </span>
         <span>{fulfilmentText(order)}</span>
+        {order.fulfilment === 'delivery' && order.deliveryFeeMode === 'confirm_after' ? (
+          <span>
+            {order.deliveryPesewas
+              ? `Delivery ${formatCedis(order.deliveryPesewas)}`
+              : 'Delivery fee to confirm'}
+          </span>
+        ) : null}
         <span>{order.customerEmail}</span>
         {order.notes ? <span>Note: {order.notes}</span> : null}
       </div>
@@ -145,6 +161,34 @@ function OrderCard({ order }: { order: OrderRecord }) {
         </Link>
         <CopyLink value={`https://${site.domain}/o/${order.code}`} label="Copy tracking link" />
       </div>
+
+      {order.fulfilment === 'delivery' &&
+      order.deliveryFeeMode === 'confirm_after' &&
+      order.status === 'pending' ? (
+        <form
+          action={setOrderDeliveryFeeAction}
+          className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3"
+        >
+          <input type="hidden" name="id" value={order.id} />
+          <label className="flex items-center gap-2 text-[12px] text-ink-muted">
+            Delivery fee (GH₵)
+            <input
+              name="fee"
+              inputMode="decimal"
+              required
+              min="0"
+              placeholder="15"
+              className="h-8 w-24 rounded-[8px] border border-hairline bg-white px-2 text-[12px] text-ink outline-none focus:border-green-deep"
+            />
+          </label>
+          <button
+            type="submit"
+            className="pressable inline-flex h-8 items-center rounded-pill bg-ink px-3 text-[12px] font-medium text-white hover:bg-ink/90"
+          >
+            {order.deliveryPesewas ? 'Update fee' : 'Set fee'}
+          </button>
+        </form>
+      ) : null}
     </article>
   );
 }
@@ -158,7 +202,10 @@ export default async function DashboardPage({
   const params = await searchParams;
 
   const [vendors, items, orders] = await Promise.all([
-    query<Vendor>('select id, name, handle, type, phone from vendors where id = $1', [vendorId]),
+    query<Vendor>(
+      'select id, name, handle, type, phone, delivery_fee_mode, delivery_fee_pesewas from vendors where id = $1',
+      [vendorId],
+    ),
     query<Item>(
       `select id, name, category, price_pesewas, stock, status, image_url
          from items where vendor_id = $1 order by position, created_at`,
@@ -173,6 +220,7 @@ export default async function DashboardPage({
   const pageUrl = `${site.domain}/${vendor.handle}`;
   const shareMessage = `Shop with me on sikatree: ${site.domain}/${vendor.handle}`;
   const newOrders = orders.filter((order) => order.status === 'pending').length;
+  const deliveryFeeMode = vendor.delivery_fee_mode as DeliveryFeeMode;
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
@@ -229,6 +277,14 @@ export default async function DashboardPage({
               Your customers can order from your page or message you on WhatsApp. Online payments
               arrive in a later phase.
             </p>
+          </section>
+
+          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+            <h2 className="text-h2 text-ink">Delivery fee</h2>
+            <p className="mt-1 text-small text-ink-muted">
+              How customers are charged for delivery. Pickup is always free.
+            </p>
+            <DeliverySettings mode={deliveryFeeMode} fixedPesewas={vendor.delivery_fee_pesewas} />
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
