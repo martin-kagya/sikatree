@@ -327,7 +327,7 @@ Compact white card, radius 28px mobile and 32px desktop, 1px `--hairline`, paddi
 - Address chip `sikatree.africa/{handle}` in a soft pill with a copy button. Copy writes the full https URL, shows Copied for 1.5s and announces through `aria-live="polite"`.
 - CTA "Chat on WhatsApp" uses the Primary style, right aligned at 768px and above and full width below. The prefilled message is "Hi {store}, I found you on sikatree." 
 - No standalone sikatree wordmark and no Powered by line in the header. Those belong in the footer.
-- After the header leaves the viewport, a 56px sticky bar shows the store name on the left and the cart plus CTA on the right. The CTA is icon-only under 400px. Motion follows Section 8.
+- After the header leaves the viewport, a 56px sticky bar shows a 32px initials logo and the store name on the left, and the cart alone on the right. The WhatsApp CTA stays in the full header; it is removed from the sticky bar so the bar does not feel crowded. Motion follows Section 8.
 
 ### 5.9 Link button
 
@@ -815,7 +815,7 @@ Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accen
 
 ### 14.2 Vendor header
 
-Defined in 5.8. A compact white card, 56px initials avatar, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. A sticky bar with the name, cart and CTA replaces it after scroll, with an icon-only CTA under 400px.
+Defined in 5.8. A compact white card, 56px initials avatar, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. After scroll, a sticky bar keeps the 32px initials logo, the name and the cart. The WhatsApp CTA is intentionally left in the header only.
 
 The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badges, the Sold out chip, Enquire, Add and the stock label must never paint over it. The bar keeps a solid white background and a hairline; no card content may show through.
 

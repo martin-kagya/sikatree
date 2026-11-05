@@ -629,39 +629,32 @@ export function Storefront({
       >
         <div className="border-b border-[var(--shop-hair)] bg-white/95 backdrop-blur">
           <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
-            <span className="min-w-0 truncate text-[15px] font-medium text-[var(--shop-ink)]">
-              {vendor.name}
-            </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint-100 text-[11px] font-semibold text-green-deep">
+                {initials(vendor.name)}
+              </span>
+              <span className="min-w-0 truncate text-[15px] font-medium text-[var(--shop-ink)]">
+                {vendor.name}
+              </span>
+            </div>
             {hasProducts ? (
-              <div className="flex shrink-0 items-center gap-2">
-                <div className="relative h-10 w-10 shrink-0">
-                  {cartCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={openCheckout}
-                      aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-                      className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)]"
+              <div className="relative h-10 w-10 shrink-0">
+                {cartCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={openCheckout}
+                    aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                    className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)]"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    <span
+                      key={cartCount}
+                      className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
                     >
-                      <ShoppingCart className="h-4 w-4" />
-                      <span
-                        key={cartCount}
-                        className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
-                      >
-                        {cartCount}
-                      </span>
-                    </button>
-                  ) : null}
-                </div>
-                <a
-                  href={ctaHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-pill px-3 text-[13px] font-medium min-[400px]:px-4"
-                  style={{ backgroundColor: 'var(--shop-accent)', color: 'var(--shop-accent-label)' }}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span className="hidden min-[400px]:inline">Chat on WhatsApp</span>
-                </a>
+                      {cartCount}
+                    </span>
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
