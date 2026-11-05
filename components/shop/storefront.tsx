@@ -11,7 +11,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
-import { ArrowRight, Check, Copy, MessageCircle, Plus, ShoppingCart, X } from '@/components/icons';
+import { ArrowRight, Check, ChevronRight, Copy, MessageCircle, Plus, ShoppingCart, X } from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { accentFor } from '@/lib/shop-accent';
@@ -1311,13 +1311,25 @@ export function Storefront({
                     </p>
                   ) : null}
 
-                  <button
-                    type="submit"
-                    disabled={placing || leaving || !cartCount}
-                    className="shop-press mt-4 h-12 w-full rounded-[12px] bg-[var(--shop-ink)] text-[15px] font-medium text-white disabled:opacity-50"
-                  >
-                    {placing ? 'Placing order…' : `Place order · ${formatShopPrice(totalPesewas)}`}
-                  </button>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={placing || leaving || !cartCount}
+                      className="shop-press h-12 min-w-0 flex-1 rounded-[12px] bg-[var(--shop-accent)] px-4 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
+                    >
+                      {placing
+                        ? 'Placing order…'
+                        : `Place order · ${formatShopPrice(totalPesewas)}`}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={placing || leaving || !cartCount}
+                      aria-label="Place order"
+                      className="shop-press flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-[var(--shop-accent)] text-[var(--shop-accent-label)] disabled:opacity-50"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
 
                   <p className="mt-3 text-[11px] leading-snug text-[var(--shop-muted)]">
                     Your email is saved for delivery and order updates. Payment happens on

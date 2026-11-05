@@ -251,6 +251,7 @@ Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in check
 | Secondary   | #fff           | --ink   | none on `--bg-page`, 1px --hairline on white | 48px | 0 28px |
 | Ghost       | transparent    | --ink (`--ink-on-dark` on dark) | none, underline on hover | 44px | 0 16px |
 | Compact action | --ink        | #fff    | none           | 48px   | 0 24px, radius --r-control, spring press |
+| Split action | --shop-accent  | --shop-accent-label | none | 48px | label left, 48px chevron square, 8px gap, --r-control |
 | WhatsApp    | #fff           | --ink   | none on `--bg-page`, 1px --hairline on white | 48px | 0 28px, WhatsApp glyph in `--ink`, not brand green |
 
 - One Primary per screen. The same action repeated (nav Inverse and hero Primary "Join the waitlist") counts as one.
@@ -827,7 +828,7 @@ Motion on hover and focus follows 8.3. On touch the Add button is always visible
 - Checkout is a modal, not a page. Two columns on desktop (form left, summary right) and one column on mobile. Maximum height 92vh with internal scroll.
 - Items list with thumbnails and a quantity stepper. Delivery or pickup uses the segmented control with a black sliding thumb and a 280ms spring. Pickup shows the store location; delivery requires an address. Service vendors show date and time instead.
 - Contact: name, Ghana WhatsApp number and email. Email is required and stored on the order for updates. No email is sent yet. Note is optional.
-- Summary: item total, fixed GH₵15 delivery (free for pickup), total. The Place order button is black, full width, `--r-control` 12px, with a press spring.
+- Summary: item total, fixed GH₵15 delivery (free for pickup), total. Place order is the mint green Primary, full width, `--r-control` 12px, with a 48px mint green chevron button beside it and the same press spring. Both submit the order.
 - Payment is not connected. The copy says pay on delivery, at pickup or at the appointment. Never claim a payment was received.
 - On success the cart clears and the modal stays open on the ticket card. The form slides left and the ticket fades in from the right, per 8.3.
 
