@@ -78,3 +78,15 @@ as hover.
 Deferred items and their requirement IDs are recorded in `PLAN.md` and
 `requirement.md` (delivery fee config, online payment, vendor notifications,
 tracking, inventory, service slots, email sending).
+
+## Motion
+
+- The plus add button is a white circle; the cart control is an icon-only circle
+  with a corner count and fades in the first time an item is added. The slot is
+  reserved so the sort control does not jump.
+- Category chips and the delivery/pickup segmented control are flattened and
+  black when active. The segment thumb slides with a small spring.
+- The checkout dialog fades and rises in, and fades out on close. On success the
+  form slides left, then the ticket card fades in from the right.
+- Place order and Done use the same black, flattened style with a press spring.
+- Every new animation is disabled under `prefers-reduced-motion`.

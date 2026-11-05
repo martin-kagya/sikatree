@@ -11,7 +11,7 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
-import { ArrowRight, Check, Copy, MessageCircle, ShoppingCart, X } from '@/components/icons';
+import { ArrowRight, Check, Copy, MessageCircle, Plus, ShoppingCart, X } from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { accentFor } from '@/lib/shop-accent';
@@ -210,13 +210,9 @@ function storeWhatsappHref(phone: string, name: string): string {
                 onAdd(item.id);
               }}
               aria-label={`Add ${item.name} to cart`}
-              className="shop-add absolute bottom-2 right-2 z-30 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-              style={{
-                backgroundColor: 'var(--shop-accent)',
-                color: 'var(--shop-accent-label)',
-              }}
+              className="shop-add shop-press absolute bottom-2 right-2 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[var(--shop-ink)] shadow-[0_4px_14px_rgba(16,17,31,0.18)]"
             >
-              <ShoppingCart className="h-3.5 w-3.5" /> Add
+              <Plus className="h-4 w-4" />
             </button>
           ) : null}
         </div>
@@ -367,6 +363,7 @@ export function Storefront({
   const [cart, setCart] = useState<Record<string, number>>({});
   const [cartReady, setCartReady] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [order, setOrder] = useState<CheckoutOrder | null>(null);
   const [fulfilment, setFulfilment] = useState<Fulfilment>(
@@ -551,11 +548,20 @@ export function Storefront({
     if (!cartCount) return;
     setCheckoutError(null);
     setOrder(null);
-    checkoutRef.current?.showModal();
+    const dialog = checkoutRef.current;
+    if (!dialog) return;
+    dialog.classList.remove('is-closing');
+    dialog.showModal();
   }
 
   function closeCheckout() {
-    checkoutRef.current?.close();
+    const dialog = checkoutRef.current;
+    if (!dialog || dialog.classList.contains('is-closing')) return;
+    dialog.classList.add('is-closing');
+    window.setTimeout(() => {
+      dialog.classList.remove('is-closing');
+      dialog.close();
+    }, 170);
   }
 
   async function onCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
@@ -578,8 +584,13 @@ export function Storefront({
     try {
       const result = await submitOrder(data);
       if (result.ok) {
-        setOrder(result.order);
-        setCart({});
+        const placed = result.order;
+        setLeaving(true);
+        window.setTimeout(() => {
+          setOrder(placed);
+          setCart({});
+          setLeaving(false);
+        }, 190);
       } else {
         setCheckoutError(result.error);
       }
@@ -611,26 +622,24 @@ export function Storefront({
             </span>
             {hasProducts ? (
               <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={openCheckout}
-                  disabled={!cartCount}
-                  aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] disabled:opacity-40"
-                >
-                  <ShoppingCart className="h-4 w-4" />
+                <div className="relative h-10 w-10 shrink-0">
                   {cartCount > 0 ? (
-                    <span
-                      className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
-                      style={{
-                        backgroundColor: 'var(--shop-accent)',
-                        color: 'var(--shop-accent-label)',
-                      }}
+                    <button
+                      type="button"
+                      onClick={openCheckout}
+                      aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                      className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)]"
                     >
-                      {cartCount}
-                    </span>
+                      <ShoppingCart className="h-4 w-4" />
+                      <span
+                        key={cartCount}
+                        className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
+                      >
+                        {cartCount}
+                      </span>
+                    </button>
                   ) : null}
-                </button>
+                </div>
                 <a
                   href={ctaHref}
                   target="_blank"
@@ -760,19 +769,11 @@ export function Storefront({
                         onClick={() => navigate({ category: option === 'All' ? null : option })}
                         aria-pressed={active}
                         className={cn(
-                          'h-11 shrink-0 snap-start rounded-pill border px-4 text-[13px] font-medium transition-colors',
+                          'h-11 shrink-0 snap-start rounded-[10px] border px-3.5 text-[13px] font-medium transition-colors duration-200',
                           active
-                            ? 'border-transparent'
+                            ? 'border-transparent bg-[var(--shop-ink)] text-white'
                             : 'border-[var(--shop-hair)] bg-[var(--shop-card)] text-[var(--shop-ink)] hover:border-[var(--shop-muted)]',
                         )}
-                        style={
-                          active
-                            ? {
-                                backgroundColor: 'var(--shop-accent)',
-                                color: 'var(--shop-accent-label)',
-                              }
-                            : undefined
-                        }
                       >
                         {option}
                       </button>
@@ -801,27 +802,24 @@ export function Storefront({
                   </label>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={openCheckout}
-                  disabled={!cartCount}
-                  aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-                  className="relative inline-flex h-11 shrink-0 items-center gap-2 rounded-pill border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px] font-medium text-[var(--shop-ink)] disabled:opacity-40 sm:px-4"
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Cart</span>
+                <div className="relative h-11 w-11 shrink-0">
                   {cartCount > 0 ? (
-                    <span
-                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold"
-                      style={{
-                        backgroundColor: 'var(--shop-accent)',
-                        color: 'var(--shop-accent-label)',
-                      }}
+                    <button
+                      type="button"
+                      onClick={openCheckout}
+                      aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                      className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] shadow-[0_1px_3px_rgba(16,17,31,0.08)]"
                     >
-                      {cartCount}
-                    </span>
+                      <ShoppingCart className="h-[18px] w-[18px]" />
+                      <span
+                        key={cartCount}
+                        className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
+                      >
+                        {cartCount}
+                      </span>
+                    </button>
                   ) : null}
-                </button>
+                </div>
               </div>
             </div>
           </div>
@@ -991,14 +989,18 @@ export function Storefront({
         ref={checkoutRef}
         aria-label="Checkout"
         className="shop-checkout"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeCheckout();
+        }}
         onClose={() => {
           setOrder(null);
           setCheckoutError(null);
         }}
       >
-        <div className="w-[min(960px,calc(100vw-24px))] max-h-[92vh] overflow-y-auto rounded-[24px] bg-white p-5 sm:p-7">
+        <div className="shop-checkout-panel w-[min(960px,calc(100vw-24px))] max-h-[92vh] overflow-y-auto rounded-[24px] bg-white p-5 sm:p-7">
           {order ? (
-            <div className="mx-auto max-w-[520px] py-2 text-center">
+            <div className="shop-success-in mx-auto max-w-[520px] py-2 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mint-100 text-green-deep">
                 <Check className="h-8 w-8" />
               </div>
@@ -1057,21 +1059,17 @@ export function Storefront({
 
               <button
                 type="button"
-                onClick={() => {
-                  setOrder(null);
-                  checkoutRef.current?.close();
-                }}
-                className="mt-6 h-12 w-full rounded-pill text-[15px] font-medium"
-                style={{
-                  backgroundColor: 'var(--shop-accent)',
-                  color: 'var(--shop-accent-label)',
-                }}
+                onClick={closeCheckout}
+                className="shop-press mt-6 h-12 w-full rounded-[12px] bg-[var(--shop-ink)] text-[15px] font-medium text-white"
               >
                 Done
               </button>
             </div>
           ) : (
-            <form onSubmit={onCheckoutSubmit} className="grid gap-6 md:grid-cols-[1fr_340px]">
+            <form
+              onSubmit={onCheckoutSubmit}
+              className={cn('grid gap-6 md:grid-cols-[1fr_340px]', leaving && 'shop-form-leave')}
+            >
               <div className="min-w-0 space-y-5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-h2 text-ink">Checkout</h2>
@@ -1180,7 +1178,15 @@ export function Storefront({
                     <p className="text-[13px] font-medium text-[var(--shop-ink)]">
                       How would you like it?
                     </p>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="relative mt-2 grid grid-cols-2 rounded-[12px] border border-[var(--shop-hair)] bg-white p-1">
+                      <span
+                        aria-hidden="true"
+                        className="shop-segment pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-[9px] bg-[var(--shop-ink)]"
+                        style={{
+                          transform:
+                            fulfilment === 'pickup' ? 'translateX(100%)' : 'translateX(0)',
+                        }}
+                      />
                       {(['delivery', 'pickup'] as const).map((option) => {
                         const active = fulfilment === option;
                         return (
@@ -1190,19 +1196,9 @@ export function Storefront({
                             aria-pressed={active}
                             onClick={() => setFulfilment(option)}
                             className={cn(
-                              'h-11 rounded-[10px] border text-[13px] font-medium capitalize',
-                              active
-                                ? 'border-transparent'
-                                : 'border-[var(--shop-hair)] bg-white text-[var(--shop-ink)]',
+                              'relative z-10 h-10 rounded-[9px] text-[13px] font-medium capitalize transition-colors duration-200',
+                              active ? 'text-white' : 'text-[var(--shop-ink)]',
                             )}
-                            style={
-                              active
-                                ? {
-                                    backgroundColor: 'var(--shop-accent)',
-                                    color: 'var(--shop-accent-label)',
-                                  }
-                                : undefined
-                            }
                           >
                             {option}
                           </button>
@@ -1317,12 +1313,8 @@ export function Storefront({
 
                   <button
                     type="submit"
-                    disabled={placing || !cartCount}
-                    className="mt-4 h-12 w-full rounded-pill text-[15px] font-medium disabled:opacity-50"
-                    style={{
-                      backgroundColor: 'var(--shop-accent)',
-                      color: 'var(--shop-accent-label)',
-                    }}
+                    disabled={placing || leaving || !cartCount}
+                    className="shop-press mt-4 h-12 w-full rounded-[12px] bg-[var(--shop-ink)] text-[15px] font-medium text-white disabled:opacity-50"
                   >
                     {placing ? 'Placing order…' : `Place order · ${formatShopPrice(totalPesewas)}`}
                   </button>

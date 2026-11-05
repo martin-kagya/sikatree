@@ -113,6 +113,15 @@ export function Globe(props: IconProps) {
   );
 }
 
+export function Plus(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </Icon>
+  );
+}
+
 export function ShoppingCart(props: IconProps) {
   return (
     <Icon {...props}>

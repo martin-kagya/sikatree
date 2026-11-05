@@ -221,3 +221,147 @@
     transparent 6px 10px
   );
 }
+
+/* Premium motion for the cart, checkout and success state. */
+@keyframes shop-cart-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.shop-cart-in {
+  animation: shop-cart-in 240ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes shop-badge-pop {
+  0% {
+    transform: scale(0.75);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.shop-badge-pop {
+  animation: shop-badge-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shop-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shop-dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes shop-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shop-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.shop-checkout[open] .shop-checkout-panel {
+  animation: shop-dialog-in 280ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.shop-checkout[open]::backdrop {
+  animation: shop-backdrop-in 200ms ease-out both;
+}
+
+.shop-checkout.is-closing .shop-checkout-panel {
+  animation: shop-dialog-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.shop-checkout.is-closing::backdrop {
+  animation: shop-backdrop-out 180ms ease-in both;
+}
+
+@keyframes shop-form-leave {
+  to {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+.shop-form-leave {
+  animation: shop-form-leave 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  pointer-events: none;
+}
+
+@keyframes shop-success-in {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.shop-success-in {
+  animation: shop-success-in 340ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.shop-press {
+  transition:
+    transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 180ms ease;
+}
+
+.shop-press:active {
+  transform: scale(0.96);
+}
+
+.shop-segment {
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-cart-in,
+  .shop-badge-pop,
+  .shop-checkout[open] .shop-checkout-panel,
+  .shop-checkout[open]::backdrop,
+  .shop-checkout.is-closing .shop-checkout-panel,
+  .shop-checkout.is-closing::backdrop,
+  .shop-form-leave,
+  .shop-success-in {
+    animation: none !important;
+  }
+
+  .shop-press,
+  .shop-segment {
+    transition: none !important;
+  }
+
+  .shop-press:active {
+    transform: none;
+  }
+}
