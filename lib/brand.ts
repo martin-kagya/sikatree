@@ -7,11 +7,11 @@ export const brand = {
 } as const;
 
 // Single source of truth for the public domain. Vendor handles are
-// path-based, e.g. sikatree.app/amasglow.
+// path-based, e.g. sikatree.africa/amasglow.
 export const site = {
-  domain: 'sikatree.app',
-  url: 'https://sikatree.app',
-  email: 'hello@sikatree.app',
+  domain: 'sikatree.africa',
+  url: 'https://sikatree.africa',
+  email: 'hello@sikatree.africa',
 } as const;
 
 export const ostra = {
