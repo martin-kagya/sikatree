@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ChevronDown } from '@/components/icons';
 import { getInsights, type Insights } from '@/lib/insights';
 import { formatGhanaPhone } from '@/lib/phone';
 import { requireAdmin } from '@/lib/admin-auth';
@@ -69,18 +70,21 @@ function Row({ row }: { row: AdminEntry }) {
       <td className="whitespace-nowrap px-2 py-3 text-small text-ink">
         <form action={setStatusAction} className="flex items-center gap-1.5">
           <input type="hidden" name="id" value={row.id} />
-          <select
-            name="status"
-            defaultValue={row.status}
-            aria-label={`Status for ${formatGhanaPhone(row.phone)}`}
-            className="h-8 rounded-inner border border-hairline bg-white px-2 text-[12px] text-ink"
-          >
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              name="status"
+              defaultValue={row.status}
+              aria-label={`Status for ${formatGhanaPhone(row.phone)}`}
+              className="h-8 appearance-none rounded-inner border border-hairline bg-white pl-2 pr-7 text-[12px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
+            >
+              {STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
+          </div>
           <button type="submit" className="h-8 rounded-pill border border-hairline px-2.5 text-[11px] text-ink hover:border-ink/40">
             Save
           </button>
@@ -241,35 +245,41 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             <label htmlFor="status" className="mb-1 block text-[12px] text-ink-muted">
               Status
             </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={filters.status}
-              className="h-10 rounded-inner border border-hairline bg-page px-2 text-small text-ink"
-            >
-              <option value="">All</option>
-              {STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="status"
+                name="status"
+                defaultValue={filters.status}
+                className="h-10 w-full appearance-none rounded-inner border border-hairline bg-page pl-3 pr-9 text-small text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
+              >
+                <option value="">All</option>
+                {STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            </div>
           </div>
           <div>
             <label htmlFor="type" className="mb-1 block text-[12px] text-ink-muted">
               Type
             </label>
-            <select
-              id="type"
-              name="type"
-              defaultValue={filters.type}
-              className="h-10 rounded-inner border border-hairline bg-page px-2 text-small text-ink"
-            >
-              <option value="">All</option>
-              <option value="products">Products</option>
-              <option value="services">Services</option>
-              <option value="both">Both</option>
-            </select>
+            <div className="relative">
+              <select
+                id="type"
+                name="type"
+                defaultValue={filters.type}
+                className="h-10 w-full appearance-none rounded-inner border border-hairline bg-page pl-3 pr-9 text-small text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
+              >
+                <option value="">All</option>
+                <option value="products">Products</option>
+                <option value="services">Services</option>
+                <option value="both">Both</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            </div>
           </div>
           <button type="submit" className="h-10 rounded-pill bg-ink px-5 text-small text-white">
             Filter

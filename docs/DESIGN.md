@@ -907,6 +907,7 @@ List rows: min-height 64px, title 16px medium, meta 14px `--ink-muted`, amount r
 Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14px medium `--ink-muted`), body rows min-height 56px, 1px `--hairline` dividers, numeric columns right-aligned with tabular numbers, status as a badge (5.4). No gallery effects.
 
 - **Support inbox:** `/admin/support`, open and closed tabs, one row per ticket with vendor, phone, last message, updated time and status. The detail view shows vendor context, the WhatsApp history as alternating bubbles, a reply box, and resolve or reopen. Free-form replies only; no template picker.
+- On mobile the support table is a horizontal scroll region with a visible swipe cue; all columns remain reachable. Filters and row status selects use the custom chevron, never the native arrow.
 - **Onboarding funnel:** on the admin home, four figures: conversations, live pages, orders and median minutes from first message to live page. The target is under 10 minutes. No chart until there is enough data.
 
 ### 15.5 Acceptance checklist
@@ -923,6 +924,8 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] Every dashboard button and button-like link has a pressed state and a visible focus ring.
 - [ ] The desktop dashboard uses the 960px container, not a narrow 760px column.
 - [ ] Support shows the vendor's own tickets and never exposes another vendor's ticket.
+- [ ] On mobile the admin support table swipes to the status and Open columns.
+- [ ] Admin filters and row selects use the custom chevron with 12px right alignment.
 - [ ] A manually sold-out item keeps its stock count but shows Sold out and has no Add button.
 - [ ] Reduced motion makes all transitions instant.
 

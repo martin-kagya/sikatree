@@ -87,21 +87,27 @@ export default async function SupportPage({ searchParams }: { searchParams: Sear
 
         {visible.length ? (
           <div className="mt-4 overflow-hidden rounded-panel bg-white shadow-card">
-            <table className="w-full text-left">
-              <thead className="bg-page text-[12px] text-ink-muted">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Vendor</th>
-                  <th className="px-4 py-3 font-medium">Phone</th>
-                  <th className="px-4 py-3 font-medium">Last message</th>
-                  <th className="px-4 py-3 font-medium">Updated</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3" />
-                </tr>
-              </thead>
+            <div
+              className="overflow-x-auto overscroll-x-contain"
+              role="region"
+              aria-label="Support tickets"
+              tabIndex={0}
+            >
+              <table className="w-full min-w-[760px] text-left">
+                <thead className="bg-page text-[12px] text-ink-muted">
+                  <tr>
+                    <th className="min-w-[160px] px-4 py-3 font-medium">Vendor</th>
+                    <th className="whitespace-nowrap px-4 py-3 font-medium">Phone</th>
+                    <th className="min-w-[180px] px-4 py-3 font-medium">Last message</th>
+                    <th className="whitespace-nowrap px-4 py-3 font-medium">Updated</th>
+                    <th className="whitespace-nowrap px-4 py-3 font-medium">Status</th>
+                    <th className="whitespace-nowrap px-4 py-3" />
+                  </tr>
+                </thead>
               <tbody>
                 {visible.map((ticket) => (
                   <tr key={ticket.id} className="border-t border-hairline align-top">
-                    <td className="px-4 py-3 text-small text-ink">
+                    <td className="min-w-[160px] px-4 py-3 text-small text-ink">
                       {ticket.vendorName ?? <span className="text-ink-muted">No vendor yet</span>}
                       {ticket.vendorHandle ? (
                         <span className="block text-[11px] text-ink-muted">
@@ -112,13 +118,13 @@ export default async function SupportPage({ searchParams }: { searchParams: Sear
                     <td className="whitespace-nowrap px-4 py-3 text-small text-ink">
                       {formatGhanaPhone(ticket.phone)}
                     </td>
-                    <td className="max-w-[320px] px-4 py-3 text-[13px] text-ink-muted">
+                    <td className="min-w-[180px] max-w-[320px] px-4 py-3 text-[13px] text-ink-muted">
                       <span className="line-clamp-2">{ticket.lastMessage ?? 'No message'}</span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-[12px] text-ink-muted">
                       {when(ticket.updatedAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3">
                       <span
                         className={`rounded-pill px-2.5 py-1 text-[11px] font-medium ${
                           ticket.status === 'open'
@@ -129,7 +135,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Sear
                         {ticket.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
                       <Link
                         href={`/admin/support/${ticket.id}`}
                         className="text-[12px] font-medium text-green-deep underline underline-offset-2"
@@ -139,8 +145,12 @@ export default async function SupportPage({ searchParams }: { searchParams: Sear
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
+            <p className="border-t border-hairline px-4 py-2 text-[11px] text-ink-muted sm:hidden">
+              Swipe the table sideways to see status and Open.
+            </p>
           </div>
         ) : (
           <p className="mt-4 rounded-panel bg-white p-6 text-small text-ink-muted shadow-card">
