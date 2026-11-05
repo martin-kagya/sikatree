@@ -1,11 +1,13 @@
 # DESIGN.md: sikatree Design Language
 
-Status: Binding. Version 0.4 (draft)
-Date: 2026-11-04
+Status: Binding. Version 0.5 (draft)
+Date: 2026-11-05
 Applies to: the sikatree landing page and waitlist (Sections 1 to 13), the public storefront and checkout (Section 14), the vendor PWA and admin (Section 15), and WhatsApp message design (Section 16).
 Companion docs: `requirement.md`, `PLAN.md`
 Parent brand: Ostra. Minor accents only (Section 1 and Section 7).
 Reference: Dribbble shot "Capture Photography Portfolio Website Design" by Tanvir for Yscale Studio (https://dribbble.com/shots/27649892-Capture-Photography-Portfolio-Website-Design), three screenshots. It sets the landing page direction. The earlier order timeline, order success card and product grid references still drive Sections 5 and 14. The earlier tilted floating-tile hero reference is superseded. Section 9 overrides every reference.
+
+Version 0.5 records the shipped storefront cart, checkout and success patterns, compact control radii, and a stricter motion system: nothing appears or moves abruptly.
 
 ---
 
@@ -18,6 +20,7 @@ Reference: Dribbble shot "Capture Photography Portfolio Website Design" by Tanvi
 - The reference's typefaces are not published. Section 3.3 records the closest free matches, chosen by eye. If the originals are identified, change 3.3 only.
 - Items marked **(inferred)** were not visible in the screenshots and follow the style's logic. Items marked **(proposed)** are new decisions awaiting owner confirmation. Treat both as binding until changed.
 - Sections 1 to 13 define the system and the landing page. Sections 14 to 16 extend it per surface and win over 1 to 13 where they conflict.
+- **Nothing appears abruptly.** Every conditional element enters and exits under Section 8. A control that pops into place, jumps the layout or changes state in one frame is a bug. This applies to every surface: landing, waitlist, storefront, dashboard and admin.
 - No em-dashes in any copy, comments or documentation.
 
 ---
@@ -50,6 +53,7 @@ Do not copy the Ostra hero layout, cream colorwash, Plus Jakarta Sans, mint grad
 5. **Fast on weak phones.** Every visual idea has a lightweight fallback. Beauty must not cost data.
 6. **Trust through clarity.** Prices in GH₵, visible order codes, obvious payment status, plain words.
 7. **Local, not generic.** MoMo, GH₵, Ghanaian places and products in every example. No `$`, no Apple Pay.
+8. **Nothing pops.** Motion is quiet and continuous. Elements fade and move a few pixels into place, exits finish before removal, and space is reserved so the layout never jumps. Section 8 is binding.
 
 ---
 
@@ -159,7 +163,7 @@ What the screenshots show:
 
 Rules:
 
-- **Sentence case everywhere**: headings, buttons, labels, badges, tabs. No uppercase headings, no letter-spaced all-caps. The reference's "ADD TO BAG +" becomes "Add +".
+- **Sentence case everywhere**: headings, buttons, labels, badges, tabs. No uppercase headings, no letter-spaced all-caps. The reference's "ADD TO BAG +" becomes a white plus circle (5.6).
 - Italic is allowed only for the accent serif.
 - `font-variant-numeric: tabular-nums` on prices, order codes and timestamps.
 - Inputs are 16px or larger (prevents iOS zoom). Body text never below 14px, except index numbers and bottom nav labels (12px) and badges (13px).
@@ -183,9 +187,12 @@ Base unit 4px. Allowed scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 96.
 | --r-panel  | 32px (24px mobile) | hero panel, dark panel, footer panel           |
 | --r-tile   | 28px  | product tiles, gallery tiles, bento image tiles            |
 | --r-card   | 24px  | cards, success card, modals, sheets (top corners), glass card |
+| --r-product | 20px | storefront product cards                                   |
 | --r-inner  | 16px  | inputs, alerts, FAQ rows, small images, index preview      |
+| --r-control | 12px | compact action buttons, segmented controls, checkout buttons |
+| --r-chip   | 10px  | category and filter chips                                  |
 
-No radius under 16px on cards, tiles, inputs or buttons.
+No radius under 16px on cards, tiles or inputs. Compact controls use `--r-control` 12px or `--r-chip` 10px. Circles and pills stay 999px. This exception was added in 0.5 for the storefront cart and checkout.
 
 ### 3.6 Shadows and borders
 
@@ -213,7 +220,7 @@ v1 ships a light page (proposed). The dark panels are a design choice, not dark 
 
 ## 4. Layout
 
-- **Containers:** landing content max-width **1120px**, public vendor page **720px** (mobile-first), vendor PWA and admin **960px**. All centered.
+- **Containers:** landing and storefront content max-width **1120px** (16px side padding mobile, 24px from tablet up), vendor PWA and admin **960px**. All centered.
 - **Panels:** the hero, the "Made for" list and the footer are rounded panels (`--r-panel`) inset from the viewport by the page side padding, max-width 1360px. Content inside a panel follows the 1120px container. No edge-to-edge colored sections, no diagonal or wavy dividers.
 - **Page canvas:** `--bg-page` with white cards. No other section backgrounds.
 - **Section headers:** two patterns from the reference. Split: eyebrow left (25%), content right (75%). Centered: H2 plus optional pill button.
@@ -235,7 +242,7 @@ v1 ships a light page (proposed). The dark panels are a design choice, not dark 
 
 ### 5.2 Buttons
 
-All buttons are pills. Label 16px, weight 500.
+Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in checkout use `--r-control` 12px. Label 16px, weight 500.
 
 | Variant     | Background     | Text    | Border         | Height | Padding |
 | ----------- | -------------- | ------- | -------------- | ------ | ------- |
@@ -243,19 +250,20 @@ All buttons are pills. Label 16px, weight 500.
 | Inverse     | #fff           | --ink   | none           | 48px (44px in nav) | 0 28px |
 | Secondary   | #fff           | --ink   | none on `--bg-page`, 1px --hairline on white | 48px | 0 28px |
 | Ghost       | transparent    | --ink (`--ink-on-dark` on dark) | none, underline on hover | 44px | 0 16px |
-| Tile action | --ink          | #fff    | none           | 44px   | 0 20px, label "Add +" |
+| Compact action | --ink        | #fff    | none           | 48px   | 0 24px, radius --r-control, spring press |
 | WhatsApp    | #fff           | --ink   | none on `--bg-page`, 1px --hairline on white | 48px | 0 28px, WhatsApp glyph in `--ink`, not brand green |
 
 - One Primary per screen. The same action repeated (nav Inverse and hero Primary "Join the waitlist") counts as one.
 - Use Inverse on `--bg-dark`, on `--sage` and on photos. Use Primary on the light canvas and in the hero.
 - Disabled: `--hairline` fill, `--ink-muted` text, no hover, `aria-disabled="true"`.
 - Loading: spinner replaces the label, width fixed, `aria-busy="true"`, clicks ignored.
-- Hover (inferred): lifts 1px, 150ms. Press: scale 0.98. Focus per 3.1.
+- Hover: lifts 1px, 150ms. Press: scale 0.98, or 0.96 with the spring for compact actions. Focus per 3.1. Motion follows Section 8.
 - Mobile forms: buttons full width, Primary first.
 
 ### 5.3 Inputs and forms
 
 - Height 52px, padding 0 16px, radius `--r-inner`, 16px text, fill `--surface-soft`, 1px `--hairline` border. Focus: border `--green-main` plus the focus ring.
+- Compact checkout fields use `--r-control` 12px and 44 to 48px height. Standard forms keep `--r-inner`.
 - Label above (15px medium), always visible, never placeholder-only. Helper or error below, 14px. Placeholders show example values only.
 - Phone field: fixed `+233` prefix, number formatting, numeric keyboard (`inputmode="tel"`). Set `autocomplete` and `enterkeyhint` on every field.
 - Validate inline on blur and on submit. Error: border `--danger`, message 14px `--danger` with a 16px alert-circle icon, plain language, `aria-invalid="true"` and `aria-describedby`.
@@ -263,7 +271,7 @@ All buttons are pills. Label 16px, weight 500.
 
 ### 5.4 Chips and badges
 
-- **Choice chip** (interactive: category filters, MoMo network, option pickers): 44px high, pill, white, 1px `--hairline`, 15px medium. Selected: `--ink` fill, white text.
+- **Choice chip** (interactive: category filters, MoMo network, option pickers): 44px high, `--r-chip` 10px, white, 1px `--hairline`, 15px medium. Selected: `--ink` fill, white text. Colour changes over 200ms and the size never changes. Category chips sit in one horizontal scroll-snap row with no visible scrollbar.
 - **Status badge** (display only): 28px high, padding 0 12px, pill, 13px semibold. Always shows text, never color alone.
 
 | Status           | Background       | Text                                   |
@@ -276,7 +284,7 @@ All buttons are pills. Label 16px, weight 500.
 | Sold out         | --surface-soft   | --ink-muted                            |
 
 - **Verification badge:** 20px `--green-deep` circle with a white check.
-- Low stock is a caption, "Only 2 left", in `--ink` with an 8px `--warn-edge` dot.
+- Low stock is a caption, "Only 2 left", in `--danger` at 11px. The storefront never shows an exact count above 5. The dashboard may show "In stock (n)" and "Low stock (n)".
 
 ### 5.5 Icons
 
@@ -290,19 +298,21 @@ Lucide only. 1.75px stroke, rounded caps and joins, no fills. 20px inline, 24px 
 
 ```
 +--------------------------+
-|                          |   --tile (white) on the grey page, --r-tile
-|        [ product ]       |   image contained, centered
-|                          |
-|        ( Add +  )        |   tile action pill, bottom center
+|                          |   white card, 1px --hairline, --r-product
+|      product image       |   1:1 box, cover, radius 14
+|  [Enquire]         (+)   |   pill left, 36px circle right
 +--------------------------+
- Vitamin C serum             title, 16px medium, sentence case
- GH₵120.00                   price style, tabular
- Brightening, 30ml           one-line description, small muted
+ Vitamin C serum     GH₵120  title 14/16 semibold, price tabular
+ Only 3 left                 stock caption 11px, --danger
 ```
 
-- Aspect ratio is consistent within a page (1:1 or 4:5) so mixed vendor photos look curated.
-- Price is shown on every tile. Never hide it behind a tap.
-- States: **Sold out** (tile at 60% opacity, pill replaced by a muted "Sold out" chip). **Low stock** (caption per 5.4). **Contact for price** (button becomes "Ask on WhatsApp").
+- Compact padding is 8px mobile and 10px desktop on product cards only. The image box is 1:1 by default. A store may set `--card-image-ratio` to 1/1, 4/5 or 5/4. Use `object-fit: cover` and centre or the product focal point. Never size the box from the image's intrinsic height.
+- The whole card is one link to the WhatsApp enquiry with the prefilled message "Hi, I'm interested in {name} ({price}). Is it available?". The name carries a stretched link, and the badge and actions sit above it.
+- Enquire is a small white pill bottom-left. Add is a 36px white circle with a plus bottom-right. On hover devices both appear on hover and focus, following Section 8. On touch Add is always visible and Enquire is hidden because the card link opens the enquiry.
+- Price is shown on every tile. Compare-at prices are struck through. Stock rules: 0 shows a Sold out overlay and a desaturated image; 1 to 5 shows "Only n left"; above 5 shows nothing.
+- Optional badge top-left: translucent pill with Discount, Popular or New.
+- Cards in a row are equal height: flex column, body flex 1, price row `margin-top: auto`. A card is never taller than 1.45x its width on mobile.
+- Hover and focus: 3px lift, image zoom or second-image crossfade, name underline, badge nudge and description scrim. Touch: two-line description under the price, no scrim. Full motion in 8.3.
 
 ### 5.7 Gallery tile
 
@@ -310,7 +320,13 @@ The product tile without the action pill. Tap opens a full-screen swipeable ligh
 
 ### 5.8 Vendor header
 
-Circle avatar 72px (initials on `--mint-100` with `--green-deep` text when no photo), business name (H2), one-line bio, verification badge, then a row of pill link buttons (WhatsApp, Instagram, Snapchat, TikTok, Maps), each 44px. Centered on mobile.
+Compact white card, radius 28px mobile and 32px desktop, 1px `--hairline`, padding 20px mobile and 28px desktop. Maximum height 200px on desktop and 260px on mobile.
+
+- Row: 56px initials avatar (`--mint-100` fill, `--green-deep` text), store name in `clamp(28px, 4vw, 44px)`, weight 500, letter-spacing -0.03em, tagline in `--ink-muted` clamped to 2 lines, location and category line at 14px `--ink-muted`.
+- Address chip `sikatree.africa/{handle}` in a soft pill with a copy button. Copy writes the full https URL, shows Copied for 1.5s and announces through `aria-live="polite"`.
+- CTA "Chat on WhatsApp" uses the Primary style, right aligned at 768px and above and full width below. The prefilled message is "Hi {store}, I found you on sikatree." 
+- No standalone sikatree wordmark and no Powered by line in the header. Those belong in the footer.
+- After the header leaves the viewport, a 56px sticky bar shows the store name on the left and the cart plus CTA on the right. The CTA is icon-only under 400px. Motion follows Section 8.
 
 ### 5.9 Link button
 
@@ -327,24 +343,17 @@ Vertical on all breakpoints. Nodes are 24px circles on a 2px connector.
 
 ### 5.11 Order success card
 
-Centered, max-width 480px, `--r-card`, 1px `--hairline`, `--shadow-card`, padding 32px (24px mobile).
+Ticket-style, centred, max-width 520px, white card, `--r-card`, 1px `--hairline`, `--shadow-card`, padding 24px mobile and 32px desktop.
 
-```
-        (success circle)
- Your order has been placed
+- Mint success circle with a check, "Thank you!" and "Your order has been placed".
+- Dashed divider.
+- Two columns: ORDER ID on the left and AMOUNT on the right, both 18px medium.
+- Rows for Placed, ETA and Email. Label `--ink-muted` left, value `--ink` right, 13px, tabular numbers.
+- Dashed divider, a barcode strip derived from the order code, and the short code beneath.
+- Payment line: "Pay on delivery", "Pay at pickup" or "Pay at your appointment", followed by a sentence such as "{vendor} will confirm shortly." 
+- Black compact Done button, full width, `--r-control`, press spring per 8.3.
 
- Order code        ORD-4F9K
- Payment           MTN MoMo
- Date and time     4 Nov 2026, 8:46 pm
- Total             GH₵129.00
-
- Ama's Glow Studio will confirm shortly. Keep your order code.
-
- [ Track my order ]               (Primary)
- [ Message vendor on WhatsApp ]   (WhatsApp)
-```
-
-Key-value rows use hairline dividers, label `--ink-muted` left, value `--ink` right, tabular numbers. Booking success reuses this card with "Add to calendar" and "Message vendor".
+Never claim a payment was received. Tracking and receipts are deferred. Booking success reuses this card with the appointment time in ETA and Add to calendar when that work lands.
 
 ### 5.12 Slot picker
 
@@ -517,12 +526,65 @@ Consent line: "Message me on WhatsApp about my spot." Checkbox, on by default, r
 
 ## 8. Motion and interaction
 
-- Duration 150 to 250ms, easing `cubic-bezier(0.2, 0.7, 0.2, 1)`. Animate `transform`, `opacity` and color only.
-- **Allowed:** fade and 12px rise on section reveal (once, at 20% in view); press feedback (scale 0.98) on buttons, chips and tiles; accordion height and opacity and the plus-to-minus swap (200ms); index list preview crossfade (200ms); stepper progress and a soft pulse on the current step; toast fade and 8px slide (200ms); menu and sheets sliding in (250ms).
-- **Never:** motion that delays content or checkout, parallax, cursor effects, scroll-jacking, autoplay video, marquees, floating or drifting tiles.
-- `prefers-reduced-motion` or the `Save-Data` header: no reveals, no pulse, instant state changes. Spinners stay.
+**Binding principle: nothing appears, disappears or changes position abruptly.** Every conditional element enters with opacity and a short transform. Every exit finishes before the element is removed. Space is reserved before a control appears, so the page never jumps. If a motion cannot be both subtle and fast, remove the motion, not the timing.
 
----
+### 8.1 Motion tokens
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--ease-standard` | `cubic-bezier(0.2, 0.7, 0.2, 1)` | fades, moves and colour changes |
+| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | segmented thumb, badge pop, press release |
+| `--motion-fast` | 150ms | hover colour and small press |
+| `--motion-base` | 200ms | chips, descriptions and exits |
+| `--motion-enter` | 240ms | cart and small UI entering |
+| `--motion-panel` | 280ms | dialogs, sheets and segmented thumb |
+| `--motion-exit` | 180ms | closing dialogs and exits |
+| `--motion-success` | 340ms | success card entering |
+| `--motion-image` | 700ms | image zoom |
+| `--motion-crossfade` | 400ms | second product image |
+
+Animate only `transform`, `opacity` and colour. Never animate layout properties that reflow the grid.
+
+### 8.2 Entry and exit rules
+
+- No element may mount at its final state. Start at opacity 0 plus one of: a rise of 4px to 16px, a slide of 12px to 26px, or a scale of 0.96 to 0.98.
+- Exits run for 180 to 200ms before removal. A dialog fades and scales down slightly; it never disappears in one frame.
+- Reserve space for conditional controls, for example the cart slot, so neighbours do not jump when the control appears.
+- Do not hide a revealed element with `display: none` while it animates. On touch, a different element may carry the content; see 8.3.
+- Motion never blocks input. Visible controls accept pointer events immediately; disabled controls do not animate.
+- Stagger only section reveals, at most 40ms per item and at most 3 items.
+
+### 8.3 Patterns (binding)
+
+| Pattern | Motion |
+| --- | --- |
+| Section reveal | opacity 0 to 1 and 12px rise, 300ms standard, once at 20% in view |
+| Card hover | lift 3px and grow the shadow, 300ms standard; image zooms to 1.05 over 700ms; a second image crossfades over 400ms |
+| Card description | scrim fades 300ms; text rises 12px with a 40ms delay; the Enquire pill slides in from 8px left |
+| Add to cart | 36px white circle with plus; appears with the card overlay; press spring at 180ms |
+| Cart appears | opacity and `scale(0.92)` to 1 with a 4px rise, 240ms standard; the slot is reserved before mount |
+| Cart badge | pops from 0.75 to 1.18 to 1, 260ms spring; only when the count changes |
+| Choice chip | colour 200ms; selected is ink fill with white text; no size change |
+| Segmented control | black thumb slides 280ms spring; labels fade colour 200ms |
+| Compact press | scale 0.96 with 180ms spring on release; hover lifts 1px |
+| Dialog open | panel opacity 0, 16px rise and `scale(0.97)`, 280ms standard; backdrop fades 200ms |
+| Dialog close | panel fades and scales to 0.98 over 180ms; backdrop fades 180ms |
+| Checkout success | form fades and slides left 28px over 200ms; success fades in from 26px right over 340ms |
+| Toast or inline notice | fade and 8px slide, 200ms |
+| Stepper | 200ms transform and opacity |
+
+### 8.4 Never
+
+- Never show or hide a control without a transition, except under reduced motion.
+- Never let an element jump the layout. Reserve its space or use a fixed aspect ratio.
+- Never slide an entering element more than 26px or scale a panel above 1.0.
+- Never bounce a panel. Only badges may overshoot, and only to 1.18.
+- Never add motion that delays reading, checkout or the success state.
+- No parallax, cursor effects, scroll-jacking, autoplay video, marquees or drifting tiles.
+
+### 8.5 Reduced motion
+
+`prefers-reduced-motion: reduce` or `Save-Data`: all entries become instant opacity changes with no transform, no spring, no stagger and no zoom. Dialogs open and close instantly. Success swaps instantly. Focus rings and status changes remain. Spinners stay.
 
 ## 9. Content and copy rules (these override the reference)
 
@@ -540,7 +602,7 @@ Consent line: "Message me on WhatsApp about my spot." Checkbox, on by default, r
 | Timeline shows future timestamps                     | Label future steps "Estimated" or hide the time. Map to our statuses (14.5). Highlight the current step.       |
 | `$129`, "Apple Pay", numeric Order ID                | `GH₵129.00`. Payment: MTN MoMo, Telecel Cash, AT Money or Card. Order code `ORD-4F9K`.                         |
 | "Go to my account"                                   | "Track my order" (guests have no account), plus a secondary "Message vendor on WhatsApp".                      |
-| Product grid has no price, uppercase "ADD TO BAG +"  | Price on every tile. Sentence case. Label "Add +". Consistent tile ratio.                                      |
+| Product grid has no price, uppercase "ADD TO BAG +"  | Price on every tile. Sentence case. Add is a white plus circle (5.6). Consistent tile ratio.                    |
 
 ### 9.1 Voice
 
@@ -731,59 +793,64 @@ Replace the first column with verified figures before launch.
 
 ## 14. Public storefront and checkout
 
-Status: Binding. Version 0.3 (draft)
-Applies to: the public vendor page, item detail, checkout, payment waiting, order success, tracking and booking.
-Inherits Sections 1 to 12. Mobile-first at 360px, container 720px. The vendor accent (3.1) applies here only. The storefront stays quiet: grey page, white tiles and cards. The black pill nav, panels, glass card and accent serif are landing-only.
+Status: Binding. Version 0.4 (draft), 2026-11-05.
+Applies to: the public vendor page, product grid, cart, guest checkout and order success. Payment waiting and tracking are deferred, see 14.7.
+Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accent (3.1) applies here only. The storefront stays quiet: grey page, white cards, ink text.
 
-### 14.1 Vendor page
+### 14.1 Structure and container
 
-1. Vendor header (5.8).
-2. Link buttons (5.9): "View catalogue", "Book a session", external social links.
-3. Category chips (All, Skincare, Makeup...) then a tile grid (2 columns, product tiles per 5.6).
-4. Services list: name, duration and price on the left, a Secondary "Book" button right. Example: "Bridal makeup · 2 hrs · GH₵600".
-5. Portfolio gallery (5.7), swipeable.
-6. Footer: "Powered by Ostra · sikatree" with the small Ostra mark, and a Ghost "Get your own free page" link.
+- One container for the header, toolbar and grid: maximum 1120px, centred, 16px side padding on mobile and 24px from tablet up. No second max-width.
+- Vertical rhythm: header, 24px, toolbar, 16px, grid, 64px footer.
+- Grid: 2 columns under 640px, 3 from 640px, 4 from 1280px when the store has at least 8 products. Gaps are 12px, 16px and 20px.
+- Cards are equal height in a row. No horizontal scroll at 360px.
 
-When the bag has items, a sticky bottom bar shows `View bag (2) · GH₵255.00` as the Primary, padded for the safe-area inset.
+### 14.2 Vendor header
 
-### 14.2 Item detail
+Defined in 5.8. A compact white card, 56px initials avatar, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. A sticky bar with the name, cart and CTA replaces it after scroll, with an icon-only CTA under 400px.
 
-Full-width image carousel on `--tile`, title (H2), price, short description, option chips (size, length, color), a quantity stepper (44px buttons), and a sticky bottom bar with Primary "Add to bag" or "Book this".
+### 14.3 Toolbar and cart
 
-### 14.3 Checkout (products)
+- Category chips when the store has at least 2 categories: one horizontal scroll-snap row with no visible scrollbar, 44px high, `--r-chip` 10px. Inactive white with a hairline, active `--ink` fill with white text, colour transition 200ms.
+- Sort appears above 8 products, search above 12. URL state keeps `q`, `category`, `sort` and `page`.
+- The cart control sits beside the sort control. 44px white circle, 1px `--hairline`, cart glyph, count in a black corner badge. It is hidden at zero and fades and scales in on the first add. Its slot is reserved so the sort control does not jump. The same control appears in the sticky bar.
+- Sidebar filters only at 40 products or more and 1024px or more. Below that, filters use a bottom sheet. Otherwise the grid uses the full container.
 
-Single column, three collapsible steps, one open at a time. Finished steps collapse to a summary row with Edit.
+### 14.4 Product card
 
-1. **Contact:** name, WhatsApp number.
-2. **Delivery:** Pickup or Delivery (chips), address, landmark, note.
-3. **Pay:** MoMo network chips (MTN MoMo, Telecel Cash, AT Money, Card), number, or card.
+Defined in 5.6. Add is a 36px white plus circle opposite the Enquire pill. The card links to the WhatsApp enquiry. Stock rules: 0 sold out overlay and grayscale 0.6, 1 to 5 "Only n left" in `--danger`, above 5 nothing. The storefront never shows exact inventory.
 
-A compact order summary stays visible at the top. Total and fees are shown before paying.
+Motion on hover and focus follows 8.3. On touch the Add button is always visible, the Enquire pill is hidden and the description clamps to two lines under the price.
 
-### 14.4 Payment waiting
+### 14.5 Cart and checkout
 
-An instruction card: "Check your phone. Approve the MoMo prompt to pay GH₵255.00." With a countdown, a "Didn't get a prompt?" help link and a retry. Never a blank spinner. `aria-live="polite"`.
+- The cart is single-vendor, persists per store in `localStorage`, and is summarised by item total, delivery fee and total.
+- Checkout is a modal, not a page. Two columns on desktop (form left, summary right) and one column on mobile. Maximum height 92vh with internal scroll.
+- Items list with thumbnails and a quantity stepper. Delivery or pickup uses the segmented control with a black sliding thumb and a 280ms spring. Pickup shows the store location; delivery requires an address. Service vendors show date and time instead.
+- Contact: name, Ghana WhatsApp number and email. Email is required and stored on the order for updates. No email is sent yet. Note is optional.
+- Summary: item total, fixed GH₵15 delivery (free for pickup), total. The Place order button is black, full width, `--r-control` 12px, with a press spring.
+- Payment is not connected. The copy says pay on delivery, at pickup or at the appointment. Never claim a payment was received.
+- On success the cart clears and the modal stays open on the ticket card. The form slides left and the ticket fades in from the right, per 8.3.
 
-### 14.5 Order success and tracking
+### 14.6 Order success
 
-Success card per 5.11. Tracking uses the stepper (5.10) with these steps:
+Defined in 5.11. Order ID, amount, placed time, ETA and email sit on a dashed ticket with a barcode and a black Done button. ETA is an estimate: delivery 45 to 60 minutes, pickup about 30 minutes, appointment at the chosen date and time.
 
-`Order placed`, `Payment received`, `Confirmed by vendor`, `Ready or out for delivery`, `Delivered or picked up`
+### 14.7 Deferred storefront states
 
-Cancelled and refunded orders end in a distinct final state: an Error alert with the explanation and the Refunded or Cancelled badge.
+Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o/{code}`), vendor notifications, inventory holds and service slot availability are not built. When they land they follow `requirement.md` PAY, ORD and BK. Until then the UI must not show a fake countdown, spinner or progress state. The deferred register lives in `PLAN.md` and the notes under 6.7 and 6.8 of `requirement.md`.
 
-### 14.6 Booking flow
+### 14.8 Acceptance checklist
 
-Service summary, then the slot picker (5.12), then details (name, WhatsApp, notes, address if at the client's), then the deposit payment (14.3 Pay step), then the success card with "Add to calendar" and "Message vendor".
-
-### 14.7 Acceptance checklist
-
-- [ ] Every product tile shows a price, and tile ratios are consistent on each page.
-- [ ] One Primary per screen. Bag bar clears the safe-area inset.
-- [ ] Payment waiting never shows a blank spinner. Failure copy says no money was taken.
-- [ ] Tracking shows "Estimated" or no time for future steps.
-- [ ] Vendor accent labels reach 4.5:1 on every accent in the set.
-- [ ] Works at 360px with no horizontal scroll, and on a mid-range Android over 4G.
+- [ ] Header and grid share the 1120px container at 1440px, with no dead gutter.
+- [ ] Every image box is 1:1 unless the store sets 4/5 or 5/4, and is square within 1px.
+- [ ] Header is 200px or less on desktop and 260px or less on mobile.
+- [ ] Card height is 1.45x its width or less at 375px, with equal heights in a row.
+- [ ] Sold out cards keep the overlay, grayscale 0.6 and the card link, and show no Add button.
+- [ ] Add is a white plus circle. The cart is icon-only with a corner count and fades in on first add.
+- [ ] The segmented thumb slides with the spring and the active chip is ink fill.
+- [ ] Dialogs fade and rise in and out. Success slides left then fades in from the right.
+- [ ] Nothing appears, disappears or changes layout abruptly. Under reduced motion every transform and spring is removed.
+- [ ] Muted text, stock captions and CTA labels reach 4.5:1.
 
 ---
 

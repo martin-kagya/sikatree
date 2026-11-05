@@ -87,10 +87,10 @@ function formatOrderDate(iso: string): string {
 }
 
 const fieldCls =
-  'h-11 w-full rounded-[10px] border border-[var(--shop-hair)] bg-white px-3 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
+  'h-11 w-full rounded-[12px] border border-[var(--shop-hair)] bg-white px-3 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
 
 const areaCls =
-  'min-h-[84px] w-full rounded-[10px] border border-[var(--shop-hair)] bg-white px-3 py-2 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
+  'min-h-[84px] w-full rounded-[12px] border border-[var(--shop-hair)] bg-white px-3 py-2 text-[14px] text-[var(--shop-ink)] outline-none focus:border-[var(--shop-accent-deep)] focus:ring-2 focus:ring-[var(--shop-accent-deep)]';
 
 function storeWhatsappHref(phone: string, name: string): string {
   return `https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(
@@ -293,7 +293,7 @@ function storeWhatsappHref(phone: string, name: string): string {
             inputMode="numeric"
             defaultValue={minValue}
             placeholder="Min"
-            className="h-11 w-full rounded-[10px] border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px]"
+            className="h-11 w-full rounded-[12px] border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px]"
           />
           <span className="text-[var(--shop-muted)]">–</span>
           <input
@@ -303,7 +303,7 @@ function storeWhatsappHref(phone: string, name: string): string {
             inputMode="numeric"
             defaultValue={maxValue}
             placeholder="Max"
-            className="h-11 w-full rounded-[10px] border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px]"
+            className="h-11 w-full rounded-[12px] border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px]"
           />
         </div>
         <label className="flex items-center gap-2 text-[13px] text-[var(--shop-ink)]">
