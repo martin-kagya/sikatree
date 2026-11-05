@@ -6,6 +6,7 @@ import { site } from '@/lib/brand';
 import { copy } from '@/lib/whatsapp/copy';
 import { formatCedis } from '@/lib/money';
 import { createLoginLink } from '@/lib/login-links';
+import { saveItemImage } from '@/lib/whatsapp/media';
 import { parseInbound, type InboundMessage } from '@/lib/whatsapp/inbound';
 import { buttons, text, type Outbound } from '@/lib/whatsapp/messages';
 import { getMessenger, type Messenger } from '@/lib/whatsapp/provider';
@@ -259,11 +260,23 @@ async function goLive(
   }
   await client.query('release savepoint vendor_insert');
 
+  const imageUrl = imageRef
+    ? await saveItemImage({ mediaId: imageRef, vendorId: vendor.id })
+    : null;
+
   for (const [index, item] of items.entries()) {
     await client.query(
-      `insert into items (vendor_id, name, price_pesewas, stock, image_ref, position)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [vendor.id, item.name, item.pricePesewas, item.stock, index === 0 ? imageRef : null, index],
+      `insert into items (vendor_id, name, price_pesewas, stock, image_ref, image_url, position)
+       values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        vendor.id,
+        item.name,
+        item.pricePesewas,
+        item.stock,
+        index === 0 ? imageRef : null,
+        index === 0 ? imageUrl : null,
+        index,
+      ],
     );
   }
 
@@ -283,18 +296,17 @@ async function goLive(
     vendor.id,
   ]);
 
-  return {
-    state: 'live',
-    context: {},
-    replies: [
-      text(copy.live(draft.handle, site.domain)),
-      buttons('What next?', [
-        { id: 'share', title: 'Share my page' },
-        { id: 'add', title: 'Add an item' },
-        { id: 'dashboard', title: 'Open dashboard' },
-      ]),
-    ],
-  };
+  const replies: Outbound[] = [text(copy.live(draft.handle, site.domain))];
+  if (imageRef && !imageUrl) replies.push(text(copy.photoFailed()));
+  replies.push(
+    buttons('What next?', [
+      { id: 'share', title: 'Share my page' },
+      { id: 'add', title: 'Add an item' },
+      { id: 'dashboard', title: 'Open dashboard' },
+    ]),
+  );
+
+  return { state: 'live', context: {}, replies };
 }
 
 async function startOnboarding(context: Context): Promise<StepResult> {
@@ -495,7 +507,11 @@ export async function advance(
       const source = isImage ? (inbound.caption ?? '') : raw;
 
       if (isImage && !source) {
-        return { state: 'item', context, replies: [text(copy.photoNoCaption())] };
+        return {
+          state: 'item',
+          context: { ...context, pendingImage: inbound.mediaId },
+          replies: [text(copy.photoNoCaption())],
+        };
       }
 
       const parsed = parseItems(source);
@@ -507,8 +523,14 @@ export async function advance(
         };
       }
 
-      // A photo applies to a single item; a list stays photo-less for now.
-      const pendingImage = isImage && parsed.items.length === 1 ? inbound.mediaId : null;
+      // A photo applies to a single item; a list stays photo-less for now. A
+      // photo sent without a caption is attached to the next text item.
+      const pendingImage =
+        parsed.items.length === 1
+          ? isImage
+            ? inbound.mediaId
+            : (context.pendingImage ?? null)
+          : null;
       const next = { ...context, pending: parsed.items, pendingImage };
       const preview = parsed.items
         .map((item) => `${item.name}: ${formatCedis(item.pricePesewas)}`)
@@ -554,27 +576,38 @@ export async function advance(
       const items = cancel ? [] : (context.pending ?? []);
 
       if (context.mode === 'add' && conversation.vendorId) {
+        const imageUrl = context.pendingImage
+          ? await saveItemImage({
+              mediaId: context.pendingImage,
+              vendorId: conversation.vendorId,
+            })
+          : null;
+
         for (const [index, item] of items.entries()) {
           await client.query(
-            `insert into items (vendor_id, name, price_pesewas, stock, image_ref, position)
-             values ($1, $2, $3, $4, $5, $6)`,
+            `insert into items (vendor_id, name, price_pesewas, stock, image_ref, image_url, position)
+             values ($1, $2, $3, $4, $5, $6, $7)`,
             [
               conversation.vendorId,
               item.name,
               item.pricePesewas,
               item.stock,
               index === 0 ? (context.pendingImage ?? null) : null,
+              index === 0 ? imageUrl : null,
               index,
             ],
           );
         }
+        const replies: Outbound[] = [
+          text(cancel ? copy.cancelled() : copy.itemAdded(items[0]?.name ?? 'item')),
+        ];
+        if (!cancel && context.pendingImage && !imageUrl) replies.push(text(copy.photoFailed()));
+        replies.push(text(copy.menu()));
+
         return {
           state: 'live',
-          context: { ...context, pending: undefined, mode: undefined },
-          replies: [
-            text(cancel ? copy.cancelled() : copy.itemAdded(items[0]?.name ?? 'item')),
-            text(copy.menu()),
-          ],
+          context: { ...context, pending: undefined, pendingImage: undefined, mode: undefined },
+          replies,
         };
       }
 

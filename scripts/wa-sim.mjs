@@ -40,6 +40,11 @@ if (!text && !button && imageCaption === null) {
   process.exit(1);
 }
 
+const simBase = new URL(
+  process.env.WA_SIM_URL ?? 'http://127.0.0.1:3000/api/whatsapp/webhook',
+).origin;
+const imageId = process.env.WA_SIM_IMAGE_URL ?? `${simBase}/clothing.jpg`;
+
 const message = {
   from: phone.replace(/\D/g, ''),
   id: `wamid.sim.${randomUUID()}`,
@@ -48,7 +53,7 @@ const message = {
   ...(button
     ? { interactive: { type: 'button_reply', button_reply: { id: button, title: button } } }
     : imageCaption !== null
-      ? { image: { id: 'media.sim.1', caption: imageCaption } }
+      ? { image: { id: imageId, caption: imageCaption } }
       : { text: { body: text } }),
 };
 

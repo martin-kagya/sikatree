@@ -23,6 +23,7 @@ type Item = {
   description: string | null;
   price_pesewas: number;
   stock: number | null;
+  image_url: string | null;
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -45,7 +46,7 @@ async function loadVendor(rawHandle: string): Promise<{ vendor: Vendor; items: I
   if (!vendor) return null;
 
   const items = await query<Item>(
-    `select id, name, description, price_pesewas, stock
+    `select id, name, description, price_pesewas, stock, image_url
        from items
       where vendor_id = $1 and status = 'active'
       order by position, created_at`,
@@ -124,23 +125,33 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
               {items.map((item) => {
                 const soldOut = item.stock !== null && item.stock <= 0;
                 return (
-                  <li key={item.id} className="rounded-card bg-white p-5 shadow-card">
-                    <div className="flex items-start justify-between gap-3">
-                      <h2 className="text-h3 text-ink">{item.name}</h2>
-                      <span className="whitespace-nowrap text-label text-ink">
-                        {formatCedis(item.price_pesewas)}
-                      </span>
+                  <li key={item.id} className="overflow-hidden rounded-card bg-white shadow-card">
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        loading="lazy"
+                        className="aspect-[4/5] w-full object-cover"
+                      />
+                    ) : null}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="text-h3 text-ink">{item.name}</h2>
+                        <span className="whitespace-nowrap text-label text-ink">
+                          {formatCedis(item.price_pesewas)}
+                        </span>
+                      </div>
+                      {item.description ? (
+                        <p className="mt-1 text-small text-ink-muted">{item.description}</p>
+                      ) : null}
+                      {soldOut ? (
+                        <p className="mt-3 inline-flex rounded-pill bg-danger-bg px-3 py-1 text-[12px] text-danger">
+                          Sold out
+                        </p>
+                      ) : item.stock !== null ? (
+                        <p className="mt-3 text-[12px] text-ink-muted">{item.stock} left</p>
+                      ) : null}
                     </div>
-                    {item.description ? (
-                      <p className="mt-1 text-small text-ink-muted">{item.description}</p>
-                    ) : null}
-                    {soldOut ? (
-                      <p className="mt-3 inline-flex rounded-pill bg-danger-bg px-3 py-1 text-[12px] text-danger">
-                        Sold out
-                      </p>
-                    ) : item.stock !== null ? (
-                      <p className="mt-3 text-[12px] text-ink-muted">{item.stock} left</p>
-                    ) : null}
                   </li>
                 );
               })}

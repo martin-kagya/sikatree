@@ -17,7 +17,7 @@ pick a handle, add a first item, and get a live page. The page is at
 | ONB-07 reply buttons for fixed choices | Works (3 buttons maximum) |
 | ONB-08 MoMo payout details | Not yet; online payments stay off |
 | ONB-09 resume a stalled setup | Works: state and draft persist per number |
-| ONB-10 photo items | Photo with caption parsed rules-first; no vision model, no image hosting |
+| ONB-10 photo items | Photo with caption parsed rules-first; media stored in Supabase Storage and shown on the shop page; vision model not wired yet |
 | ONB-11 text list items | Works, with Confirm / Edit / Cancel |
 | ONB-14 price formats | Rules parser covers 250, GHS 250, GH₵250, 250 cedis, 250ghc, stock, comma lists |
 | ONB-15 / ONB-16 no publishing without confirmation | Works for items |
@@ -101,6 +101,21 @@ and `WA_SIM_URL` to point at another host.
 - `wa_conversation`: state, draft context, opt-out flag, last activity.
 - `wa_message`: inbound log with unique provider ids and processed time.
 
+## Photos
+
+Item photos go to the public `items` bucket in Supabase Storage
+(`SUPABASE_STORAGE_BUCKET`, default `items`). On confirmation the server
+downloads the WhatsApp media, checks the type and the 10 MB limit, uploads it to
+`<vendorId>/<uuid>.<ext>` and stores the public URL on `items.image_url`. The
+original media id stays in `image_ref`.
+
+If the upload fails, the item still goes live without a photo and the bot says
+so; the storefront and dashboard render a photo when one exists.
+
+Local development works without Meta: the simulator sends an http media id
+(`http://127.0.0.1:3000/hustles/food.jpg` by default), so the same download and
+upload path runs.
+
 ## Magic link dashboard
 
 The bot's `Open dashboard` button creates a single-use 15-minute link
@@ -110,8 +125,8 @@ The bot's `Open dashboard` button creates a single-use 15-minute link
 
 ## Known gaps
 
-1. Photo items are caption-only rules parsing. A vision model, media download
-   and image hosting are not wired.
+1. Photo items are caption-only rules parsing. A vision model is not wired, so
+   a photo without a useful caption still asks for the name and price.
 2. Voice notes, categories, bio, logo and payout details are not built.
 3. Templates outside the 24-hour window (nudges, order alerts) need approved
    templates from Meta.

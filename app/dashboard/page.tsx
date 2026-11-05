@@ -16,7 +16,14 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 type Vendor = { id: string; name: string; handle: string; type: string | null; phone: string };
-type Item = { id: string; name: string; price_pesewas: number; stock: number | null; status: string };
+type Item = {
+  id: string;
+  name: string;
+  price_pesewas: number;
+  stock: number | null;
+  status: string;
+  image_url: string | null;
+};
 
 export default async function DashboardPage() {
   const vendorId = await requireVendor();
@@ -29,7 +36,7 @@ export default async function DashboardPage() {
   if (!vendor) notFound();
 
   const items = await query<Item>(
-    `select id, name, price_pesewas, stock, status
+    `select id, name, price_pesewas, stock, status, image_url
        from items where vendor_id = $1 order by position, created_at`,
     [vendorId],
   );
@@ -86,7 +93,17 @@ export default async function DashboardPage() {
               <ul className="mt-4 divide-y divide-hairline">
                 {items.map((item) => (
                   <li key={item.id} className="flex items-center justify-between gap-3 py-3">
-                    <span className="text-body text-ink">{item.name}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt=""
+                          loading="lazy"
+                          className="h-12 w-12 shrink-0 rounded-inner object-cover"
+                        />
+                      ) : null}
+                      <span className="truncate text-body text-ink">{item.name}</span>
+                    </span>
                     <span className="flex items-center gap-3">
                       {item.status === 'sold_out' ? (
                         <span className="rounded-pill bg-danger-bg px-2.5 py-0.5 text-[12px] text-danger">

@@ -44,6 +44,8 @@ pnpm wa:sim "START"          # then follow the replies in the dev log
 Set `WHATSAPP_PROVIDER=cloud` with the phone number id and access token to talk
 to the real Cloud API. The bot's `Open dashboard` sends a magic link; set
 `AUTH_SECRET` to sign vendor sessions and `CRON_SECRET` for the queue worker.
+Item photos use the public Supabase Storage bucket named by
+`SUPABASE_STORAGE_BUCKET` (default `items`).
 Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
 
 ## Scripts

@@ -39,6 +39,9 @@ export const copy = {
 
   itemAdded: (name: string) => `Added ${name}.`,
 
+  photoFailed: () =>
+    'The photo could not be saved, but the item is still live without it. Send the photo again to add it later.',
+
   live: (handle: string, domain: string) =>
     `You are live: ${domain}/${handle}\n\nSend this to your customers:\n"Shop with me on sikatree: ${domain}/${handle}"`,
 

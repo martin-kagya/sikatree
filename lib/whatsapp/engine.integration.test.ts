@@ -289,3 +289,29 @@ describe('durability and photos', () => {
     expect(body(replies)).toContain('Got the photo');
   });
 });
+
+describe('photo without a caption', () => {
+  it('attaches the photo to the next text item', async () => {
+    await say('START');
+    await tap('consent_yes');
+    await say('Ama Glow');
+    const handleReply = await tap('type_products');
+    const handleChoice = buttonId(handleReply, 'handle:');
+    await tap(handleChoice ?? 'handle:amaglow');
+
+    const prompt = await (async () => {
+      sent = [];
+      await handleInbound(inbound({ kind: 'image', text: null, caption: null, mediaId: 'media-next' }), messenger);
+      return sent.map((entry) => entry.message);
+    })();
+    expect(body(prompt)).toContain('Got the photo');
+
+    await say('Beaded bag 180');
+    await tap('item_confirm');
+
+    const rows = await query<{ name: string; image_ref: string | null }>(
+      'select name, image_ref from items',
+    );
+    expect(rows).toEqual([{ name: 'Beaded bag', image_ref: 'media-next' }]);
+  });
+});
