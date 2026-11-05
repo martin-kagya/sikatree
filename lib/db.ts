@@ -51,6 +51,7 @@ function isCloudflareWorker(): boolean {
 }
 
 let hyperdrivePromise: Promise<string | null> | null = null;
+let modeLogged = false;
 
 async function hyperdriveConnectionString(): Promise<string | null> {
   if (!isCloudflareWorker()) return null;
@@ -79,6 +80,10 @@ async function hyperdriveConnectionString(): Promise<string | null> {
 
 async function workerClient(): Promise<Client> {
   const hyperdrive = await hyperdriveConnectionString();
+  if (!modeLogged) {
+    console.log(`[db] worker connection source: ${hyperdrive ? 'HYPERDRIVE' : 'DATABASE_URL'}`);
+    modeLogged = true;
+  }
   if (hyperdrive) {
     return new Client({ connectionString: hyperdrive, connectionTimeoutMillis: 10_000 });
   }
@@ -93,6 +98,13 @@ const workerDb: Database = {
     try {
       await client.connect();
       return await client.query(text, params);
+    } catch (error) {
+      const dbError = error as { message?: string; code?: string };
+      console.error('[db] worker query failed', {
+        message: dbError.message,
+        code: dbError.code,
+      });
+      throw error;
     } finally {
       await client.end().catch(() => {});
     }

@@ -109,7 +109,17 @@ export async function generateMetadata({
 
 export default async function VendorPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  const data = await loadVendor(handle);
+  let data;
+  try {
+    data = await loadVendor(handle);
+  } catch (error) {
+    const dbError = error as { message?: string; code?: string };
+    console.error('[storefront] load failed', {
+      message: dbError.message,
+      code: dbError.code,
+    });
+    throw error;
+  }
   if (!data) notFound();
 
   const { vendor, items } = data;
