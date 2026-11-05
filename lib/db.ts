@@ -50,7 +50,38 @@ function isCloudflareWorker(): boolean {
   return typeof (globalThis as { WebSocketPair?: unknown }).WebSocketPair !== 'undefined';
 }
 
-function workerClient(): Client {
+let hyperdrivePromise: Promise<string | null> | null = null;
+
+async function hyperdriveConnectionString(): Promise<string | null> {
+  if (!isCloudflareWorker()) return null;
+  if (!hyperdrivePromise) {
+    hyperdrivePromise = (async () => {
+      try {
+        // Cloudflare's runtime module. webpackIgnore keeps Next from trying to
+        // resolve it during the Node build.
+        const specifier = 'cloudflare:workers';
+        const mod = (await import(/* webpackIgnore: true */ specifier)) as {
+          env?: { HYPERDRIVE?: { connectionString?: string } };
+        };
+        const connection = mod.env?.HYPERDRIVE?.connectionString ?? null;
+        if (!connection) {
+          console.warn('[db] HYPERDRIVE binding missing; falling back to DATABASE_URL');
+        }
+        return connection;
+      } catch {
+        console.warn('[db] cloudflare:workers unavailable; falling back to DATABASE_URL');
+        return null;
+      }
+    })();
+  }
+  return hyperdrivePromise;
+}
+
+async function workerClient(): Promise<Client> {
+  const hyperdrive = await hyperdriveConnectionString();
+  if (hyperdrive) {
+    return new Client({ connectionString: hyperdrive, connectionTimeoutMillis: 10_000 });
+  }
   return new Client(poolOptions());
 }
 
@@ -58,7 +89,7 @@ type Database = Pick<Pool, 'query' | 'connect'> & { end(): Promise<void> };
 
 const workerDb: Database = {
   query: (async (text: string, params?: unknown[]) => {
-    const client = workerClient();
+    const client = await workerClient();
     try {
       await client.connect();
       return await client.query(text, params);
@@ -68,7 +99,7 @@ const workerDb: Database = {
   }) as Pool['query'],
 
   connect: async () => {
-    const client = workerClient();
+    const client = await workerClient();
     await client.connect();
     // The transaction code calls release(); a Worker Client has end() instead.
     (client as unknown as { release: () => void }).release = () => {
