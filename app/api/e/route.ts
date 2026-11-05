@@ -35,8 +35,8 @@ const payload = z.object({
 
 export async function POST(request: Request) {
   const ip = clientIp(request.headers);
-  const limit = await hitRateLimit(`analytics:ip:${ip}`, 240, 60);
-  if (!limit.allowed) return new NextResponse(null, { status: 429 });
+  const limit = await hitRateLimit(`analytics:ip:${ip}`, 240, 60).catch(() => null);
+  if (limit && !limit.allowed) return new NextResponse(null, { status: 429 });
 
   let json: unknown;
   try {
@@ -67,8 +67,9 @@ export async function POST(request: Request) {
       ],
     );
   } catch (error) {
+    // Analytics must never break the page or surface a 500 to the browser.
     console.error('[analytics] insert failed', error);
-    return new NextResponse(null, { status: 500 });
+    return new NextResponse(null, { status: 204 });
   }
 
   return new NextResponse(null, { status: 204 });

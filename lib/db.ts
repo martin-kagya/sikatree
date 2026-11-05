@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Client, Pool, type PoolClient } from 'pg';
 
 // Local development default. In production set DATABASE_URL to the Supabase
 // pooler string (session mode, port 5432). The direct db.<ref>.supabase.co host
@@ -43,10 +43,49 @@ function poolOptions() {
   };
 }
 
-// Next.js dev reloads modules; keep one pool per process.
-const globalForDb = globalThis as unknown as { __sikatreePool?: Pool };
+// Cloudflare Workers terminate sockets when a request ends, so the global pool
+// that works on Node leaves dead clients behind. In a Worker we open one Client
+// per query or transaction and close it before the request finishes.
+function isCloudflareWorker(): boolean {
+  return typeof (globalThis as { WebSocketPair?: unknown }).WebSocketPair !== 'undefined';
+}
 
-export function db(): Pool {
+function workerClient(): Client {
+  return new Client(poolOptions());
+}
+
+type Database = Pick<Pool, 'query' | 'connect'> & { end(): Promise<void> };
+
+const workerDb: Database = {
+  query: (async (text: string, params?: unknown[]) => {
+    const client = workerClient();
+    try {
+      await client.connect();
+      return await client.query(text, params);
+    } finally {
+      await client.end().catch(() => {});
+    }
+  }) as Pool['query'],
+
+  connect: async () => {
+    const client = workerClient();
+    await client.connect();
+    // The transaction code calls release(); a Worker Client has end() instead.
+    (client as unknown as { release: () => void }).release = () => {
+      void client.end().catch(() => {});
+    };
+    return client as unknown as PoolClient;
+  },
+
+  end: async () => {},
+};
+
+// Next.js dev reloads modules; keep one pool per process.
+const globalForDb = globalThis as unknown as { __sikatreePool?: Database };
+
+export function db(): Database {
+  if (isCloudflareWorker()) return workerDb;
+
   if (!globalForDb.__sikatreePool) {
     const pool = new Pool(poolOptions());
     // A pool error must not crash the server.
@@ -62,7 +101,7 @@ export async function query<T extends Record<string, unknown>>(
   text: string,
   params: unknown[] = [],
 ): Promise<T[]> {
-  const result = await db().query(text, params);
+  const result = await db().query<T>(text, params);
   return result.rows as T[];
 }
 
