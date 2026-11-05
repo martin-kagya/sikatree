@@ -274,8 +274,8 @@ Backend detail, environment variables and the operational runbook live in
 - [x] Handle availability and reserved-handle checks
 - [x] Minimal public page `/{handle}`: name, bio, links, items with prices (PG-01 to PG-03 basics)
 - [x] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01)
-- [ ] Funnel analytics: step reached, time to live page, parse-correction rate
-- [ ] Support handoff: "Help" forwards to an internal inbox or a human WhatsApp number (ONB-25)
+- [ ] Funnel analytics: step reached, time to live page, parse-correction rate (partial: median time to live is in admin; step dropout and correction rate still follow)
+- [x] Support handoff: "Help" forwards to an internal inbox or a human WhatsApp number (ONB-25)
 - [ ] English copy catalogue with i18n structure ready for Twi
 - [x] Waitlist handoff: recognize waitlist members by WhatsApp number, prefill business type, name and reserved handle, and mark them "onboarded" on go-live (LP-22)
 - [ ] Apply the `DESIGN.md` tokens, tile component and pill buttons to the public vendor page so it matches the landing page's gallery look
@@ -301,7 +301,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Payment provider adapter: MoMo and card collection, webhook verification (PAY-01, PAY-02, PAY-09)
 - [ ] Ledger and fee calculation (PAY-03, PAY-04)
 - [ ] Pay-offline / pay-on-delivery mode (ORD-08)
-- [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06)
+- [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06) (partial: atomic decrement and Sold out shipped; payment-time holds and the toggle UI are deferred)
 - [x] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04) (text alert with a dashboard link; action buttons wait for approved templates)
 - [ ] Client confirmation (WhatsApp template with opt-in, or on-page code) (NOT-02, CLI-05)
 - [ ] Chat commands: sold out, change price, my orders (ONB-22, ONB-23 partial)
@@ -315,7 +315,7 @@ Backend detail, environment variables and the operational runbook live in
 
 **Exit criteria:** A real client completes a real MoMo payment to a design-partner vendor; vendor sees the order on WhatsApp within seconds; ledger balances match the aggregator; no oversold stock in race tests.
 
-**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Online payment, stock decrement and holds, client notifications, interactive WhatsApp actions and phone verification for sensitive tracking details remain deferred. The table below is the deferred register.
+**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Tracked stock now decrements atomically at placement and restores on cancellation. The support inbox and the ONB-21 time-to-live metric are live in admin. Online payment, payment-time stock holds, the stock movement log, low-stock alerts, client notifications, interactive WhatsApp actions and phone verification for sensitive tracking details remain deferred. The table below is the deferred register.
 
 **Deferred or partial from the order loop**
 
@@ -329,7 +329,7 @@ Backend detail, environment variables and the operational runbook live in
 | Client tracking | `/o/{code}` shows status, items, total and ETA; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA, reorder | ORD-07, ORD-12 | Phase 2/3 |
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
 | Order tools | None | CSV export, reorder | ORD-11, ORD-12 | P1/P2 |
-| Inventory | Stock checked at checkout | Stock decrement, holds, race protection | INV-01 to INV-03 | Phase 2 |
+| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null | Payment-time 15-minute holds, stock movement log, low-stock alerts, manual sold-out toggle UI | INV-01 to INV-06 | Phase 2/3 |
 | Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
 

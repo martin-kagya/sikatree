@@ -860,7 +860,7 @@ Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o
 
 ## 15. Vendor PWA and admin
 
-Status: Binding. Version 0.3 (draft)
+Status: Binding. Version 0.4 (draft), 2026-11-05.
 Applies to: the signed-in vendor PWA and the admin tool.
 Same tokens and radii as the public site, with tighter density. No gallery effects and no floating tiles. Container 960px.
 
@@ -892,6 +892,9 @@ List rows: min-height 64px, title 16px medium, meta 14px `--ink-muted`, amount r
 
 Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14px medium `--ink-muted`), body rows min-height 56px, 1px `--hairline` dividers, numeric columns right-aligned with tabular numbers, status as a badge (5.4). No gallery effects.
 
+- **Support inbox:** `/admin/support`, open and closed tabs, one row per ticket with vendor, phone, last message, updated time and status. The detail view shows vendor context, the WhatsApp history as alternating bubbles, a reply box, and resolve or reopen. Free-form replies only; no template picker.
+- **Onboarding funnel:** on the admin home, four figures: conversations, live pages, orders and median minutes from first message to live page. The target is under 10 minutes. No chart until there is enough data.
+
 ### 15.5 Acceptance checklist
 
 - [ ] Launched from the Home Screen icon: no browser UI, nothing under the status bar.
@@ -899,6 +902,8 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] Bottom nav hides while typing and clears the safe-area inset.
 - [ ] Catalogue grid matches the public page.
 - [ ] Offline launch opens the shell with the offline alert.
+- [ ] Support ticket opens with vendor context and history, and a reply appears in the thread.
+- [ ] Funnel shows conversations, live pages, orders and median time to live.
 - [ ] Reduced motion makes all transitions instant.
 
 ---

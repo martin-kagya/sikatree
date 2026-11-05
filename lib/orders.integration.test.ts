@@ -164,6 +164,97 @@ describe('placeOrder', () => {
     expect(attempt).toMatchObject({ ok: false });
   });
 
+  it('decrements stock on placement and restores it on cancel', async () => {
+    const before = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(before[0].stock).toBe(8);
+
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const reserved = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(reserved[0].stock).toBe(6);
+
+    const order = await getOrderByCode(result.order.code);
+    expect(await updateOrderStatus(order!.id, vendorId, 'cancelled')).toEqual({
+      ok: true,
+      status: 'cancelled',
+    });
+
+    const restored = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(restored[0].stock).toBe(8);
+  });
+
+  it('does not restore stock for orders that predate decrement', async () => {
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    await query('update orders set stock_reserved = false');
+    const order = await getOrderByCode(result.order.code);
+    expect((await updateOrderStatus(order!.id, vendorId, 'cancelled')).ok).toBe(true);
+
+    const stock = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(stock[0].stock).toBe(6);
+  });
+
+  it('refuses to oversell and leaves stock unchanged', async () => {
+    await query('update items set stock = 1 where id = $1', [itemId]);
+
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain('sold out');
+
+    const stock = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(stock[0].stock).toBe(1);
+
+    const orders = await query<{ count: string }>('select count(*) from orders');
+    expect(orders[0].count).toBe('0');
+  });
+
+  it('lets only one of two concurrent buyers take the last unit', async () => {
+    await query('update items set stock = 1 where id = $1', [itemId]);
+    const one = checkoutForm({ cart: JSON.stringify([{ id: itemId, quantity: 1 }]) });
+    const two = checkoutForm({
+      cart: JSON.stringify([{ id: itemId, quantity: 1 }]),
+      phone: '024 555 9999',
+    });
+
+    const results = await Promise.all([placeOrder(one), placeOrder(two)]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+
+    const stock = await query<{ stock: number }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(stock[0].stock).toBe(0);
+
+    const orders = await query<{ count: string }>('select count(*) from orders');
+    expect(orders[0].count).toBe('1');
+  });
+
+  it('leaves unlimited stock untouched', async () => {
+    await query('update items set stock = null where id = $1', [itemId]);
+
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+
+    const stock = await query<{ stock: number | null }>('select stock from items where id = $1', [
+      itemId,
+    ]);
+    expect(stock[0].stock).toBeNull();
+  });
+
   it('rejects delivery without an address', async () => {
     expect(await placeOrder(checkoutForm({ address: '' }))).toMatchObject({ ok: false });
   });

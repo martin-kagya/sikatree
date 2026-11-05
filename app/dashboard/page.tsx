@@ -256,7 +256,7 @@ export default async function DashboardPage() {
                       <span className="truncate text-body text-ink">{item.name}</span>
                     </span>
                     <span className="flex items-center gap-3">
-                      {item.status === 'sold_out' ? (
+                      {item.status === 'sold_out' || (item.stock !== null && item.stock <= 0) ? (
                         <span className="rounded-pill bg-danger-bg px-2.5 py-0.5 text-[12px] text-danger">
                           Sold out
                         </span>

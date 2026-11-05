@@ -10,6 +10,13 @@ import { DELIVERY_FEE_PESEWAS } from '@/lib/shop';
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+class StockError extends Error {
+  constructor(readonly itemName: string) {
+    super(`${itemName} is sold out`);
+    this.name = 'StockError';
+  }
+}
+
 export type Fulfilment = 'delivery' | 'pickup' | 'appointment';
 
 export type CheckoutOrder = {
@@ -163,6 +170,7 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   const delivery = deliveryFeeFor(fulfilment);
   const total = subtotal + delivery;
   const eta = etaFor(fulfilment, bookingAt);
+  const reservesStock = orderItems.some((item) => byId.get(item.id)?.stock !== null);
 
   const limit = await hitRateLimit(`order:phone:${phone}`, 5, 3600).catch(() => null);
   if (limit && !limit.allowed) {
@@ -179,8 +187,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
           `insert into orders
              (code, vendor_id, customer_name, customer_phone, customer_email, fulfilment,
               address, notes, booking_at, subtotal_pesewas, delivery_pesewas, total_pesewas,
-              status, eta_text)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13)
+              status, eta_text, stock_reserved)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14)
            returning id, created_at`,
           [
             code,
@@ -196,11 +204,24 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             delivery,
             total,
             eta,
+            reservesStock,
           ],
         );
         const orderId = inserted.rows[0].id;
 
         for (const item of orderItems) {
+          // The conditional update is the race guard: two buyers can read the
+          // same stock, but only one update can take the last unit.
+          const stock = await client.query<{ stock: number | null }>(
+            `update items
+                set stock = case when stock is null then null else stock - $2 end
+              where id = $1 and vendor_id = $3 and status = 'active'
+                and (stock is null or stock >= $2)
+              returning stock`,
+            [item.id, item.quantity, vendor.id],
+          );
+          if (!stock.rowCount) throw new StockError(item.name);
+
           await client.query(
             `insert into order_items (order_id, item_id, name, price_pesewas, quantity, line_total_pesewas)
              values ($1,$2,$3,$4,$5,$6)`,
@@ -223,6 +244,12 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
         };
       } catch (error) {
         await client.query('rollback').catch(() => {});
+        if (error instanceof StockError) {
+          return {
+            ok: false,
+            error: `${error.itemName} just sold out. Try a smaller quantity or pick another item.`,
+          };
+        }
         if ((error as { code?: string }).code === '23505' && attempt < 4) continue;
         throw error;
       }
@@ -414,8 +441,8 @@ export async function updateOrderStatus(
   const client = await db().connect();
   try {
     await client.query('begin');
-    const current = await client.query<{ status: OrderStatus }>(
-      'select status from orders where id = $1 and vendor_id = $2 for update',
+    const current = await client.query<{ status: OrderStatus; stock_reserved: boolean }>(
+      'select status, stock_reserved from orders where id = $1 and vendor_id = $2 for update',
       [orderId, vendorId],
     );
     const row = current.rows[0];
@@ -428,10 +455,28 @@ export async function updateOrderStatus(
       return { ok: false, error: `Cannot move an order from ${row.status} to ${next}.` };
     }
 
-    await client.query('update orders set status = $2, updated_at = now() where id = $1', [
-      orderId,
-      next,
-    ]);
+    await client.query(
+      `update orders
+          set status = $2,
+              updated_at = now(),
+              stock_reserved = case when $2 = 'cancelled' then false else stock_reserved end
+        where id = $1`,
+      [orderId, next],
+    );
+
+    if (next === 'cancelled' && row.stock_reserved) {
+      // Stock was decremented when the order was placed. Put it back once, in
+      // the same transaction as the status change so the two cannot diverge.
+      // Pre-inventory orders carry stock_reserved = false and never restore.
+      await client.query(
+        `update items i
+            set stock = i.stock + oi.quantity
+           from order_items oi
+          where oi.order_id = $1 and oi.item_id = i.id and i.stock is not null`,
+        [orderId],
+      );
+    }
+
     await client.query('commit');
     return { ok: true, status: next };
   } catch (error) {

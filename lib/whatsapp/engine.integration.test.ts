@@ -60,7 +60,7 @@ function buttonId(replies: Outbound[], prefix: string): string | undefined {
 
 beforeEach(async () => {
   await query(
-    'truncate vendors, items, wa_conversation, wa_message, waitlist_signup, reserved_handle restart identity cascade',
+    'truncate support_ticket, vendors, items, wa_conversation, wa_message, waitlist_signup, reserved_handle restart identity cascade',
   );
 });
 
@@ -313,5 +313,35 @@ describe('photo without a caption', () => {
       'select name, image_ref from items',
     );
     expect(rows).toEqual([{ name: 'Beaded bag', image_ref: 'media-next' }]);
+  });
+});
+
+describe('support handoff', () => {
+  it('opens one support ticket when a vendor asks for help', async () => {
+    const vendors = await query<{ id: string }>(
+      `insert into vendors (phone, name, handle, type, status, consent_at)
+       values ($1, 'Ama Glow', 'amaglow', 'products', 'live', now())
+       returning id`,
+      [PHONE],
+    );
+    await query(
+      `insert into wa_conversation (phone, vendor_id, state)
+       values ($1, $2, 'live')`,
+      [PHONE, vendors[0].id],
+    );
+
+    const first = await say('Help');
+    expect(body(first)).toContain('A human will pick this up');
+
+    const tickets = await query<{ phone: string; last_message: string; status: string }>(
+      'select phone, last_message, status from support_ticket',
+    );
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0]).toMatchObject({ phone: PHONE, last_message: 'Help', status: 'open' });
+
+    await say('Help with stock');
+    const after = await query<{ last_message: string }>('select last_message from support_ticket');
+    expect(after).toHaveLength(1);
+    expect(after[0].last_message).toBe('Help with stock');
   });
 });

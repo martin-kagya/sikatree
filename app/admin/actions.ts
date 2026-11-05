@@ -12,6 +12,7 @@ import {
   verifyPassword,
 } from '@/lib/admin-auth';
 import { hitRateLimit } from '@/lib/rate-limit';
+import { replyToSupportTicket, setSupportStatus, type SupportStatus } from '@/lib/support';
 import { setStatus, updateNotes, type SignupStatus } from '@/lib/waitlist';
 
 export type LoginState = { error?: string };
@@ -69,4 +70,33 @@ export async function setNotesAction(formData: FormData): Promise<void> {
 
   await updateNotes(id, notes);
   revalidatePath('/admin');
+}
+
+export async function replySupportAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const id = String(formData.get('id') ?? '');
+  const body = String(formData.get('body') ?? '');
+  const result = await replyToSupportTicket(id, body);
+
+  if (!result.ok) {
+    redirect(`/admin/support/${id}?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath(`/admin/support/${id}`);
+  revalidatePath('/admin/support');
+  redirect(`/admin/support/${id}`);
+}
+
+export async function supportStatusAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+
+  const id = String(formData.get('id') ?? '');
+  const status = String(formData.get('status') ?? '') as SupportStatus;
+  if (!id || !['open', 'closed'].includes(status)) return;
+
+  await setSupportStatus(id, status);
+  revalidatePath(`/admin/support/${id}`);
+  revalidatePath('/admin/support');
+  redirect(`/admin/support/${id}`);
 }

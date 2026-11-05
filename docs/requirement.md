@@ -186,6 +186,8 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | ONB-26 | Unsupported input (stickers, documents, unknown commands) receives a friendly fallback that points to the menu. | P0 |
 | ONB-27 | The bot is rate-limited per number, and webhook processing is idempotent (duplicate message deliveries never create duplicate items or orders). | P0 |
 
+**Support and timing (2026-11-05).** A "Help" reply opens or updates one open `support_ticket` per phone with the vendor attached. `/admin/support` lists open and closed tickets, shows the WhatsApp conversation, and can reply, resolve or reopen. The admin home shows conversations, live pages, orders and the median time from first message to live page (ONB-21). Step drop-off and parse-correction rate are still to come.
+
 **Appendix A** has a sample conversation script.
 
 ### 6.2 Authentication and accounts (AUTH)
@@ -237,6 +239,10 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | INV-04 | Vendor-configurable low-stock threshold triggers a WhatsApp/PWA alert. | P1 |
 | INV-05 | Manual stock adjustments are recorded with a reason and timestamp (stock movement log). | P1 |
 | INV-06 | Manual "Sold out" toggle independent of counts. | P0 |
+
+**Implementation (2026-11-05):** tracked stock is decremented inside the order transaction with a conditional update, so two buyers cannot take the same last unit. Cancellation restores it in the same transaction, but only when `orders.stock_reserved` is true, which protects orders placed before decrement shipped. Unlimited stock (`null`) is never touched. Zero stock shows Sold out and disables checkout through the existing storefront rules.
+
+Still deferred: the 15-minute payment-time hold (INV-03), the stock movement log (INV-05), low-stock alerts (INV-04) and a manual Sold out toggle UI (INV-06). The `items.status = 'sold_out'` value exists, but the dashboard does not toggle it yet.
 
 ### 6.6 Services, availability and booking (BK)
 
@@ -302,7 +308,7 @@ Additional scope notes:
 - **Email capture.** Checkout collects and stores `customer_email` for order updates. No email is sent yet. Email is an optional P2 channel in NOT-02; sending depends on that notification work. The UI says the email is saved, not that a message was sent.
 - **Payment.** Online payments are not connected. Orders are pay on delivery, at pickup, or at the appointment. Nothing in the UI may claim a payment was received until PAY-01/PAY-02 exist.
 - **Services.** A service order is an appointment request with date and time only. Availability rules, slots and deposits remain Phase 4 work.
-- **Inventory.** Stock is checked at order time but not decremented or held. Concurrent orders can oversell until INV-01 to INV-03 land.
+- **Inventory.** Tracked stock decrements atomically at placement and restores on cancellation. Payment-time holds, movement history and low-stock alerts are still deferred; see 6.5.
 - **Cart storage.** The cart lives in the browser (`localStorage`) per store and is not a server-side cart. Clearing browser storage clears it.
 
 ### 6.8 Payments and payouts (PAY)
@@ -394,6 +400,8 @@ Channels: **WhatsApp** (primary), **PWA push** (secondary), **SMS** (fallback, P
 | ADM-06 | Template management and monitoring for WhatsApp messages (approval status, failures). | P0 |
 | ADM-07 | Audit log of all admin and system-critical actions. | P0 |
 | ADM-08 | Dashboards for the core metrics in Section 10. | P1 |
+
+**Implementation (2026-11-05):** ADM-02 is live at `/admin/support`, with open and closed filters, vendor and phone context, conversation history, reply, resolve and reopen. ADM-08 is partial: the admin home shows the onboarding funnel counts and median time to live; the wider Section 10 metrics are still deferred.
 
 ### 6.14 Trust and safety (TRU)
 

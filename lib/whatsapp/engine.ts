@@ -6,6 +6,7 @@ import { site } from '@/lib/brand';
 import { copy } from '@/lib/whatsapp/copy';
 import { formatCedis } from '@/lib/money';
 import { createLoginLink } from '@/lib/login-links';
+import { openSupportTicket } from '@/lib/support';
 import { saveItemImage } from '@/lib/whatsapp/media';
 import { parseInbound, type InboundMessage } from '@/lib/whatsapp/inbound';
 import { buttons, text, type Outbound } from '@/lib/whatsapp/messages';
@@ -343,6 +344,11 @@ export async function advance(
   }
 
   if (lower === 'help' || button === 'help') {
+    await openSupportTicket(client, {
+      vendorId: conversation.vendorId,
+      phone: conversation.phone,
+      message: raw || 'Help',
+    });
     return { state: conversation.state, context, replies: [text(copy.help())] };
   }
 
@@ -654,6 +660,11 @@ export async function advance(
       }
 
       if (/^4$|help/.test(lower)) {
+        await openSupportTicket(client, {
+          vendorId: conversation.vendorId,
+          phone: conversation.phone,
+          message: raw || 'Help',
+        });
         return { state: 'live', context, replies: [text(copy.help())] };
       }
 

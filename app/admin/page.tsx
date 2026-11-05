@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getInsights, type Insights } from '@/lib/insights';
 import { formatGhanaPhone } from '@/lib/phone';
 import { requireAdmin } from '@/lib/admin-auth';
 import { listForAdmin, statusCounts, type AdminEntry } from '@/lib/waitlist';
@@ -122,6 +123,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
 
   let rows: AdminEntry[] = [];
   let counts: Record<string, number> = {};
+  let insights: Insights | null = null;
   let dbError = false;
 
   try {
@@ -129,6 +131,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
   } catch (error) {
     console.error('[admin] list failed', error);
     dbError = true;
+  }
+
+  try {
+    insights = await getInsights();
+  } catch (error) {
+    console.error('[admin] insights failed', error);
   }
 
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
@@ -142,6 +150,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             <h1 className="mt-1 text-h2 text-ink">Waitlist</h1>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/admin/support"
+              className="inline-flex h-10 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
+            >
+              Support
+            </Link>
             <Link
               href={`/admin/export${queryString(filters)}`}
               className="inline-flex h-10 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
@@ -173,6 +187,42 @@ export default async function AdminPage({ searchParams }: { searchParams: Search
             </div>
           ))}
         </dl>
+
+        {insights ? (
+          <section className="mt-4 rounded-card bg-white p-4 shadow-card">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-h3 text-ink">Onboarding funnel</h2>
+              <p className="text-[11px] text-ink-muted">Target: under 10 minutes to a live page</p>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: 'Conversations', value: insights.conversations },
+                { label: 'Live pages', value: insights.liveVendors },
+                { label: 'Orders', value: insights.orders },
+                {
+                  label: 'Median to live',
+                  value:
+                    insights.medianMinutesToLive == null
+                      ? 'No data'
+                      : insights.medianMinutesToLive < 60
+                        ? `${Math.round(insights.medianMinutesToLive)} min`
+                        : `${(insights.medianMinutesToLive / 60).toFixed(1)} h`,
+                },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <dt className="text-[11px] text-ink-muted">{stat.label}</dt>
+                  <dd className="mt-0.5 text-[20px] font-medium tracking-tight text-ink">
+                    {stat.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <p className="mt-2 text-[11px] text-ink-muted">
+              Median is first WhatsApp message to live page, across vendors created after their
+              first message.
+            </p>
+          </section>
+        ) : null}
 
         <form method="get" className="mt-6 flex flex-wrap items-end gap-2 rounded-card bg-white p-4 shadow-card">
           <div className="min-w-[200px] flex-1">
