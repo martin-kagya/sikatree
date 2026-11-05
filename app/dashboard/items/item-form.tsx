@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
+import { ChevronDown } from '@/components/icons';
 import type { EditableItem } from '@/lib/catalogue';
 import { saveItemAction, type ItemFormState } from './actions';
 
 const initial: ItemFormState = {};
 
 const field =
-  'h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep';
+  'h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:border-ink/20 focus:border-green-deep focus:ring-2 focus:ring-green-deep';
+const select = `${field} appearance-none pr-10`;
 const label = 'mb-1.5 block text-[13px] font-medium text-ink';
 
 export function ItemForm({
@@ -189,27 +191,38 @@ export function ItemForm({
             <label htmlFor="status" className={label}>
               Visibility
             </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={item?.status ?? 'active'}
-              className={field}
-            >
-              <option value="active">Active</option>
-              <option value="sold_out">Sold out</option>
-              <option value="hidden">Hidden</option>
-            </select>
+            <div className="relative">
+              <select
+                id="status"
+                name="status"
+                defaultValue={item?.status ?? 'active'}
+                className={`${select} peer`}
+              >
+                <option value="active">Active</option>
+                <option value="sold_out">Sold out</option>
+                <option value="hidden">Hidden</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted transition-transform duration-200 peer-focus:rotate-180" />
+            </div>
           </div>
           <div>
             <label htmlFor="badge" className={label}>
               Badge
             </label>
-            <select id="badge" name="badge" defaultValue={item?.badge ?? ''} className={field}>
-              <option value="">None</option>
-              <option value="discount">Discount</option>
-              <option value="popular">Popular</option>
-              <option value="new">New</option>
-            </select>
+            <div className="relative">
+              <select
+                id="badge"
+                name="badge"
+                defaultValue={item?.badge ?? ''}
+                className={`${select} peer`}
+              >
+                <option value="">None</option>
+                <option value="discount">Discount</option>
+                <option value="popular">Popular</option>
+                <option value="new">New</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted transition-transform duration-200 peer-focus:rotate-180" />
+            </div>
           </div>
         </div>
 
@@ -234,11 +247,14 @@ export function ItemForm({
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex h-11 items-center rounded-pill bg-green-main px-6 text-label text-ink disabled:opacity-50"
+            className="inline-flex h-11 items-center rounded-pill bg-green-main px-6 text-label text-ink transition-[transform,background-color] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:bg-green-main/90 active:scale-[0.98] disabled:opacity-50"
           >
             {pending ? 'Saving…' : item ? 'Save changes' : 'Add item'}
           </button>
-          <Link href="/dashboard" className="text-[13px] text-ink-muted hover:text-ink">
+          <Link
+            href="/dashboard"
+            className="text-[13px] text-ink-muted transition-colors duration-150 hover:text-ink"
+          >
             Cancel
           </Link>
         </div>
