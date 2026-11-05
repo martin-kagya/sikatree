@@ -85,7 +85,14 @@ async function workerClient(): Promise<Client> {
     modeLogged = true;
   }
   if (hyperdrive) {
-    return new Client({ connectionString: hyperdrive, connectionTimeoutMillis: 10_000 });
+    // Worker to Hyperdrive is inside Cloudflare and is plain TCP. The origin
+    // TLS is handled by Hyperdrive, so never let sslmode in the URL turn on a
+    // second handshake here.
+    return new Client({
+      connectionString: hyperdrive,
+      ssl: false,
+      connectionTimeoutMillis: 10_000,
+    });
   }
   return new Client(poolOptions());
 }
