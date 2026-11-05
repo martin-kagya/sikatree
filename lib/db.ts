@@ -99,21 +99,57 @@ async function workerClient(): Promise<Client> {
 
 type Database = Pick<Pool, 'query' | 'connect'> & { end(): Promise<void> };
 
+// Hyperdrive (and the pooler behind it) can drop an idle or freshly-opened
+// socket between Worker requests. The driver surfaces that as a connection-level
+// error such as "Connection terminated unexpectedly" before a result is
+// delivered, so one retry is safe for this app's idempotent writes (analytics
+// events and on-conflict upserts) and clears the large majority of them.
+function isTransientConnectionError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes('Connection terminated') ||
+    message.includes('Connection reset') ||
+    message.includes('connection timeout') ||
+    message.includes('socket hang up') ||
+    message.includes('ECONNRESET') ||
+    message.includes('ECONNREFUSED') ||
+    message.includes('ETIMEDOUT') ||
+    message.includes('EPIPE')
+  );
+}
+
 const workerDb: Database = {
   query: (async (text: string, params?: unknown[]) => {
-    const client = await workerClient();
+    const run = async () => {
+      const client = await workerClient();
+      try {
+        await client.connect();
+        return await client.query(text, params);
+      } finally {
+        await client.end().catch(() => {});
+      }
+    };
+
     try {
-      await client.connect();
-      return await client.query(text, params);
+      return await run();
     } catch (error) {
-      const dbError = error as { message?: string; code?: string };
-      console.error('[db] worker query failed', {
+      const dbError = error as { message?: string; code?: string; detail?: string };
+      if (!isTransientConnectionError(error)) {
+        console.error('[db] worker query failed', {
+          message: dbError.message,
+          code: dbError.code,
+          detail: dbError.detail,
+        });
+        throw error;
+      }
+
+      console.warn('[db] worker query failed (transient), retrying once', {
         message: dbError.message,
         code: dbError.code,
+        detail: dbError.detail,
       });
-      throw error;
-    } finally {
-      await client.end().catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return await run();
     }
   }) as Pool['query'],
 

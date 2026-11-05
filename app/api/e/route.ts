@@ -68,7 +68,15 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     // Analytics must never break the page or surface a 500 to the browser.
-    console.error('[analytics] insert failed', error);
+    // Log the fields that identify the failure (message/code/detail), not just
+    // the stack, so the cause is visible in the Cloudflare log stream.
+    const err = error as { message?: string; code?: string; detail?: string };
+    console.error('[analytics] insert failed', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return new NextResponse(null, { status: 204 });
   }
 
