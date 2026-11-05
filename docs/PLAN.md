@@ -198,17 +198,20 @@ RLS tests per table, webhook signature verification (WhatsApp and payments), rat
 - [ ] Landing page sections and copy (LP-01, LP-02), with at least 2 headline variants wired for testing (LP-24, P1)
 - [ ] Gallery hero with tilted tiles and a static fallback (LP-03)
 - [ ] Performance budget enforced in CI: LCP, JS size, image weights (LP-04)
-- [ ] SEO metadata, Open Graph image, favicon, WhatsApp share preview (LP-05, LP-06)
-- [ ] Waitlist form with 3 fields, Ghana phone formats, consent line (LP-09, LP-10)
-- [ ] Handle reservation with real-time availability (LP-11)
-- [ ] Duplicate detection and position-in-line (LP-12, LP-14)
-- [ ] "Confirm on WhatsApp" deep link opening the 24-hour window (LP-12)
+- [x] SEO metadata, Open Graph image, favicon, WhatsApp share preview (LP-05, LP-06)
+- [x] Waitlist form with 3 fields, Ghana phone formats, consent line (LP-09, LP-10)
+- [x] Handle reservation with real-time availability (LP-11)
+- [x] Duplicate detection and position-in-line (LP-12, LP-14)
+- [x] "Confirm on WhatsApp" deep link opening the 24-hour window (LP-12)
 - [ ] WhatsApp welcome template submitted for approval and sent after signup (LP-13); until approved, show the confirmation on-page and via SMS or email fallback if collected
 - [ ] Founding Vendor offer block, configurable (LP-16)
 - [ ] Anti-abuse: rate limits, honeypot, bot challenge (LP-19)
-- [ ] Analytics funnel and UTM capture (LP-20)
-- [ ] Basic admin: waitlist list, filters, CSV export, status field (LP-21)
+- [x] Analytics funnel and UTM capture (LP-20)
+- [x] Basic admin: waitlist list, filters, CSV export, status field (LP-21)
 - [ ] Unsubscribe and privacy notice (LP-23, LP-25)
+
+Backend detail, environment variables and the operational runbook live in
+`docs/WAITLIST.md`.
 
 **Distribution plan (the page is useless without traffic)**
 1. Reply to every inbound website request with the waitlist link and a one-line pitch: "Skip the GH₵4,000 website. Get a free store link."

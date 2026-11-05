@@ -261,7 +261,8 @@ export function FooterParallax() {
           </div>
           <div className="flex items-center gap-6 text-small text-ink-on-dark-muted">
             <span>&copy; 2026 sikatree</span>
-            <a href="#top" className="hover:text-white">Privacy</a>
+            <a href="/privacy" className="hover:text-white">Privacy</a>
+            <a href="/terms" className="hover:text-white">Terms</a>
           </div>
         </div>
       </div>

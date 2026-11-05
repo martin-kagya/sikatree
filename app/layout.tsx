@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Inter_Tight, Playfair_Display } from 'next/font/google';
 import { site } from '@/lib/brand';
+import { Analytics } from '@/components/analytics';
 import './globals.css';
 
 const interTight = Inter_Tight({
@@ -28,12 +29,30 @@ export const metadata: Metadata = {
     icon: '/ostra-mark.svg',
     apple: '/ostra-mark.svg',
   },
+  openGraph: {
+    type: 'website',
+    url: site.url,
+    siteName: 'sikatree',
+    title: 'sikatree: send photos, get a store',
+    description:
+      'Send your photos on WhatsApp. Get a free shop link with prices, MoMo payments and bookings. Live in 10 minutes.',
+    locale: 'en_GH',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'sikatree: send photos, get a store',
+    description: 'Your shop link, live in 10 minutes. Join the waitlist.',
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${interTight.variable} ${playfair.variable}`}>
-      <body className="font-sans">{children}</body>
+      <body className="font-sans">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
