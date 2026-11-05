@@ -4,6 +4,7 @@ import {
   getSupportTicket,
   listSupportMessages,
   listSupportTickets,
+  listVendorSupportTickets,
   openSupportTicket,
   replyToSupportTicket,
   setSupportStatus,
@@ -91,6 +92,18 @@ describe('support inbox', () => {
     expect(all.filter((ticket) => ticket.status === 'open')).toHaveLength(1);
     expect(all.find((ticket) => ticket.id === first.id)?.status).toBe('open');
     expect(all.find((ticket) => ticket.id === second.id)?.status).toBe('closed');
+  });
+
+  it('lists only the signed-in vendor tickets', async () => {
+    await open('Help');
+    const other = await query<{ id: string }>(
+      `insert into vendors (phone, name, handle, type, status, consent_at)
+       values ('+233249999999', 'Other Shop', 'othershop', 'products', 'live', now())
+       returning id`,
+    );
+
+    expect(await listVendorSupportTickets(vendorId)).toHaveLength(1);
+    expect(await listVendorSupportTickets(other[0].id)).toHaveLength(0);
   });
 
   it('sends a reply and records it in the conversation', async () => {

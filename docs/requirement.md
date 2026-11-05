@@ -295,6 +295,7 @@ The order loop now continues after checkout:
 - **Vendor alert.** A new order sends a WhatsApp text to the vendor with the code, items, total, customer, delivery details, note and a single-use dashboard login link. It runs after the checkout response, so a slow provider cannot delay the client. Interactive action buttons are not built.
 - **Client tracking.** `/o/{code}` shows a four-step status, items, total, fulfilment type and ETA. It deliberately hides the customer's address, email and phone, so no phone verification is needed for the data shown. The page updates when the vendor changes the status.
 - **Vendor contact.** The dashboard has a Message link that opens WhatsApp with the order code prefilled.
+- **Vendor support view.** `/dashboard/support` shows the vendor's own tickets with Open or Resolved state, last message and updated time. Replies and the full conversation remain in WhatsApp and the admin inbox.
 
 The following behaviours remain deferred or partial and must not be described as fully working:
 

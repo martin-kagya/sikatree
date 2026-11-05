@@ -176,19 +176,27 @@ export default async function DashboardPage({
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-[760px]">
+      <div className="mx-auto max-w-[960px]">
         <header className="flex items-center justify-between">
           <Link href="/" className="text-[20px] font-semibold tracking-[-0.03em] text-ink">
             sikatree
           </Link>
-          <form action={logoutAction}>
-            <button
-              type="submit"
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/support"
               className="inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
             >
-              Sign out
-            </button>
-          </form>
+              Support
+            </Link>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </header>
 
         <main className="mt-6 space-y-5 stagger">

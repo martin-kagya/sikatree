@@ -83,6 +83,17 @@ export async function listSupportTickets(status = ''): Promise<SupportTicket[]> 
   return rows.rows.map(toTicket);
 }
 
+export async function listVendorSupportTickets(vendorId: string): Promise<SupportTicket[]> {
+  const rows = await db().query(
+    `${TICKET_SELECT}
+      where t.vendor_id = $1
+      order by case when t.status = 'open' then 0 else 1 end, t.updated_at desc
+      limit 50`,
+    [vendorId],
+  );
+  return rows.rows.map(toTicket);
+}
+
 export async function getSupportTicket(id: string): Promise<SupportTicket | null> {
   const rows = await db().query(`${TICKET_SELECT} where t.id = $1`, [id]);
   return rows.rows[0] ? toTicket(rows.rows[0]) : null;

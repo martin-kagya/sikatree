@@ -895,6 +895,7 @@ Same tokens and radii as the public site, with tighter density. No gallery effec
 
 - **Home:** greeting with the first name, today's bookings, orders needing action, and a "Share your page" card with copy link and QR.
 - **Orders (shipped single-page dashboard):** newest first, one column. Each card shows the code, date, status badge, total, items, buyer with a Message link, fulfilment, email, note, and quick actions (Confirm, Mark ready, Mark completed, Cancel). A Track page link and copy link sit beside the actions. Filter chips and the five-item nav remain proposed.
+- **Support (shipped):** `/dashboard/support` lists the vendor's own tickets with Open or Resolved state, last message and updated time, plus a Message support on WhatsApp button. Replies and the full conversation stay in WhatsApp and the admin inbox; there is no vendor reply box.
 - **Catalogue (shipped single-page version):** list rows with thumbnail, name, category, stock or status, price, Edit, and a Sold out or Show quick action. Add item and Edit item pages use a 260px photo panel with a square preview and a fields column: name, price, compare-at, description, category with datalist, stock, visibility, badge and position. Save returns to the dashboard with an Item saved note. Manual sold out is independent of stock. The gallery grid, drag reorder and multiple images remain proposed.
 - **Calendar:** day and week views. Tap a slot to block time.
 - **More:** payments and payouts, page editor and theme, notifications, language, support, sessions. Rows are 64px, Lucide icon left, chevron right, hairline dividers.
@@ -920,6 +921,8 @@ Utilitarian but on-brand. Table views with the same tokens. Header row 48px (14p
 - [ ] Adding an item with a photo shows it on the storefront; editing price, hiding or marking sold out updates the page.
 - [ ] Selects in the item form use the custom chevron, not the browser arrow.
 - [ ] Every dashboard button and button-like link has a pressed state and a visible focus ring.
+- [ ] The desktop dashboard uses the 960px container, not a narrow 760px column.
+- [ ] Support shows the vendor's own tickets and never exposes another vendor's ticket.
 - [ ] A manually sold-out item keeps its stock count but shows Sold out and has no Add button.
 - [ ] Reduced motion makes all transitions instant.
 
