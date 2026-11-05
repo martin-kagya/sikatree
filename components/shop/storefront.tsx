@@ -11,7 +11,17 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
-import { ArrowRight, Check, ChevronRight, Copy, MessageCircle, Plus, ShoppingCart, X } from '@/components/icons';
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  MessageCircle,
+  Plus,
+  ShoppingCart,
+  X,
+} from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { accentFor } from '@/lib/shop-accent';
@@ -786,12 +796,12 @@ export function Storefront({
 
               <div className="flex items-center gap-2 sm:ml-auto">
                 {showSort ? (
-                  <label className="flex min-w-0 flex-1 items-center sm:flex-none">
+                  <label className="relative flex min-w-0 flex-1 items-center sm:flex-none">
                     <span className="sr-only">Sort products</span>
                     <select
                       value={sort}
                       onChange={(event) => navigate({ sort: event.target.value })}
-                      className="h-11 w-full rounded-pill border border-[var(--shop-hair)] bg-[var(--shop-card)] px-3 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--shop-accent-deep)] sm:w-auto"
+                      className="h-11 w-full appearance-none rounded-[12px] border border-[var(--shop-hair)] bg-[var(--shop-card)] pl-3 pr-9 text-[13px] text-[var(--shop-ink)] focus:border-[var(--shop-accent-deep)] focus:outline-none focus:ring-2 focus:ring-[var(--shop-accent-deep)] sm:w-auto"
                     >
                       {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
                         <option key={key} value={key}>
@@ -799,6 +809,7 @@ export function Storefront({
                         </option>
                       ))}
                     </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-[var(--shop-muted)]" />
                   </label>
                 ) : null}
 
@@ -1311,25 +1322,18 @@ export function Storefront({
                     </p>
                   ) : null}
 
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={placing || leaving || !cartCount}
-                      className="shop-press h-12 min-w-0 flex-1 rounded-[12px] bg-[var(--shop-accent)] px-4 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
-                    >
+                  <button
+                    type="submit"
+                    disabled={placing || leaving || !cartCount}
+                    className="shop-press relative mt-4 flex h-12 w-full items-center justify-center rounded-[12px] bg-[var(--shop-accent)] px-5 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
+                  >
+                    <span>
                       {placing
                         ? 'Placing order…'
                         : `Place order · ${formatShopPrice(totalPesewas)}`}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={placing || leaving || !cartCount}
-                      aria-label="Place order"
-                      className="shop-press flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-[var(--shop-accent)] text-[var(--shop-accent-label)] disabled:opacity-50"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
+                    </span>
+                    <ChevronRight className="pointer-events-none absolute right-4 h-5 w-5" />
+                  </button>
 
                   <p className="mt-3 text-[11px] leading-snug text-[var(--shop-muted)]">
                     Your email is saved for delivery and order updates. Payment happens on
