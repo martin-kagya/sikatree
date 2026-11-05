@@ -1,8 +1,9 @@
 import { NextResponse, after } from 'next/server';
 import { hitRateLimit } from '@/lib/rate-limit';
-import { handleInbound, markProcessed, rememberInbound } from '@/lib/whatsapp/engine';
+import { rememberInbound } from '@/lib/whatsapp/engine';
 import { parseInbound } from '@/lib/whatsapp/inbound';
 import { verifyWhatsappSignature } from '@/lib/whatsapp/signature';
+import { drainOnce, enqueueInbound } from '@/lib/wa-jobs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,15 +63,17 @@ export async function POST(request: Request) {
 
     accepted += 1;
 
-    // Respond to Meta first, then run the conversation. A failure here is
-    // logged and the message stays unprocessed for a retry.
-    after(async () => {
-      try {
-        await handleInbound(message);
-        await markProcessed(message.providerMessageId);
-      } catch (error) {
-        console.error('[wa] processing failed', error);
-      }
+    // Answer Meta now, then drain the queue. The message is durable in wa_job,
+    // so a crash here is retried by the worker route instead of being lost.
+    try {
+      await enqueueInbound(message);
+    } catch (error) {
+      console.error('[wa] could not enqueue', error);
+      continue;
+    }
+
+    after(() => {
+      drainOnce().catch((error) => console.error('[wa] drain failed', error));
     });
   }
 

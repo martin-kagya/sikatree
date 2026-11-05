@@ -31,6 +31,9 @@ export const copy = {
   itemPreview: (lines: string) =>
     `Here is what I understood:\n\n${lines}\n\nDoes this look right?`,
 
+  photoNoCaption: () =>
+    'Got the photo. What is it and how much? Like:\nBlue block heels 250',
+
   itemInvalid: () =>
     'I could not find a price in that. Send the name and price together, like:\nVitamin C serum 120',
 
@@ -42,8 +45,11 @@ export const copy = {
   setupInProgress: () =>
     'You are still setting up. Reply RESTART to start over, or continue with the last question.',
 
+  dashboard: (url: string) =>
+    `Here is your dashboard link. It works for 15 minutes and can be used once.\n\n${url}`,
+
   menu: () =>
-    'What would you like to do?\n\n1. Share my page\n2. Add an item\n3. My orders\n4. Help\n\nReply with a number or the word.',
+    'What would you like to do?\n\n1. Share my page\n2. Add an item\n3. My orders\n4. Help\n5. Open dashboard\n\nReply with a number or the word.',
 
   help: () =>
     'A human will pick this up. In the meantime, reply menu to see what I can do.',

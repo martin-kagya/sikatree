@@ -17,14 +17,15 @@ pick a handle, add a first item, and get a live page. The page is at
 | ONB-07 reply buttons for fixed choices | Works (3 buttons maximum) |
 | ONB-08 MoMo payout details | Not yet; online payments stay off |
 | ONB-09 resume a stalled setup | Works: state and draft persist per number |
-| ONB-10 photo items | Not yet; text only |
+| ONB-10 photo items | Photo with caption parsed rules-first; no vision model, no image hosting |
 | ONB-11 text list items | Works, with Confirm / Edit / Cancel |
 | ONB-14 price formats | Rules parser covers 250, GHS 250, GH₵250, 250 cedis, 250ghc, stock, comma lists |
 | ONB-15 / ONB-16 no publishing without confirmation | Works for items |
 | ONB-19 live link and share message | Works; share card image not built |
 | ONB-22 menu | Partial: share, add item, orders placeholder, help |
 | ONB-26 unsupported input fallback | Works for non-text, non-button messages |
-| ONB-27 idempotent webhook and per-number rate limit | Works |
+| ONB-27 idempotent webhook and per-number rate limit | Works, plus a durable queue with retries |
+| ONB-20 / AUTH-01 magic link and dashboard | Works: single-use 15-minute link, 30-day cookie session, bare dashboard |
 | LP-22 waitlist handoff | Works: name, type and held handle are prefilled; signup becomes onboarded and the reservation is claimed |
 
 ## Flow
@@ -40,16 +41,23 @@ State lives in `wa_conversation` (one row per phone, `context` holds the draft
 and any pending item). Every inbound message is stored in `wa_message` with a
 unique provider id before processing, so duplicate deliveries do nothing.
 
-## Webhook
+## Webhook and queue
 
 `POST /api/whatsapp/webhook` verifies `X-Hub-Signature-256` against
-`WHATSAPP_APP_SECRET`, stores the message, and answers Meta immediately. The
-conversation runs in `after()`, after the response, inside a transaction guarded
-by `pg_advisory_xact_lock(hashtext(phone))`, so two messages from one vendor
-never interleave.
+`WHATSAPP_APP_SECRET`, stores the message in `wa_message`, enqueues a job in
+`wa_job`, and answers Meta immediately. A worker drains due jobs with
+`FOR UPDATE SKIP LOCKED`; failures retry with exponential backoff and give up
+after 5 attempts.
+
+The conversation itself runs in a transaction guarded by
+`pg_advisory_xact_lock(hashtext(phone))`, so two messages from one vendor never
+interleave. The engine records the last applied provider message id, so a
+retried job does not advance the conversation twice.
 
 `GET /api/whatsapp/webhook` answers Meta's subscription check with
-`WHATSAPP_VERIFY_TOKEN`.
+`WHATSAPP_VERIFY_TOKEN`. The worker endpoint is `GET /api/internal/jobs/run`,
+secured by `CRON_SECRET`; `vercel.json` schedules it every minute. In local dev
+the webhook drains immediately, so `pnpm wa:sim` stays responsive.
 
 ## Providers
 
@@ -93,15 +101,21 @@ and `WA_SIM_URL` to point at another host.
 - `wa_conversation`: state, draft context, opt-out flag, last activity.
 - `wa_message`: inbound log with unique provider ids and processed time.
 
+## Magic link dashboard
+
+The bot's `Open dashboard` button creates a single-use 15-minute link
+(`login_link` stores only the token hash). Tapping it exchanges the token for a
+30-day HTTP-only cookie (`AUTH_SECRET` is the signing key) and opens
+`/dashboard`, which shows the vendor's name, live link, share message and items.
+
 ## Known gaps
 
-1. No durable queue. `after()` is fine on Vercel but a crash between the 200 and
-   the handler loses the message until replay. A `wa_job` table with retries is
-   the next reliability step.
-2. Photo and voice parsing, categories, bio, logo, payout details and magic
-   links are not built.
+1. Photo items are caption-only rules parsing. A vision model, media download
+   and image hosting are not wired.
+2. Voice notes, categories, bio, logo and payout details are not built.
 3. Templates outside the 24-hour window (nudges, order alerts) need approved
    templates from Meta.
 4. `HELP` acknowledges a human but there is no inbox yet.
 5. No funnel metrics for the bot (time to go-live, drop-off step, correction
    rate). The waitlist funnel is separate.
+6. Sessions are stateless; there is no device list or revocation UI yet.

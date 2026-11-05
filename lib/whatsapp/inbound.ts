@@ -1,6 +1,6 @@
 import { toE164 } from '@/lib/whatsapp/signature';
 
-export type InboundKind = 'text' | 'button' | 'list' | 'unsupported';
+export type InboundKind = 'text' | 'button' | 'list' | 'image' | 'unsupported';
 
 export type InboundMessage = {
   providerMessageId: string;
@@ -8,6 +8,8 @@ export type InboundMessage = {
   kind: InboundKind;
   text: string | null;
   buttonId: string | null;
+  caption: string | null;
+  mediaId: string | null;
   receivedAt: Date;
   raw: unknown;
 };
@@ -52,6 +54,8 @@ export function parseInbound(payload: unknown): InboundMessage[] {
         let kind: InboundKind = 'unsupported';
         let text: string | null = null;
         let buttonId: string | null = null;
+        let caption: string | null = null;
+        let mediaId: string | null = null;
         const type = typeof message.type === 'string' ? message.type : '';
 
         if (type === 'text') {
@@ -60,6 +64,12 @@ export function parseInbound(payload: unknown): InboundMessage[] {
             kind = 'text';
             text = body.trim();
           }
+        } else if (type === 'image') {
+          const image = record(message.image);
+          kind = 'image';
+          mediaId = typeof image?.id === 'string' ? image.id : null;
+          const imageCaption = image?.caption;
+          if (typeof imageCaption === 'string') caption = imageCaption.trim();
         } else if (type === 'interactive') {
           const interactive = record(message.interactive);
           const buttonReply = record(interactive?.button_reply);
@@ -75,7 +85,17 @@ export function parseInbound(payload: unknown): InboundMessage[] {
           }
         }
 
-        messages.push({ providerMessageId: id, from, kind, text, buttonId, receivedAt, raw });
+        messages.push({
+          providerMessageId: id,
+          from,
+          kind,
+          text,
+          buttonId,
+          caption,
+          mediaId,
+          receivedAt,
+          raw,
+        });
       }
     }
   }

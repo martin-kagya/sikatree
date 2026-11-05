@@ -265,7 +265,7 @@ Backend detail, environment variables and the operational runbook live in
 
 **Build**
 - [ ] Database: vendors, links, items, categories, wa_message, wa_conversation, notifications
-- [x] WhatsApp webhook receiver (signature check, idempotent store, processed after the response; durable queue still pending)
+- [x] WhatsApp webhook receiver (signature check, idempotent store, durable queue with retries)
 - [ ] Message sender with interactive buttons and lists; delivery status tracking
 - [x] Conversation engine: state machine, global intents (menu, help, stop, language), resume
 - [ ] Onboarding steps (ONB-01 to ONB-09): consent, business name, type, handle, optional logo
@@ -273,7 +273,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Parsers: price formats, list splitting, rules-first then LLM fallback, validation
 - [x] Handle availability and reserved-handle checks
 - [x] Minimal public page `/{handle}`: name, bio, links, items with prices (PG-01 to PG-03 basics)
-- [ ] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01)
+- [x] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01)
 - [ ] Funnel analytics: step reached, time to live page, parse-correction rate
 - [ ] Support handoff: "Help" forwards to an internal inbox or a human WhatsApp number (ONB-25)
 - [ ] English copy catalogue with i18n structure ready for Twi

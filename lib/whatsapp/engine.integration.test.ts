@@ -23,6 +23,8 @@ function inbound(partial: Partial<InboundMessage>): InboundMessage {
     kind: 'text',
     text: null,
     buttonId: null,
+    caption: null,
+    mediaId: null,
     receivedAt: new Date(),
     raw: {},
     ...partial,
@@ -212,5 +214,78 @@ describe('webhook idempotency', () => {
     const message = inbound({ text: 'START' });
     expect(await rememberInbound(message)).toBe(true);
     expect(await rememberInbound(message)).toBe(false);
+  });
+});
+
+describe('durability and photos', () => {
+  it('does not apply the same message twice', async () => {
+    const message = inbound({ text: 'START' });
+    const first = await (async () => {
+      sent = [];
+      await handleInbound(message, messenger);
+      return sent.length;
+    })();
+    expect(first).toBeGreaterThan(0);
+
+    sent = [];
+    await handleInbound(message, messenger);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('runs a queued job end to end', async () => {
+    const { setMessenger } = await import('@/lib/whatsapp/provider');
+    const { enqueueInbound, drainOnce } = await import('@/lib/wa-jobs');
+    sent = [];
+    setMessenger(messenger);
+
+    const message = inbound({ text: 'START' });
+    await enqueueInbound(message);
+    const processed = await drainOnce();
+
+    expect(processed).toBe(1);
+    expect(sent.map((entry) => body([entry.message])).join('\n')).toContain('Welcome to sikatree');
+    setMessenger(null);
+  });
+
+  it('parses a photo caption into an item and keeps the media reference', async () => {
+    await say('START');
+    await tap('consent_yes');
+    await say('Ama Glow');
+    const handleReply = await tap('type_products');
+    const handleChoice = buttonId(handleReply, 'handle:');
+    await tap(handleChoice ?? 'handle:amaglow');
+
+    const preview = await (async () => {
+      sent = [];
+      await handleInbound(
+        inbound({ kind: 'image', text: null, caption: 'Serum 120', mediaId: 'media-abc' }),
+        messenger,
+      );
+      return sent.map((entry) => entry.message);
+    })();
+    expect(body(preview)).toContain('Serum: GH₵120.00');
+
+    await tap('item_confirm');
+
+    const items = await query<{ name: string; image_ref: string | null }>(
+      'select name, image_ref from items order by position',
+    );
+    expect(items).toEqual([{ name: 'Serum', image_ref: 'media-abc' }]);
+  });
+
+  it('asks for a name and price when a photo has no caption', async () => {
+    await say('START');
+    await tap('consent_yes');
+    await say('Ama Glow');
+    const handleReply = await tap('type_products');
+    const handleChoice = buttonId(handleReply, 'handle:');
+    await tap(handleChoice ?? 'handle:amaglow');
+
+    const replies = await (async () => {
+      sent = [];
+      await handleInbound(inbound({ kind: 'image', text: null, caption: null, mediaId: 'media-x' }), messenger);
+      return sent.map((entry) => entry.message);
+    })();
+    expect(body(replies)).toContain('Got the photo');
   });
 });

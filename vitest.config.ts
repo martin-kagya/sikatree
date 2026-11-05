@@ -17,6 +17,8 @@ export default defineConfig({
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'postgres://localhost:5432/sikatree_test',
       ADMIN_PASSWORD: 'test-password',
       RESERVATION_DAYS: '30',
+      AUTH_SECRET: 'test-auth-secret',
+      CRON_SECRET: 'test-cron-secret',
     },
   },
 });

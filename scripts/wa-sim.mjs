@@ -24,17 +24,19 @@ if (existsSync('.env.local')) {
 const args = process.argv.slice(2);
 let phone = process.env.WA_SIM_PHONE ?? '233241234567';
 let button = null;
+let imageCaption = null;
 const textParts = [];
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--phone') phone = args[++i];
   else if (args[i] === '--button') button = args[++i];
+  else if (args[i] === '--image') imageCaption = args[++i];
   else textParts.push(args[i]);
 }
 
 const text = textParts.join(' ');
-if (!text && !button) {
-  console.error('Usage: pnpm wa:sim "message" [--phone 233...] [--button id]');
+if (!text && !button && imageCaption === null) {
+  console.error('Usage: pnpm wa:sim "message" [--phone 233...] [--button id] [--image "caption"]');
   process.exit(1);
 }
 
@@ -42,10 +44,12 @@ const message = {
   from: phone.replace(/\D/g, ''),
   id: `wamid.sim.${randomUUID()}`,
   timestamp: String(Math.floor(Date.now() / 1000)),
-  type: button ? 'interactive' : 'text',
+  type: button ? 'interactive' : imageCaption !== null ? 'image' : 'text',
   ...(button
     ? { interactive: { type: 'button_reply', button_reply: { id: button, title: button } } }
-    : { text: { body: text } }),
+    : imageCaption !== null
+      ? { image: { id: 'media.sim.1', caption: imageCaption } }
+      : { text: { body: text } }),
 };
 
 const payload = {
@@ -74,5 +78,7 @@ const response = await fetch(url, {
   body: raw,
 });
 
-console.log(`sent as ${phone}: ${button ? `button ${button}` : text}`);
+console.log(
+  `sent as ${phone}: ${button ? `button ${button}` : imageCaption !== null ? `image "${imageCaption}"` : text}`,
+);
 console.log(`webhook ${response.status}: ${await response.text()}`);

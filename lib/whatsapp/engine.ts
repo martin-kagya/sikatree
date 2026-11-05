@@ -5,6 +5,7 @@ import { parseItems, type ParsedItem } from '@/lib/parsing/text-items';
 import { site } from '@/lib/brand';
 import { copy } from '@/lib/whatsapp/copy';
 import { formatCedis } from '@/lib/money';
+import { createLoginLink } from '@/lib/login-links';
 import { parseInbound, type InboundMessage } from '@/lib/whatsapp/inbound';
 import { buttons, text, type Outbound } from '@/lib/whatsapp/messages';
 import { getMessenger, type Messenger } from '@/lib/whatsapp/provider';
@@ -22,6 +23,7 @@ type Draft = {
 type Context = {
   draft?: Draft;
   pending?: ParsedItem[];
+  pendingImage?: string | null;
   mode?: 'onboarding' | 'add';
 };
 
@@ -31,6 +33,7 @@ type Conversation = {
   context: Context;
   optedOut: boolean;
   vendorId: string | null;
+  lastMessageId: string | null;
 };
 
 type StepResult = {
@@ -87,8 +90,9 @@ async function loadConversation(client: PoolClient, phone: string): Promise<Conv
     context: unknown;
     opted_out: boolean;
     vendor_id: string | null;
+    last_message_id: string | null;
   }>(
-    'select phone, state, context, opted_out, vendor_id from wa_conversation where phone = $1 for update',
+    'select phone, state, context, opted_out, vendor_id, last_message_id from wa_conversation where phone = $1 for update',
     [phone],
   );
 
@@ -99,6 +103,7 @@ async function loadConversation(client: PoolClient, phone: string): Promise<Conv
     context: asContext(row.context),
     optedOut: row.opted_out,
     vendorId: row.vendor_id,
+    lastMessageId: row.last_message_id,
   };
 }
 
@@ -193,6 +198,7 @@ async function goLive(
   conversation: Conversation,
   context: Context,
   items: ParsedItem[],
+  imageRef: string | null = null,
 ): Promise<StepResult> {
   const existing = await client.query<{ id: string; handle: string }>(
     'select id, handle from vendors where phone = $1',
@@ -255,9 +261,9 @@ async function goLive(
 
   for (const [index, item] of items.entries()) {
     await client.query(
-      `insert into items (vendor_id, name, price_pesewas, stock, position)
-       values ($1, $2, $3, $4, $5)`,
-      [vendor.id, item.name, item.pricePesewas, item.stock, index],
+      `insert into items (vendor_id, name, price_pesewas, stock, image_ref, position)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [vendor.id, item.name, item.pricePesewas, item.stock, index === 0 ? imageRef : null, index],
     );
   }
 
@@ -285,7 +291,7 @@ async function goLive(
       buttons('What next?', [
         { id: 'share', title: 'Share my page' },
         { id: 'add', title: 'Add an item' },
-        { id: 'menu', title: 'Menu' },
+        { id: 'dashboard', title: 'Open dashboard' },
       ]),
     ],
   };
@@ -485,7 +491,14 @@ export async function advance(
         return goLive(client, conversation, context, []);
       }
 
-      const parsed = parseItems(raw);
+      const isImage = inbound.kind === 'image';
+      const source = isImage ? (inbound.caption ?? '') : raw;
+
+      if (isImage && !source) {
+        return { state: 'item', context, replies: [text(copy.photoNoCaption())] };
+      }
+
+      const parsed = parseItems(source);
       if (!parsed.ok) {
         return {
           state: 'item',
@@ -494,7 +507,9 @@ export async function advance(
         };
       }
 
-      const next = { ...context, pending: parsed.items };
+      // A photo applies to a single item; a list stays photo-less for now.
+      const pendingImage = isImage && parsed.items.length === 1 ? inbound.mediaId : null;
+      const next = { ...context, pending: parsed.items, pendingImage };
       const preview = parsed.items
         .map((item) => `${item.name}: ${formatCedis(item.pricePesewas)}`)
         .join('\n');
@@ -541,9 +556,16 @@ export async function advance(
       if (context.mode === 'add' && conversation.vendorId) {
         for (const [index, item] of items.entries()) {
           await client.query(
-            `insert into items (vendor_id, name, price_pesewas, stock, position)
-             values ($1, $2, $3, $4, $5)`,
-            [conversation.vendorId, item.name, item.pricePesewas, item.stock, index],
+            `insert into items (vendor_id, name, price_pesewas, stock, image_ref, position)
+             values ($1, $2, $3, $4, $5, $6)`,
+            [
+              conversation.vendorId,
+              item.name,
+              item.pricePesewas,
+              item.stock,
+              index === 0 ? (context.pendingImage ?? null) : null,
+              index,
+            ],
           );
         }
         return {
@@ -556,7 +578,7 @@ export async function advance(
         };
       }
 
-      return goLive(client, conversation, context, items);
+      return goLive(client, conversation, context, items, context.pendingImage ?? null);
     }
 
     case 'live': {
@@ -578,6 +600,12 @@ export async function advance(
             ),
           ],
         };
+      }
+
+      if (button === 'dashboard' || /^5$|dashboard/.test(lower)) {
+        if (!conversation.vendorId) return { state: 'live', context, replies: [text(copy.menu())] };
+        const link = await createLoginLink(conversation.vendorId);
+        return { state: 'live', context, replies: [text(copy.dashboard(link.url))] };
       }
 
       if (button === 'add' || /^2$|add (an )?item/.test(lower)) {
@@ -626,12 +654,26 @@ export async function handleInbound(
     await client.query('begin');
     await client.query('select pg_advisory_xact_lock(hashtext($1))', [inbound.from]);
     const conversation = await loadConversation(client, inbound.from);
+
+    // Replay guard: if this delivery was already applied, do nothing. This is
+    // what lets the job queue retry safely.
+    if (conversation.lastMessageId === inbound.providerMessageId) {
+      await client.query('commit');
+      return;
+    }
+
     result = await advance(client, conversation, inbound);
     await client.query(
       `update wa_conversation
-          set state = $2, context = $3, opted_out = $4, last_activity = now()
+          set state = $2, context = $3, opted_out = $4, last_message_id = $5, last_activity = now()
         where phone = $1`,
-      [inbound.from, result.state, JSON.stringify(result.context), result.optedOut ?? conversation.optedOut],
+      [
+        inbound.from,
+        result.state,
+        JSON.stringify(result.context),
+        result.optedOut ?? conversation.optedOut,
+        inbound.providerMessageId,
+      ],
     );
     await client.query('commit');
   } catch (error) {
@@ -641,12 +683,15 @@ export async function handleInbound(
     client.release();
   }
 
-  for (const reply of result.replies) {
-    try {
-      await messenger.send(inbound.from, reply);
-    } catch (error) {
-      console.error('[wa] send failed', error);
+  if (result) {
+    for (const reply of result.replies) {
+      try {
+        await messenger.send(inbound.from, reply);
+      } catch (error) {
+        console.error('[wa] send failed', error);
+      }
     }
+    await markProcessed(inbound.providerMessageId).catch(() => {});
   }
 }
 
