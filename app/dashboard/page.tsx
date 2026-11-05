@@ -28,6 +28,7 @@ type Vendor = {
   phone: string;
   delivery_fee_mode: string;
   delivery_fee_pesewas: number;
+  delivery_fee_outside_pesewas: number;
 };
 type Item = {
   id: string;
@@ -130,6 +131,13 @@ function OrderCard({ order }: { order: OrderRecord }) {
               : 'Delivery fee to confirm'}
           </span>
         ) : null}
+        {order.fulfilment === 'delivery' && order.deliveryFeeMode === 'fixed' ? (
+          <span>
+            Delivery {order.deliveryZone === 'outside' ? '(other region)' : '(same region)'}{' '}
+            {formatCedis(order.deliveryPesewas)}
+            {order.deliveryOnArrival ? ' on arrival' : ''}
+          </span>
+        ) : null}
         <span>{order.customerEmail}</span>
         {order.notes ? <span>Note: {order.notes}</span> : null}
       </div>
@@ -203,7 +211,7 @@ export default async function DashboardPage({
 
   const [vendors, items, orders] = await Promise.all([
     query<Vendor>(
-      'select id, name, handle, type, phone, delivery_fee_mode, delivery_fee_pesewas from vendors where id = $1',
+      'select id, name, handle, type, phone, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas from vendors where id = $1',
       [vendorId],
     ),
     query<Item>(
@@ -284,7 +292,11 @@ export default async function DashboardPage({
             <p className="mt-1 text-small text-ink-muted">
               How customers are charged for delivery. Pickup is always free.
             </p>
-            <DeliverySettings mode={deliveryFeeMode} fixedPesewas={vendor.delivery_fee_pesewas} />
+            <DeliverySettings
+              mode={deliveryFeeMode}
+              fixedPesewas={vendor.delivery_fee_pesewas}
+              outsidePesewas={vendor.delivery_fee_outside_pesewas}
+            />
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">

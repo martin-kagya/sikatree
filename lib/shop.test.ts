@@ -41,11 +41,15 @@ describe('formatShopPrice', () => {
 });
 
 describe('delivery fees', () => {
-  it('charges only in fixed mode, and only the configured amount', () => {
-    expect(deliveryFeePesewas('fixed', 1500)).toBe(1500);
-    expect(deliveryFeePesewas('fixed', 2500)).toBe(2500);
-    expect(deliveryFeePesewas('free', 1500)).toBe(0);
-    expect(deliveryFeePesewas('confirm_after', 1500)).toBe(0);
+  it('charges the within or outside rate in fixed mode', () => {
+    expect(deliveryFeePesewas('fixed', 1500, 3000, 'within')).toBe(1500);
+    expect(deliveryFeePesewas('fixed', 1500, 3000, 'outside')).toBe(3000);
+    expect(deliveryFeePesewas('fixed', 1500, 3000, null)).toBe(1500);
+  });
+
+  it('charges nothing outside fixed mode', () => {
+    expect(deliveryFeePesewas('free', 1500, 3000, 'within')).toBe(0);
+    expect(deliveryFeePesewas('confirm_after', 1500, 3000, 'outside')).toBe(0);
   });
 });
 

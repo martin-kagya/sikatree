@@ -65,9 +65,11 @@ as hover.
 - Add to cart sits opposite Enquire on each card; the toolbar and the sticky bar
   show the count. The cart persists in `localStorage` per store.
 - Checkout is a modal with items and quantities on the left and the summary on
-  the right: item total, a vendor-configurable delivery fee (free, a fixed fee,
-  or "confirm after order"; pickup is always free), and the total. Delivery asks
-  for an address; services ask for a date and time.
+  the right: item total, a vendor-configurable delivery fee (free, a fixed fee
+  with within-region and outside-region rates, or "confirm after order"; pickup
+  is always free), and the total. A fixed-fee delivery asks the client to pick a
+  zone and offers "pay the delivery fee on arrival", which excludes it from the
+  total. Delivery asks for an address; services ask for a date and time.
 - Name, Ghana WhatsApp number and email are required. The email is stored on
   the order for updates; no email is sent yet.
 - Orders are written server-side to `orders` and `order_items` with a unique

@@ -42,18 +42,20 @@ export async function updateDeliverySettingsAction(
   const mode = String(formData.get('mode') ?? '') as DeliveryFeeMode;
   if (!DELIVERY_FEE_MODES.includes(mode)) return { error: 'Choose a delivery fee mode.' };
 
-  let fixedPesewas = 0;
+  let withinPesewas = 0;
+  let outsidePesewas = 0;
   if (mode === 'fixed') {
-    const feeRaw = String(formData.get('fee') ?? '').trim();
-    if (feeRaw === '') return { error: 'Enter a fixed delivery fee.' };
-    const parsed = parsePesewas(feeRaw);
-    if (parsed === null || parsed < 0 || parsed > 10_000_000) {
-      return { error: 'Enter a delivery fee between GH₵0 and GH₵100,000.' };
-    }
-    fixedPesewas = parsed;
+    const withinRaw = String(formData.get('within') ?? '').trim();
+    const outsideRaw = String(formData.get('outside') ?? '').trim();
+    if (withinRaw === '' || outsideRaw === '') return { error: 'Enter both delivery fees.' };
+    const within = parsePesewas(withinRaw);
+    const outside = parsePesewas(outsideRaw);
+    if (within === null || outside === null) return { error: 'Enter valid delivery fees.' };
+    withinPesewas = within;
+    outsidePesewas = outside;
   }
 
-  const result = await updateDeliverySettings(vendorId, mode, fixedPesewas);
+  const result = await updateDeliverySettings(vendorId, mode, withinPesewas, outsidePesewas);
   if (!result.ok) return { error: result.error };
 
   revalidatePath('/dashboard');

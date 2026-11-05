@@ -39,6 +39,7 @@ import {
   sortItems,
   stockLabel,
   type DeliveryFeeMode,
+  type DeliveryZone,
   type ShopItem,
   type SortKey,
 } from '@/lib/shop';
@@ -57,6 +58,7 @@ export type StorefrontVendor = {
   type: 'products' | 'services' | 'both' | null;
   deliveryFeeMode: DeliveryFeeMode;
   deliveryFeePesewas: number;
+  deliveryFeeOutsidePesewas: number;
 };
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -386,6 +388,8 @@ export function Storefront({
   );
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00');
+  const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>('within');
+  const [deliveryOnArrival, setDeliveryOnArrival] = useState(false);
 
   const cartKey = `sikatree-cart-${vendor.handle}`;
   useEffect(() => {
@@ -475,13 +479,21 @@ export function Storefront({
     (sum, line) => sum + line.item.pricePesewas * line.quantity,
     0,
   );
+  const zonal = vendor.deliveryFeeMode === 'fixed';
   const deliveryPesewas =
     !sellingServices && fulfilment === 'delivery'
-      ? deliveryFeePesewas(vendor.deliveryFeeMode, vendor.deliveryFeePesewas)
+      ? deliveryFeePesewas(
+          vendor.deliveryFeeMode,
+          vendor.deliveryFeePesewas,
+          vendor.deliveryFeeOutsidePesewas,
+          deliveryZone,
+        )
       : 0;
   const deliveryToConfirm =
     !sellingServices && fulfilment === 'delivery' && vendor.deliveryFeeMode === 'confirm_after';
-  const totalPesewas = subtotalPesewas + deliveryPesewas;
+  const deferDelivery =
+    !sellingServices && fulfilment === 'delivery' && zonal && deliveryOnArrival;
+  const totalPesewas = subtotalPesewas + (deferDelivery ? 0 : deliveryPesewas);
   const today = new Date().toISOString().slice(0, 10);
 
   const accent = accentFor(vendor.accent);
@@ -599,6 +611,8 @@ export function Storefront({
     data.set('fulfilment', sellingServices ? 'appointment' : fulfilment);
     data.set('bookingDate', bookingDate);
     data.set('bookingTime', bookingTime);
+    data.set('deliveryZone', deliveryZone);
+    data.set('deliveryOnArrival', deliveryOnArrival ? 'on' : '');
 
     try {
       const result = await submitOrder(data);
@@ -1072,7 +1086,9 @@ export function Storefront({
                     : 'Pay at your appointment.'}{' '}
                 {order.deliveryFeeMode === 'confirm_after'
                   ? 'The vendor will confirm the delivery fee. '
-                  : ''}
+                  : order.deliveryOnArrival
+                    ? 'The delivery fee is paid on arrival. '
+                    : ''}
                 {order.vendorName} will confirm shortly.
               </p>
 
@@ -1223,17 +1239,71 @@ export function Storefront({
                     </div>
 
                     {fulfilment === 'delivery' ? (
-                      <label className="mt-3 block text-[13px] font-medium text-[var(--shop-ink)]">
-                        Delivery address
-                        <textarea
-                          name="address"
-                          required
-                          minLength={8}
-                          rows={3}
-                          placeholder="Area, street and a landmark"
-                          className={`${areaCls} mt-1.5`}
-                        />
-                      </label>
+                      <>
+                        <label className="mt-3 block text-[13px] font-medium text-[var(--shop-ink)]">
+                          Delivery address
+                          <textarea
+                            name="address"
+                            required
+                            minLength={8}
+                            rows={3}
+                            placeholder="Area, street and a landmark"
+                            className={`${areaCls} mt-1.5`}
+                          />
+                        </label>
+
+                        {zonal ? (
+                          <div className="mt-3">
+                            <p className="text-[13px] font-medium text-[var(--shop-ink)]">
+                              Delivery zone
+                            </p>
+                            <div className="relative mt-2 grid grid-cols-2 rounded-[12px] border border-[var(--shop-hair)] bg-white p-1">
+                              <span
+                                aria-hidden="true"
+                                className="shop-segment pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-[9px] bg-[var(--shop-ink)]"
+                                style={{
+                                  transform:
+                                    deliveryZone === 'outside' ? 'translateX(100%)' : 'translateX(0)',
+                                }}
+                              />
+                              {(['within', 'outside'] as const).map((zone) => {
+                                const active = deliveryZone === zone;
+                                return (
+                                  <button
+                                    key={zone}
+                                    type="button"
+                                    aria-pressed={active}
+                                    onClick={() => setDeliveryZone(zone)}
+                                    className={cn(
+                                      'relative z-10 h-10 rounded-[9px] text-[13px] font-medium transition-colors duration-200',
+                                      active ? 'text-white' : 'text-[var(--shop-ink)]',
+                                    )}
+                                  >
+                                    {zone === 'within' ? 'Same region' : 'Other region'}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="mt-1.5 text-[11px] text-[var(--shop-muted)]">
+                              Same region means {vendor.location ?? 'near the shop'} and nearby
+                              areas.
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {zonal ? (
+                          <label className="mt-3 flex items-start gap-2 text-[12px] text-[var(--shop-ink)]">
+                            <input
+                              type="checkbox"
+                              name="deliveryOnArrival"
+                              checked={deliveryOnArrival}
+                              onChange={(event) => setDeliveryOnArrival(event.target.checked)}
+                              className="mt-0.5 h-4 w-4 rounded border-[var(--shop-hair)]"
+                            />
+                            <span>Pay the delivery fee when the item arrives.</span>
+                          </label>
+                        ) : null}
+                      </>
                     ) : (
                       <p className="mt-3 rounded-[10px] bg-page p-3 text-[12px] text-[var(--shop-muted)]">
                         Pick up at {vendor.location ?? 'the shop'}. {vendor.name} will confirm the
@@ -1299,7 +1369,9 @@ export function Storefront({
                     : fulfilment === 'delivery'
                       ? deliveryToConfirm
                         ? 'Pay on delivery. The vendor will confirm the delivery fee.'
-                        : 'Pay on delivery.'
+                        : deferDelivery
+                          ? 'Pay for your items on delivery; the delivery fee is paid on arrival.'
+                          : 'Pay on delivery.'
                       : 'Pay at pickup.'}{' '}
                   Online payment is not enabled yet.
                 </p>
@@ -1318,9 +1390,11 @@ export function Storefront({
                       <dd>
                         {deliveryToConfirm
                           ? 'To be confirmed'
-                          : deliveryPesewas
-                            ? formatShopPrice(deliveryPesewas)
-                            : 'Free'}
+                          : deferDelivery
+                            ? `${formatShopPrice(deliveryPesewas)} on arrival`
+                            : deliveryPesewas
+                              ? formatShopPrice(deliveryPesewas)
+                              : 'Free'}
                       </dd>
                     </div>
                     <div className="mt-2 flex justify-between border-t border-[var(--shop-hair)] pt-2 text-[15px] font-medium">

@@ -352,7 +352,7 @@ Backend detail, environment variables and the operational runbook live in
 |---|---|---|---|---|
 | Online payments | Pay on delivery, pickup or appointment | MoMo/card collection, signed webhooks, retries | PAY-01, PAY-02, PAY-09 | Phase 2, after aggregator KYC |
 | Ledger and fees | None | Double-entry ledger, platform fee, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
-| Delivery fee | Vendor-configurable free / fixed / confirm-after, set from the dashboard; confirm-after orders let the vendor set the fee on the order | None | ORD-03 | Done (2026-11-05) |
+| Delivery fee | Vendor-configurable free / fixed (with within-region and outside-region rates) / confirm-after, set from the dashboard; clients can pay the delivery fee in cash on arrival, and confirm-after orders let the vendor set the fee on the order | None | ORD-03 | Done (2026-11-05) |
 | Order lifecycle | `pending → confirmed → ready → completed` or `cancelled` from the dashboard; the tracking page follows it | Paid and Refunded states, cancellation reason, refunds, WhatsApp action buttons | ORD-05, ORD-10 | Phase 2/3 |
 | Vendor notification | WhatsApp text with the code, items, total, customer, delivery details and a dashboard login link | Interactive Confirm/Decline/Mark ready buttons, approved templates, delivery fallback | ORD-06, ONB-24, NOT-01, NOT-04 | Phase 2 |
 | Client tracking | `/o/{code}` shows status, items, total and ETA; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA, reorder | ORD-07, ORD-12 | Phase 2/3 |

@@ -114,7 +114,7 @@ describe('placeOrder', () => {
   });
 
   it('charges no delivery in free mode', async () => {
-    await updateDeliverySettings(vendorId, 'free', 0);
+    await updateDeliverySettings(vendorId, 'free', 0, 0);
     const result = await placeOrder(checkoutForm());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -123,16 +123,40 @@ describe('placeOrder', () => {
   });
 
   it('charges the configured fixed fee', async () => {
-    await updateDeliverySettings(vendorId, 'fixed', 2500);
+    await updateDeliverySettings(vendorId, 'fixed', 2500, 4000);
     const result = await placeOrder(checkoutForm());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.order.totalPesewas).toBe(24000 + 2500);
     expect(result.order.deliveryFeeMode).toBe('fixed');
+    expect(result.order.deliveryZone).toBe('within');
+  });
+
+  it('charges the outside-region rate for an outside-zone delivery', async () => {
+    await updateDeliverySettings(vendorId, 'fixed', 2500, 4000);
+    const result = await placeOrder(checkoutForm({ deliveryZone: 'outside' }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.order.totalPesewas).toBe(24000 + 4000);
+    expect(result.order.deliveryZone).toBe('outside');
+  });
+
+  it('defers the delivery fee to cash on arrival', async () => {
+    await updateDeliverySettings(vendorId, 'fixed', 2500, 4000);
+    const result = await placeOrder(checkoutForm({ deliveryZone: 'outside', deliveryOnArrival: 'on' }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.order.deliveryOnArrival).toBe(true);
+    expect(result.order.totalPesewas).toBe(24000);
+
+    const order = await getOrderByCode(result.order.code);
+    expect(order?.deliveryPesewas).toBe(4000);
+    expect(order?.deliveryOnArrival).toBe(true);
+    expect(order?.totalPesewas).toBe(24000);
   });
 
   it('snapshots confirm-after and lets the vendor set the fee later', async () => {
-    await updateDeliverySettings(vendorId, 'confirm_after', 0);
+    await updateDeliverySettings(vendorId, 'confirm_after', 0, 0);
     const placed = await placeOrder(checkoutForm());
     expect(placed.ok).toBe(true);
     if (!placed.ok) return;

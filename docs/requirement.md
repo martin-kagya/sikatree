@@ -273,8 +273,8 @@ Still deferred: the 15-minute payment-time hold (INV-03), the stock movement log
 | ID | Requirement | P |
 |---|---|---|
 | ORD-01 | Client can add products to a cart (single vendor per cart) and check out as a guest. | P0 |
-| ORD-02 | Checkout collects: name, WhatsApp number, delivery method (**pickup** or **delivery**), delivery address with landmark (and optional GhanaPost digital address), and an optional note. | P0 |
-| ORD-03 | Delivery fee handling is vendor-configurable: free, fixed fee, or "vendor confirms fee after order" (the client pays after confirmation via a payment link). | P0 (free/fixed/confirm-after) |
+| ORD-02 | Checkout collects: name, WhatsApp number, delivery method (**pickup** or **delivery**), delivery address with landmark (and optional GhanaPost digital address), delivery zone (within or outside the vendor's region when the fee varies), and an optional note. | P0 |
+| ORD-03 | Delivery fee handling is vendor-configurable: free, a fixed fee with separate within-region and outside-region rates, or "vendor confirms fee after order". Clients can also opt to pay the delivery fee in cash on arrival instead of adding it to the order total. | P0 (free/fixed-zonal/confirm-after) |
 | ORD-04 | Each order has a short, human-friendly **order code** (e.g. `ORD-4F9K`) that avoids ambiguous characters and is unique platform-wide. | P0 |
 | ORD-05 | Order status lifecycle: `Placed → Paid → Confirmed → Ready → Fulfilled`, plus `Cancelled` and `Refunded`. Vendors move orders forward from WhatsApp buttons or the PWA. | P0 |
 | ORD-06 | Vendor notification contains: order code, items and quantities, buyer name and phone, delivery arrangement, total, payment status. | P0 |
@@ -287,7 +287,7 @@ Still deferred: the 15-minute payment-time hold (INV-03), the stock movement log
 
 **Implementation notes: cart and checkout slice (2026-11-05)**
 
-The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, note), ORD-03 (vendor-configurable delivery fee: free, fixed, or confirm-after), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
+The public storefront implements ORD-01 (single-vendor cart, guest checkout), ORD-02 (name, WhatsApp number, pickup or delivery, address, delivery zone, note), ORD-03 (vendor-configurable delivery fee: free, fixed with within/outside-region rates, or confirm-after, plus cash-on-arrival), ORD-04 (order code) and the pay-offline side of ORD-08. Totals are recomputed on the server from item ids and quantities, and orders are stored in `orders` and `order_items`. The success card shows the code and an ETA estimate.
 
 The order loop now continues after checkout:
 
@@ -301,7 +301,7 @@ The following behaviours remain deferred or partial and must not be described as
 
 | Requirement | Deferred behaviour | Target |
 |---|---|---|
-| ORD-03 | Delivery fee is vendor-configurable (free / fixed / confirm-after) with the fixed amount set from the dashboard. Confirm-after orders show "fee to confirm" and the vendor sets the fee on the order | Done (2026-11-05) |
+| ORD-03 | Delivery fee is vendor-configurable: free, fixed with separate within-region and outside-region rates, or confirm-after. Clients can pay the delivery fee in cash on arrival, which excludes it from the order total. Confirm-after orders show "fee to confirm" and the vendor sets the fee on the order | Done (2026-11-05) |
 | ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
 | ORD-06 | The vendor receives a WhatsApp text with the order details and a dashboard link. Interactive Confirm/Decline buttons and approved templates are deferred | Phase 2 |
 | ORD-07 | `/o/{code}` tracking is implemented with the code as the capability. Sensitive customer details are not shown; phone verification and live ETA are deferred | Phase 2/3 |

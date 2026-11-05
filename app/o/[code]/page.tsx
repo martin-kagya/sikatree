@@ -58,9 +58,13 @@ function stepsFor(order: OrderRecord) {
 
 function paymentNote(order: OrderRecord): string {
   if (order.fulfilment === 'delivery') {
-    return order.deliveryFeeMode === 'confirm_after'
-      ? 'Pay on delivery. The vendor will confirm the delivery fee.'
-      : 'Pay on delivery.';
+    if (order.deliveryFeeMode === 'confirm_after') {
+      return 'Pay on delivery. The vendor will confirm the delivery fee.';
+    }
+    if (order.deliveryOnArrival) {
+      return 'Pay for your items on delivery; the delivery fee is paid on arrival.';
+    }
+    return 'Pay on delivery.';
   }
   if (order.fulfilment === 'pickup') return 'Pay at pickup.';
   return 'Pay at your appointment.';
@@ -69,6 +73,9 @@ function paymentNote(order: OrderRecord): string {
 function deliveryLabel(order: OrderRecord): string {
   if (order.fulfilment === 'delivery' && order.deliveryFeeMode === 'confirm_after') {
     return order.deliveryPesewas ? formatCedis(order.deliveryPesewas) : 'To be confirmed';
+  }
+  if (order.fulfilment === 'delivery' && order.deliveryOnArrival) {
+    return `${formatCedis(order.deliveryPesewas)} on arrival`;
   }
   return order.deliveryPesewas ? formatCedis(order.deliveryPesewas) : 'Free';
 }

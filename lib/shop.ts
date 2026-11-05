@@ -26,10 +26,20 @@ export type DeliveryFeeMode = 'free' | 'fixed' | 'confirm_after';
 export const DELIVERY_FEE_MODES: readonly DeliveryFeeMode[] = ['free', 'fixed', 'confirm_after'];
 export const DEFAULT_DELIVERY_FEE_PESEWAS = 1500;
 
-// ORD-03. Only "fixed" charges at checkout; "free" and "confirm_after" (the
-// vendor quotes the fee once the order is in) contribute zero until confirmed.
-export function deliveryFeePesewas(mode: DeliveryFeeMode, fixedPesewas: number): number {
-  return mode === 'fixed' ? fixedPesewas : 0;
+export type DeliveryZone = 'within' | 'outside';
+export const DELIVERY_ZONES: readonly DeliveryZone[] = ['within', 'outside'];
+
+// ORD-03. Only "fixed" charges at checkout, with separate within-region and
+// outside-region rates; "free" and "confirm_after" (the vendor quotes the fee
+// once the order is in) contribute zero until confirmed.
+export function deliveryFeePesewas(
+  mode: DeliveryFeeMode,
+  withinPesewas: number,
+  outsidePesewas: number,
+  zone: DeliveryZone | null,
+): number {
+  if (mode !== 'fixed') return 0;
+  return zone === 'outside' ? outsidePesewas : withinPesewas;
 }
 
 const priceFormat = new Intl.NumberFormat('en-GH', {

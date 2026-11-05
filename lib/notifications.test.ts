@@ -19,6 +19,8 @@ const order: OrderRecord = {
   subtotalPesewas: 24000,
   deliveryPesewas: 1500,
   deliveryFeeMode: 'fixed',
+  deliveryZone: 'within',
+  deliveryOnArrival: false,
   totalPesewas: 25500,
   status: 'pending',
   eta: 'Delivery in 45 to 60 minutes',
@@ -57,5 +59,16 @@ describe('vendor order notification', () => {
       'https://x',
     );
     expect(message).toContain('Delivery fee to confirm');
+  });
+
+  it('shows the zone and cash-on-arrival for a fixed delivery', () => {
+    const outside = vendorOrderMessage(
+      { ...order, deliveryZone: 'outside', deliveryOnArrival: true, totalPesewas: 24000 },
+      'https://x',
+    );
+    expect(outside).toContain('Delivery GH₵15.00 (other region) pay on arrival');
+
+    const within = vendorOrderMessage({ ...order, deliveryZone: 'within' }, 'https://x');
+    expect(within).toContain('Delivery GH₵15.00 (same region)');
   });
 });

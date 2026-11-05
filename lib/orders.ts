@@ -2,7 +2,13 @@ import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 import { normalizeGhanaPhone } from '@/lib/phone';
 import { hitRateLimit } from '@/lib/rate-limit';
-import { DELIVERY_FEE_MODES, deliveryFeePesewas, type DeliveryFeeMode } from '@/lib/shop';
+import {
+  DELIVERY_FEE_MODES,
+  DELIVERY_ZONES,
+  deliveryFeePesewas,
+  type DeliveryFeeMode,
+  type DeliveryZone,
+} from '@/lib/shop';
 
 // Guest checkout (ORD-04). Prices are always recomputed from the database; the
 // browser only sends item ids and quantities.
@@ -27,6 +33,8 @@ export type CheckoutOrder = {
   vendorName: string;
   fulfilment: Fulfilment;
   deliveryFeeMode: DeliveryFeeMode;
+  deliveryZone: DeliveryZone | null;
+  deliveryOnArrival: boolean;
   createdAt: string;
 };
 
@@ -84,6 +92,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   const notes = String(formData.get('notes') ?? '').trim();
   const bookingDate = String(formData.get('bookingDate') ?? '').trim();
   const bookingTime = String(formData.get('bookingTime') ?? '').trim();
+  const deliveryZoneRaw = String(formData.get('deliveryZone') ?? '').trim();
+  const deliveryOnArrivalRaw = String(formData.get('deliveryOnArrival') ?? '').trim();
 
   if (!handle) return { ok: false, error: 'Shop not found.' };
   if (name.length < 2 || name.length > 80) {
@@ -105,8 +115,9 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     status: string;
     delivery_fee_mode: DeliveryFeeMode;
     delivery_fee_pesewas: number;
+    delivery_fee_outside_pesewas: number;
   }>(
-    'select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas from vendors where handle = $1',
+    'select id, name, type, status, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas from vendors where handle = $1',
     [handle],
   );
   const vendor = vendors.rows[0];
@@ -172,10 +183,32 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   const deliveryFeeMode: DeliveryFeeMode = DELIVERY_FEE_MODES.includes(vendor.delivery_fee_mode)
     ? vendor.delivery_fee_mode
     : 'fixed';
+
+  // Zonal rates apply only to fixed-mode delivery; the client picks the zone.
+  const deliveryZone: DeliveryZone | null =
+    deliveryFeeMode === 'fixed' && fulfilment === 'delivery'
+      ? DELIVERY_ZONES.includes(deliveryZoneRaw as DeliveryZone)
+        ? (deliveryZoneRaw as DeliveryZone)
+        : 'within'
+      : null;
+
   const delivery = fulfilment === 'delivery'
-    ? deliveryFeePesewas(deliveryFeeMode, vendor.delivery_fee_pesewas)
+    ? deliveryFeePesewas(
+        deliveryFeeMode,
+        vendor.delivery_fee_pesewas,
+        vendor.delivery_fee_outside_pesewas,
+        deliveryZone,
+      )
     : 0;
-  const total = subtotal + delivery;
+
+  // The client can defer the delivery fee to cash on arrival. It is still
+  // recorded on the order for the vendor, but excluded from the total.
+  const deliveryOnArrival =
+    fulfilment === 'delivery' &&
+    deliveryFeeMode === 'fixed' &&
+    (deliveryOnArrivalRaw === 'on' || deliveryOnArrivalRaw === 'true');
+
+  const total = subtotal + (deliveryOnArrival ? 0 : delivery);
   const eta = etaFor(fulfilment, bookingAt);
   const reservesStock = orderItems.some((item) => byId.get(item.id)?.stock !== null);
 
@@ -194,8 +227,9 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
           `insert into orders
              (code, vendor_id, customer_name, customer_phone, customer_email, fulfilment,
               address, notes, booking_at, subtotal_pesewas, delivery_pesewas, total_pesewas,
-              status, eta_text, stock_reserved, delivery_fee_mode)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14,$15)
+              status, eta_text, stock_reserved, delivery_fee_mode, delivery_zone,
+              delivery_on_arrival)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14,$15,$16,$17)
            returning id, created_at`,
           [
             code,
@@ -213,6 +247,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             eta,
             reservesStock,
             deliveryFeeMode,
+            deliveryZone,
+            deliveryOnArrival,
           ],
         );
         const orderId = inserted.rows[0].id;
@@ -248,6 +284,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             vendorName: vendor.name,
             fulfilment,
             deliveryFeeMode,
+            deliveryZone,
+            deliveryOnArrival,
             createdAt: inserted.rows[0].created_at.toISOString(),
           },
         };
@@ -322,6 +360,8 @@ export type OrderRecord = {
   subtotalPesewas: number;
   deliveryPesewas: number;
   deliveryFeeMode: DeliveryFeeMode;
+  deliveryZone: DeliveryZone | null;
+  deliveryOnArrival: boolean;
   totalPesewas: number;
   status: OrderStatus;
   eta: string | null;
@@ -347,6 +387,8 @@ type OrderRow = {
   subtotal_pesewas: number;
   delivery_pesewas: number;
   delivery_fee_mode: DeliveryFeeMode;
+  delivery_zone: DeliveryZone | null;
+  delivery_on_arrival: boolean;
   total_pesewas: number;
   status: OrderStatus;
   eta_text: string | null;
@@ -358,8 +400,8 @@ const ORDER_SELECT = `
   select o.id, o.code, o.vendor_id, v.name as vendor_name, v.handle as vendor_handle,
          v.phone as vendor_phone, o.customer_name, o.customer_phone, o.customer_email,
          o.fulfilment, o.address, o.notes, o.booking_at, o.subtotal_pesewas,
-         o.delivery_pesewas, o.delivery_fee_mode, o.total_pesewas, o.status, o.eta_text,
-         o.created_at, o.updated_at
+         o.delivery_pesewas, o.delivery_fee_mode, o.delivery_zone, o.delivery_on_arrival,
+         o.total_pesewas, o.status, o.eta_text, o.created_at, o.updated_at
     from orders o
     join vendors v on v.id = o.vendor_id
 `;
@@ -411,6 +453,8 @@ function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
     subtotalPesewas: row.subtotal_pesewas,
     deliveryPesewas: row.delivery_pesewas,
     deliveryFeeMode: row.delivery_fee_mode,
+    deliveryZone: row.delivery_zone,
+    deliveryOnArrival: row.delivery_on_arrival,
     totalPesewas: row.total_pesewas,
     status: row.status,
     eta: row.eta_text,
@@ -502,25 +546,30 @@ export async function updateOrderStatus(
 
 export type DeliverySettingsUpdate = { ok: true } | { ok: false; error: string };
 
-// ORD-03: vendors choose free, a fixed fee, or "confirm after order". The fee
-// amount is only read in "fixed" mode, but is always stored so switching modes
-// never loses it.
+// ORD-03: vendors choose free, a fixed fee (with within/outside-region rates),
+// or "confirm after order". The amounts are only read in "fixed" mode, but are
+// always stored so switching modes never loses them.
 export async function updateDeliverySettings(
   vendorId: string,
   mode: DeliveryFeeMode,
-  fixedPesewas: number,
+  withinPesewas: number,
+  outsidePesewas: number,
 ): Promise<DeliverySettingsUpdate> {
   if (!DELIVERY_FEE_MODES.includes(mode)) return { ok: false, error: 'Choose a delivery fee mode.' };
-  if (!Number.isInteger(fixedPesewas) || fixedPesewas < 0 || fixedPesewas > 10_000_000) {
-    return { ok: false, error: 'Enter a delivery fee between GH₵0 and GH₵100,000.' };
+  if (!Number.isInteger(withinPesewas) || withinPesewas < 0 || withinPesewas > 10_000_000) {
+    return { ok: false, error: 'Enter a within-region fee between GH₵0 and GH₵100,000.' };
+  }
+  if (!Number.isInteger(outsidePesewas) || outsidePesewas < 0 || outsidePesewas > 10_000_000) {
+    return { ok: false, error: 'Enter an outside-region fee between GH₵0 and GH₵100,000.' };
   }
 
   const rows = await db().query<{ id: string }>(
     `update vendors
-        set delivery_fee_mode = $2, delivery_fee_pesewas = $3, updated_at = now()
+        set delivery_fee_mode = $2, delivery_fee_pesewas = $3,
+            delivery_fee_outside_pesewas = $4, updated_at = now()
       where id = $1
       returning id`,
-    [vendorId, mode, fixedPesewas],
+    [vendorId, mode, withinPesewas, outsidePesewas],
   );
   if (!rows.rows[0]) return { ok: false, error: 'Vendor not found.' };
   return { ok: true };

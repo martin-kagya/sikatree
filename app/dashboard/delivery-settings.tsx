@@ -9,7 +9,7 @@ const initial: DeliverySettingsState = {};
 
 const OPTIONS: { value: DeliveryFeeMode; title: string; hint: string }[] = [
   { value: 'free', title: 'Free delivery', hint: 'No charge on delivery.' },
-  { value: 'fixed', title: 'Fixed fee', hint: 'Charge one amount on every delivery.' },
+  { value: 'fixed', title: 'Fixed fee', hint: 'Charge a rate for your region and another outside it.' },
   { value: 'confirm_after', title: 'Confirm after order', hint: 'Quote the fee once the order is in.' },
 ];
 
@@ -21,9 +21,11 @@ function feeInputValue(pesewas: number): string {
 export function DeliverySettings({
   mode,
   fixedPesewas,
+  outsidePesewas,
 }: {
   mode: DeliveryFeeMode;
   fixedPesewas: number;
+  outsidePesewas: number;
 }) {
   const [state, action, pending] = useActionState(updateDeliverySettingsAction, initial);
   const [selected, setSelected] = useState<DeliveryFeeMode>(mode);
@@ -80,18 +82,36 @@ export function DeliverySettings({
       </div>
 
       {selected === 'fixed' ? (
-        <label className="mt-4 block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink">Fixed delivery fee (GH₵)</span>
-          <input
-            name="fee"
-            inputMode="decimal"
-            required
-            min="0"
-            defaultValue={feeInputValue(fixedPesewas)}
-            placeholder="15.00"
-            className="h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep sm:w-56"
-          />
-        </label>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink">
+              Within your region (GH₵)
+            </span>
+            <input
+              name="within"
+              inputMode="decimal"
+              required
+              min="0"
+              defaultValue={feeInputValue(fixedPesewas)}
+              placeholder="15.00"
+              className="h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-medium text-ink">
+              Outside your region (GH₵)
+            </span>
+            <input
+              name="outside"
+              inputMode="decimal"
+              required
+              min="0"
+              defaultValue={feeInputValue(outsidePesewas)}
+              placeholder="25.00"
+              className="h-11 w-full rounded-[12px] border border-hairline bg-white px-3 text-[14px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
+            />
+          </label>
+        </div>
       ) : null}
 
       <button

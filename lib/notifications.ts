@@ -41,6 +41,12 @@ export function vendorOrderMessage(order: OrderRecord, dashboardUrl: string): st
     parts.push('Delivery fee to confirm');
   }
 
+  if (order.fulfilment === 'delivery' && order.deliveryFeeMode === 'fixed') {
+    const zone = order.deliveryZone === 'outside' ? 'other region' : 'same region';
+    const onArrival = order.deliveryOnArrival ? ' pay on arrival' : '';
+    parts.push(`Delivery ${formatCedis(order.deliveryPesewas)} (${zone})${onArrival}`);
+  }
+
   parts.push(`${order.customerName} · ${order.customerPhone}`, fulfilmentLine(order));
 
   if (order.notes) parts.push(`Note: ${order.notes}`);

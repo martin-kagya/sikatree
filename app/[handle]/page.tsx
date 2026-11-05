@@ -20,6 +20,7 @@ type VendorRow = {
   card_image_ratio: string;
   delivery_fee_mode: string;
   delivery_fee_pesewas: number;
+  delivery_fee_outside_pesewas: number;
 };
 
 type ItemRow = {
@@ -47,7 +48,7 @@ async function loadVendor(
 
   const vendors = await query<VendorRow>(
     `select name, handle, phone, type, bio, location, category, accent, card_image_ratio,
-            delivery_fee_mode, delivery_fee_pesewas
+            delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas
        from vendors
       where handle = $1 and status = 'live'`,
     [handle],
@@ -147,6 +148,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         type: vendor.type,
         deliveryFeeMode,
         deliveryFeePesewas: vendor.delivery_fee_pesewas,
+        deliveryFeeOutsidePesewas: vendor.delivery_fee_outside_pesewas,
       }}
       items={items}
       pageUrl={`https://${site.domain}/${vendor.handle}`}
