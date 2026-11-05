@@ -27,6 +27,10 @@ pnpm dev
 Open http://localhost:3000. The waitlist writes to Postgres; `/admin` is protected by
 `ADMIN_PASSWORD`.
 
+For the Supabase project, set `DATABASE_URL` to the session pooler string
+(`aws-0-eu-west-1.pooler.supabase.com:5432`), then run `pnpm db:migrate`. The direct
+`db.<ref>.supabase.co` host is IPv6 only. Details in `docs/WAITLIST.md`.
+
 ## Scripts
 
 | Command | What it does |
@@ -37,6 +41,7 @@ Open http://localhost:3000. The waitlist writes to Postgres; `/admin` is protect
 | `pnpm typecheck` | TypeScript, no emit |
 | `pnpm test` | Unit and integration tests (creates `sikatree_test`) |
 | `pnpm db:migrate` | Apply `db/migrations` to `DATABASE_URL` |
+| `pnpm db:check` | Print the masked database target and row counts |
 
 ## Environment
 

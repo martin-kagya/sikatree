@@ -30,11 +30,34 @@ pnpm db:migrate                # applies db/migrations/*.sql in order
 pnpm dev
 ```
 
-On Supabase, paste the pooler connection string into `DATABASE_URL`, then run
-`pnpm db:migrate` against it. The SQL is plain Postgres, no Supabase-only syntax.
-RLS is enabled on every table with no permissive policies, so only the server
-(service role, or the owner locally) can read or write. Keep the anon key out of
-the server code.
+### Supabase
+
+The pilot project lives in `eu-west-1`. Use the **session pooler** connection
+string, not the direct one: `db.<ref>.supabase.co` resolves to IPv6 only, and
+the pooler is reachable from networks without IPv6.
+
+```
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+```
+
+`pnpm db:migrate` applies the migrations to Supabase, `pnpm db:check` prints the
+masked target and row counts, then `pnpm dev` runs against it. `DATABASE_SSL_STRICT=false` is the default because Supavisor serves a
+self-signed chain; the connection is still encrypted.
+
+The SQL is plain Postgres, no Supabase-only syntax. Supabase's `ensure_rls` event
+trigger also enables RLS on `schema_migrations`. Every table has RLS on and no
+permissive policies, so the publishable key cannot read or write through
+PostgREST. The server connects as the table owner (`postgres.<ref>`), which
+bypasses RLS, so keep that connection string server-side only.
+
+The publishable and secret keys in `.env.local` are not used yet; they are there
+for Storage, Auth and Edge Functions later. Only `NEXT_PUBLIC_*` values may reach
+the browser, and the secret key must never be exposed.
+
+If connection limits bite on Vercel, switch the runtime URL to the transaction
+pooler on port 6543 and keep 5432 for migrations. Our advisory lock is
+transaction-scoped, so it is safe in transaction mode; the migration script's
+session lock is not, which is why migrations use 5432.
 
 `ADMIN_PASSWORD` unlocks `/admin`. Without it the admin answers 404/redirects and
 cannot be used. Generate one with `openssl rand -base64 24`.

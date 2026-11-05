@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/migrate.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:check": "node scripts/db-check.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

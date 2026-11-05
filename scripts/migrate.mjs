@@ -22,10 +22,23 @@ loadEnvLocal();
 const databaseUrl =
   process.env.DATABASE_URL ?? 'postgres://localhost:5432/sikatree_dev';
 
+// Managed providers (Supabase included) require TLS. The pooler serves a
+// self-signed chain, so verification is opt-in.
+let hostname = '';
+try {
+  hostname = new URL(databaseUrl).hostname;
+} catch {
+  /* no TLS */
+}
+const local = !hostname || hostname === 'localhost' || hostname === '127.0.0.1';
+const ssl = local
+  ? undefined
+  : { rejectUnauthorized: process.env.DATABASE_SSL_STRICT === 'true' };
+
 const dir = path.join(process.cwd(), 'db', 'migrations');
 const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
 
-const client = new Client({ connectionString: databaseUrl });
+const client = new Client({ connectionString: databaseUrl, ssl });
 await client.connect();
 
 try {
