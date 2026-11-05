@@ -197,14 +197,14 @@ RLS tests per table, webhook signature verification (WhatsApp and payments), rat
 **Build checklist**
 - [ ] Landing page sections and copy (LP-01, LP-02), with at least 2 headline variants wired for testing (LP-24, P1)
 - [ ] Gallery hero with tilted tiles and a static fallback (LP-03)
-- [ ] Performance budget enforced in CI: LCP, JS size, image weights (LP-04)
+- [x] Performance budget enforced in CI: LCP, JS size, image weights (LP-04; JS budget set at 130 kB because the Next framework floor is 102 kB, see `docs/PERFORMANCE.md`)
 - [x] SEO metadata, Open Graph image, favicon, WhatsApp share preview (LP-05, LP-06)
 - [x] Waitlist form with 3 fields, Ghana phone formats, consent line (LP-09, LP-10)
 - [x] Handle reservation with real-time availability (LP-11)
 - [x] Duplicate detection and position-in-line (LP-12, LP-14)
 - [x] "Confirm on WhatsApp" deep link opening the 24-hour window (LP-12)
 - [ ] WhatsApp welcome template submitted for approval and sent after signup (LP-13); until approved, show the confirmation on-page and via SMS or email fallback if collected
-- [ ] Founding Vendor offer block, configurable (LP-16)
+- [x] Founding Vendor offer block, configurable (LP-16, `lib/offer.ts`)
 - [ ] Anti-abuse: rate limits, honeypot, bot challenge (LP-19)
 - [x] Analytics funnel and UTM capture (LP-20)
 - [x] Basic admin: waitlist list, filters, CSV export, status field (LP-21)

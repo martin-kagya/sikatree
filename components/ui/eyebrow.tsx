@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CircleDot } from 'lucide-react';
+import { CircleDot } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
 export function Eyebrow({ children, onDark = false }: { children: ReactNode; onDark?: boolean }) {

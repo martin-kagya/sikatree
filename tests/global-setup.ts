@@ -2,8 +2,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Client } from 'pg';
 
-const ADMIN_URL = 'postgres://localhost:5432/postgres';
-const TEST_URL = 'postgres://localhost:5432/sikatree_test';
+// CI points TEST_DATABASE_URL at a service container; locally it defaults to
+// the throwaway sikatree_test database on the developer machine.
+const TEST_URL = process.env.TEST_DATABASE_URL ?? 'postgres://localhost:5432/sikatree_test';
+const adminUrl = new URL(TEST_URL);
+adminUrl.pathname = '/postgres';
+const ADMIN_URL = adminUrl.toString();
 
 // Creates (once) and migrates the throwaway test database.
 export default async function setup() {

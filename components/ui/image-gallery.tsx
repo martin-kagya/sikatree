@@ -1,12 +1,13 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from '@/components/icons';
+import { Photo } from '@/components/ui/photo';
+import type { PhotoName } from '@/lib/photos';
 import { cn } from '@/lib/utils';
 
 export interface GalleryImage {
-  src: string;
+  photo: PhotoName;
   alt: string;
   label: string;
 }
@@ -54,15 +55,14 @@ export function ImageGallery({ images, className }: { images: GalleryImage[]; cl
       >
         {images.map((image) => (
           <div
-            key={image.src}
+            key={image.photo}
             className="group relative h-full w-[78vw] shrink-0 snap-center overflow-hidden rounded-tile sm:w-auto sm:min-w-0 sm:flex-1 sm:shrink sm:transition-all sm:duration-500 sm:hover:flex-[3]"
           >
-            <Image
-              src={image.src}
+            <Photo
+              name={image.photo}
               alt={image.alt}
-              fill
               sizes="(max-width: 640px) 78vw, 20vw"
-              className="object-cover brightness-[0.72]"
+              className="absolute inset-0 h-full w-full object-cover brightness-[0.72]"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-ink/5" />
             <div className="absolute inset-x-0 bottom-0 p-4">
@@ -88,7 +88,7 @@ export function ImageGallery({ images, className }: { images: GalleryImage[]; cl
           <div className="flex items-center gap-1.5">
             {images.map((image, i) => (
               <button
-                key={image.src}
+                key={image.photo}
                 type="button"
                 onClick={() => goTo(i)}
                 aria-label={`Go to ${image.label}`}

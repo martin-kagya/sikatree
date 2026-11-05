@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
@@ -14,25 +13,14 @@ import {
 import { stepAtLeast, type Step } from './useTimeline';
 import { CheckGlyph, CalendarGlyph } from './icons';
 
+// The demo tiles use their tint and initial, so the hero never waits on a
+// photo and there are no missing-image requests on first load.
 function ProductImage({ item }: { item: VerticalItem }) {
-  const [failed, setFailed] = useState(false);
-  const showImage = Boolean(item.image) && !failed;
-
   return (
     <div className="hp-tile-img" style={{ background: item.tint }}>
       <span className="hp-tile-letter" aria-hidden>
         {item.name[0]}
       </span>
-      {showImage && (
-        <Image
-          src={item.image as string}
-          alt=""
-          fill
-          sizes="180px"
-          className="hp-tile-photo"
-          onError={() => setFailed(true)}
-        />
-      )}
     </div>
   );
 }

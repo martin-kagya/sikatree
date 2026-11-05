@@ -11,17 +11,16 @@
     "db:migrate": "node scripts/migrate.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:check": "node scripts/db-check.mjs"
+    "db:check": "node scripts/db-check.mjs",
+    "budget": "node scripts/perf-budget.mjs",
+    "images:build": "node scripts/optimize-images.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
-    "geist": "^1.9.1",
-    "lucide-react": "^1.68.0",
     "next": "^15.3.0",
     "pg": "^8.23.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -30,7 +29,9 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "playwright-core": "^1.64.1",
     "postcss": "^8.4.49",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vitest": "^5.1.0"

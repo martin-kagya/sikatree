@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, AtSign, Globe } from 'lucide-react';
+import { MessageCircle, AtSign, Globe } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Accent } from '@/components/ui/accent';
 import { OstraMark } from '@/components/ui/ostra-mark';

@@ -1,18 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import { Photo } from '@/components/ui/photo';
+import type { PhotoName } from '@/lib/photos';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { Accent } from '@/components/ui/accent';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const ITEMS = [
-  { index: '01', title: 'Hair and braids', desc: 'Wigs, braids and styling, booked and paid.', src: '/hustles/hair.jpg' },
-  { index: '02', title: 'Beauty and perfume', desc: 'Skincare, makeup and fragrance.', src: '/hustles/beauty.jpg' },
-  { index: '03', title: 'Fashion and thrift', desc: 'Clothes, shoes and accessories.', src: '/hustles/thrift.jpg' },
-  { index: '04', title: 'Food and cakes', desc: 'Meals, snacks and custom cakes.', src: '/hustles/food.jpg' },
-  { index: '05', title: 'Photography and events', desc: 'Shoots, coverage and editing.', src: '/hustles/photography.jpg' },
+const ITEMS: { index: string; title: string; desc: string; photo: PhotoName }[] = [
+  { index: '01', title: 'Hair and braids', desc: 'Wigs, braids and styling, booked and paid.', photo: 'hair' },
+  { index: '02', title: 'Beauty and perfume', desc: 'Skincare, makeup and fragrance.', photo: 'beauty' },
+  { index: '03', title: 'Fashion and thrift', desc: 'Clothes, shoes and accessories.', photo: 'thrift' },
+  { index: '04', title: 'Food and cakes', desc: 'Meals, snacks and custom cakes.', photo: 'food' },
+  { index: '05', title: 'Photography and events', desc: 'Shoots, coverage and editing.', photo: 'events' },
 ];
 
 export function MadeFor() {
@@ -32,15 +33,13 @@ export function MadeFor() {
             <div>
               <div className="relative aspect-[4/5] w-full max-w-[280px] overflow-hidden rounded-inner">
                 {ITEMS.map((it, i) => (
-                  <Image
+                  <Photo
                     key={it.index}
-                    src={it.src}
+                    name={it.photo}
                     alt={i === active ? `Example: ${it.title}` : ''}
-                    fill
                     sizes="280px"
-                    aria-hidden={i !== active}
                     className={cn(
-                      'object-cover transition-all duration-500 ease-out',
+                      'absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out',
                       i === active ? 'scale-100 opacity-100' : 'scale-105 opacity-0',
                     )}
                   />

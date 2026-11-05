@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, MessageCircle, Share2 } from 'lucide-react';
+import { Check, Copy, MessageCircle, Share2 } from '@/components/icons';
 import {
   claimHandle,
   joinWaitlist,
@@ -31,8 +31,10 @@ type HandleCheck =
   | { status: 'taken'; suggestion?: string }
   | { status: 'error' };
 
+// Layout is added at each call site: inside a 52px flex row inputs are h-full
+// and transparent, standalone fields set their own height and fill.
 const inputCls =
-  'h-full w-full bg-transparent text-[16px] text-white outline-none placeholder:text-white/70';
+  'w-full text-[16px] text-white outline-none placeholder:text-white/70';
 
 const handleMessage = (status: HandleStatus): string | null => {
   if (status === 'too-short' || status === 'invalid') {
@@ -418,7 +420,7 @@ export function WaitlistForm() {
             onBlur={onPhoneBlur}
             placeholder="24 123 4567"
             required
-            className={cn(inputCls, 'pl-2 pr-4')}
+            className={cn(inputCls, 'h-full bg-transparent pl-2 pr-4')}
           />
         </div>
         {phoneError ? (
@@ -496,7 +498,7 @@ export function WaitlistForm() {
               placeholder="amasglow"
               autoComplete="off"
               spellCheck={false}
-              className={cn(inputCls, 'pl-0.5 pr-3')}
+              className={cn(inputCls, 'h-full bg-transparent pl-0.5 pr-3')}
             />
           </div>
         </div>

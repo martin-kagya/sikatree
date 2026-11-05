@@ -3,7 +3,6 @@ export type VerticalKind = 'goods' | 'booking';
 export type VerticalItem = {
   name: string;
   price: string;
-  image?: string;
   tint: string;
 };
 
@@ -35,8 +34,8 @@ export const VERTICALS: Vertical[] = [
     slug: 'amasglow',
     message: 'Serum 120, Cream 95',
     items: [
-      { name: 'Serum', price: 'GH₵120', image: '/hero/skincare-0.jpg', tint: '#f3e0d6' },
-      { name: 'Cream', price: 'GH₵95', image: '/hero/skincare-1.jpg', tint: '#e6efe4' },
+      { name: 'Serum', price: 'GH₵120', tint: '#f3e0d6' },
+      { name: 'Cream', price: 'GH₵95', tint: '#e6efe4' },
     ],
     cta: 'Pay with MoMo',
     orderCode: 'AG-4821',
@@ -50,8 +49,8 @@ export const VERTICALS: Vertical[] = [
     slug: 'efuabraids',
     message: 'Knotless 300, Cornrows 150',
     items: [
-      { name: 'Knotless', price: 'GH₵300', image: '/hero/braids-0.jpg', tint: '#ecd8cc' },
-      { name: 'Cornrows', price: 'GH₵150', image: '/hero/braids-1.jpg', tint: '#d8e6df' },
+      { name: 'Knotless', price: 'GH₵300', tint: '#ecd8cc' },
+      { name: 'Cornrows', price: 'GH₵150', tint: '#d8e6df' },
     ],
     cta: 'Book with deposit',
     orderCode: 'EB-7730',
@@ -65,8 +64,8 @@ export const VERTICALS: Vertical[] = [
     slug: 'kofiskitchen',
     message: 'Jollof 40, Waakye 35',
     items: [
-      { name: 'Jollof', price: 'GH₵40', image: '/hero/food-0.jpg', tint: '#f5e0c6' },
-      { name: 'Waakye', price: 'GH₵35', image: '/hero/food-1.jpg', tint: '#e1e7d4' },
+      { name: 'Jollof', price: 'GH₵40', tint: '#f5e0c6' },
+      { name: 'Waakye', price: 'GH₵35', tint: '#e1e7d4' },
     ],
     cta: 'Pay with MoMo',
     orderCode: 'KK-3358',

@@ -151,6 +151,21 @@ select count(*) filter (where referred_by is not null) as referred, count(*) as 
 from waitlist_signup;
 ```
 
+## Founding vendor offer
+
+The offer block (LP-16) is configuration in `lib/offer.ts`, read at build time
+because `/` is static:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `FOUNDING_VENDORS_ENABLED` | `true` | `false` removes the block |
+| `FOUNDING_VENDORS_CAPACITY` | `100` | Number of vendors in the headline |
+| `FOUNDING_FEE_FREE_MONTHS` | `3` | Zero-fee period |
+| `FOUNDING_BADGE_NAME` | `Founding Vendor` | Badge name in the copy |
+
+No live counter is shown: LP-17 forbids one until the number is real and above a
+threshold we set. Change the values, rebuild, and the copy follows.
+
 ## Admin
 
 `/admin` (password from `ADMIN_PASSWORD`, 12-hour HMAC cookie, 8 attempts per

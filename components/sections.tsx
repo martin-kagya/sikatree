@@ -3,13 +3,14 @@ import { Accent } from '@/components/ui/accent';
 import { Button } from '@/components/ui/button';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { FrustrationIllustration } from '@/components/illustrations';
+import { foundingDescription, foundingOffer, monthsLabel } from '@/lib/offer';
 
 const STORES = [
-  { name: 'Clothing', src: '/clothing.jpg' },
-  { name: 'Nail tech', src: '/nail-tech.jpg' },
-  { name: 'Photography', src: '/photography.jpg' },
-  { name: 'Mentorship', src: '/mentorship.jpg' },
-];
+  { name: 'Clothing', photo: 'clothing' },
+  { name: 'Nail tech', photo: 'nail-tech' },
+  { name: 'Photography', photo: 'photography' },
+  { name: 'Mentorship', photo: 'mentorship' },
+] as const;
 
 export function ProblemGallery() {
   return (
@@ -36,7 +37,7 @@ export function SampleStores() {
         </div>
         <ImageGallery
           images={STORES.map((store) => ({
-            src: store.src,
+            photo: store.photo,
             alt: `Example: ${store.name} store`,
             label: store.name,
           }))}
@@ -48,18 +49,22 @@ export function SampleStores() {
 }
 
 export function FoundingVendors() {
+  // Offer copy is configuration (LP-16). Disable it here to take the block off
+  // the page without touching the layout.
+  if (!foundingOffer.enabled) return null;
+
   return (
-    <section className="bg-dark px-3 py-24 sm:px-5 sm:py-40">
+    <section id="founding-vendors" className="bg-dark px-3 py-24 sm:px-5 sm:py-40">
       <div className="mx-auto max-w-[900px] rounded-card border border-hairline-dark bg-surface-dark p-8 text-center sm:p-12">
         <div className="flex justify-center">
           <Eyebrow onDark>Founding vendors</Eyebrow>
         </div>
         <h2 className="mt-4 text-h2 text-white sm:text-h2-lg">
-          First 100 vendors get <Accent>zero fees</Accent> for 3 months
+          First {foundingOffer.capacity.toLocaleString('en-GH')} vendors get{' '}
+          <Accent>zero fees</Accent> for {monthsLabel(foundingOffer.feeFreeMonths)}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-body text-ink-on-dark-muted">
-          Zero fees for 3 months, a Founding Vendor badge and a direct line to the team. Be early.
-          Shape it. Keep the perks.
+          {foundingDescription(foundingOffer)}
         </p>
         <div className="mt-8">
           <Button href="#waitlist">Join the waitlist</Button>

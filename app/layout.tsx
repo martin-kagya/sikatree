@@ -11,9 +11,11 @@ const interTight = Inter_Tight({
   display: 'swap',
 });
 
+// Only the italic cut is used (the Accent component), so the roman file is not
+// downloaded at all.
 const playfair = Playfair_Display({
   subsets: ['latin'],
-  style: ['normal', 'italic'],
+  style: ['italic'],
   weight: ['400'],
   variable: '--font-playfair',
   display: 'swap',
