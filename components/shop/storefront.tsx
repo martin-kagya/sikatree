@@ -24,6 +24,7 @@ import {
 } from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
+import { OstraMark } from '@/components/ui/ostra-mark';
 import { accentFor } from '@/lib/shop-accent';
 import {
   badgeLabel,
@@ -964,7 +965,12 @@ export function Storefront({
             >
               sikatree
             </Link>
-            <span>Powered by sikatree</span>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden="true" className="flex">
+                <OstraMark className="h-4 w-4" />
+              </span>
+              <span>Powered by Ostra</span>
+            </span>
           </p>
           <Link href="/#waitlist" className="hover:text-[var(--shop-ink)] hover:underline">
             Get your own free store

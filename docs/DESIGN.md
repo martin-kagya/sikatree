@@ -803,6 +803,7 @@ Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accen
 - Vertical rhythm: header, 24px, toolbar, 16px, grid, 64px footer.
 - Grid: 2 columns under 640px, 3 from 640px, 4 from 1280px when the store has at least 8 products. Gaps are 12px, 16px and 20px.
 - Cards are equal height in a row. No horizontal scroll at 360px.
+- Footer: a quiet row. Left: the sikatree wordmark, the Ostra mark and "Powered by Ostra". Right: "Get your own free store". Centred on mobile. No duplicate "Powered by sikatree".
 
 ### 14.2 Vendor header
 
