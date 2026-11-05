@@ -1007,7 +1007,7 @@ export function Storefront({
           setCheckoutError(null);
         }}
       >
-        <div className="shop-checkout-panel w-[min(960px,calc(100vw-24px))] max-h-[92vh] overflow-y-auto rounded-[24px] bg-white p-5 sm:p-7">
+        <div className="shop-checkout-panel w-full max-h-[92vh] overflow-y-auto overflow-x-hidden rounded-[24px] bg-white p-5 sm:p-7">
           {order ? (
             <div className="shop-success-in mx-auto max-w-[520px] py-2 text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-mint-100 text-green-deep">

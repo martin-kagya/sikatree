@@ -202,9 +202,20 @@
 }
 
 .shop-checkout {
+  width: min(960px, calc(100vw - 24px));
+  max-width: none;
   border: 0;
   padding: 0;
   background: transparent;
+}
+
+.shop-checkout:focus,
+.shop-checkout:focus-visible,
+.shop-checkout-panel:focus,
+.shop-checkout-panel:focus-visible,
+.shop-sheet:focus,
+.shop-sheet:focus-visible {
+  outline: none;
 }
 
 .shop-checkout::backdrop {

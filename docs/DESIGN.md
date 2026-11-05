@@ -836,7 +836,7 @@ Motion on hover and focus follows 8.3. On touch the Add button is always visible
 ### 14.5 Cart and checkout
 
 - The cart is single-vendor, persists per store in `localStorage`, and is summarised by item total, delivery fee and total.
-- Checkout is a modal, not a page. Two columns on desktop (form left, summary right) and one column on mobile. Maximum height 92vh with internal scroll.
+- Checkout is a modal, not a page. Two columns on desktop (form left, summary right) and one column on mobile. Width is `min(960px, 100vw - 24px)`, the panel fills that width, maximum height 92vh with internal scroll and no horizontal scroll. The dialog itself does not draw a focus outline; focus sits on its controls.
 - Items list with thumbnails and a quantity stepper. Delivery or pickup uses the segmented control with a black sliding thumb and a 280ms spring. Pickup shows the store location; delivery requires an address. Service vendors show a date picker and the shared time Dropdown instead of a native select.
 - Contact: name, Ghana WhatsApp number and email. Email is required and stored on the order for updates. No email is sent yet. Note is optional.
 - Summary: item total, fixed GH₵15 delivery (free for pickup), total. Place order is the mint green Primary, full width, `--r-control` 12px, with a forward chevron inside the same button and the press spring.
@@ -863,6 +863,7 @@ Payment waiting, MoMo network chips, card payment, receipts, order tracking (`/o
 - [ ] Add is a white plus circle. The cart is icon-only with a corner count and fades in on first add.
 - [ ] The segmented thumb slides with the spring and the active chip is ink fill.
 - [ ] Dialogs fade and rise in and out. Success slides left then fades in from the right.
+- [ ] Checkout and filter dialogs have no horizontal scroll at 320, 375 or 393px; dialog and panel widths match.
 - [ ] Tracking shows four steps, hides customer contact details and handles cancelled orders.
 - [ ] The Message vendor button keeps its label inside the pill at 320px, truncating a long store name instead of touching the edge.
 - [ ] Both tracking buttons are 48px high and equal height at 320px, with no flex-basis squash.
