@@ -817,6 +817,8 @@ Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accen
 
 Defined in 5.8. A compact white card, 56px initials avatar, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. A sticky bar with the name, cart and CTA replaces it after scroll, with an icon-only CTA under 400px.
 
+The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badges, the Sold out chip, Enquire, Add and the stock label must never paint over it. The bar keeps a solid white background and a hairline; no card content may show through.
+
 ### 14.3 Toolbar and cart
 
 - Category chips when the store has at least 2 categories: one horizontal scroll-snap row with no visible scrollbar, 44px high, `--r-chip` 10px. Inactive white with a hairline, active `--ink` fill with white text, colour transition 200ms.
