@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="ostra-mark-title" shape-rendering="geometricPrecision">
+  <title id="ostra-mark-title">Ostra</title>
+  <!-- Pearl and shell mark. -->
+  <defs>
+    <radialGradient id="ostra-pearl" cx="0.32" cy="0.26" r="0.85">
+      <stop offset="0" stop-color="#95D968"/>
+      <stop offset="0.55" stop-color="#74C55B"/>
+      <stop offset="1" stop-color="#58AD4A"/>
+    </radialGradient>
+  </defs>
+<path d="M 20.11 54.87 A 44 44 0 0 0 107.89 54.87" fill="none" stroke="#10111F" stroke-width="7.9" stroke-linecap="round"/>
+<path d="M 36.77 53.7 A 27.3 27.3 0 0 0 91.23 53.7" fill="none" stroke="#10111F" stroke-width="7.5" stroke-linecap="round"/>
+<path d="M 42 50 a 22 22 0 1 0 44 0 a 22 22 0 1 0 -44 0 Z M 54.35 42.52 a 3.4 3.4 0 1 0 6.8 0 a 3.4 3.4 0 1 0 -6.8 0 Z" fill="url(#ostra-pearl)" fill-rule="evenodd"/>
+</svg>

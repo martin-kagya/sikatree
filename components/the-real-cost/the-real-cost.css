@@ -1,0 +1,480 @@
+/* ========================================================================== */
+/* TheRealCost — pinned scroll section.                                       */
+/* Phase A: receipt tears off a GH₵4,000 website cost down to GH₵0.           */
+/* Phase B: break-even serum stack.                                           */
+/* ========================================================================== */
+
+.trc {
+  position: relative;
+}
+
+.trc-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* ------------------------------- Track/stage ----------------------------- */
+
+.trc-track {
+  position: relative;
+}
+
+.trc-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--bg-page);
+}
+
+.trc-phase {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: opacity;
+  padding: 56px 24px 72px;
+}
+
+.trc-phase-a {
+  opacity: 1;
+}
+
+.trc-phase-b {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.trc-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  display: flex;
+  justify-content: center;
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+/* -------------------------------- Phase A -------------------------------- */
+
+.trc-a-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: center;
+  width: 100%;
+  max-width: 920px;
+}
+
+@media (min-width: 900px) {
+  .trc-a-grid {
+    grid-template-columns: 1fr auto;
+    gap: clamp(40px, 6vw, 72px);
+  }
+}
+
+.trc-lead {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink-muted);
+  max-width: 430px;
+}
+
+.trc-bigprice {
+  --trc-price-size: clamp(76px, min(17vw, 20svh), 210px);
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-start;
+  font-size: var(--trc-price-size);
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* In the two-column layout the price shares the row with the 340px receipt, so
+   keep it within the left column (per-digit cells make it ~40% wider). */
+@media (min-width: 900px) {
+  .trc-bigprice {
+    font-size: min(var(--trc-price-size), 130px);
+  }
+}
+
+.trc-bigprice-currency {
+  font-family: var(--font-inter-tight), Inter, system-ui, sans-serif;
+  font-size: 0.42em;
+  font-weight: 500;
+  line-height: 1;
+  margin-top: 0.22em;
+  margin-right: 0.06em;
+  letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--green-main) calc(var(--t, 0) * 100%), var(--ink));
+}
+
+.trc-bigprice-number {
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--font-playfair), Georgia, 'Times New Roman', serif;
+  font-style: normal;
+  font-size: 1em;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: color-mix(in srgb, var(--green-main) calc(var(--t, 0) * 100%), var(--ink));
+}
+
+/* Per-digit cells: Playfair has no tabular figures, so fixed 1ch cells keep
+   the countdown from shifting as digits change. */
+.trc-num-cell {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.trc-num-comma {
+  display: inline-block;
+  width: 0.35ch;
+  text-align: center;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.trc-caption {
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink);
+  opacity: 0;
+}
+
+/* -------------------------------- Receipt -------------------------------- */
+
+.trc-receipt-wrap {
+  position: relative;
+}
+
+.trc-receipt {
+  width: min(340px, 86vw);
+  margin: 0 auto;
+}
+
+.trc-strip {
+  background: #fbfaf6;
+  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.35);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  color: #10111f;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.trc-strip-item {
+  height: 36px;
+  margin-top: -0.5px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  position: relative;
+  will-change: transform;
+}
+
+.trc-strip-item::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-bottom: 1px dashed rgba(16, 17, 31, 0.2);
+}
+
+.trc-item-label {
+  color: #10111f;
+  white-space: nowrap;
+}
+
+.trc-item-dots {
+  flex: 1;
+  border-bottom: 1px dotted rgba(16, 17, 31, 0.4);
+  margin: 0 8px;
+}
+
+.trc-item-amount {
+  color: #10111f;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.trc-strip.is-static .trc-item-amount {
+  text-decoration: line-through;
+  text-decoration-color: var(--green-main);
+  text-decoration-thickness: 1.5px;
+}
+
+/* Header strip (zigzag torn top edge). */
+.trc-strip-header {
+  padding: 13px 14px 10px;
+  --tooth: 9px;
+  -webkit-mask: conic-gradient(from -135deg at 50% var(--tooth), #000 0 25%, transparent 0 50%, #000 0 75%, transparent 0) top / calc(var(--tooth) * 2) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat;
+  mask: conic-gradient(from -135deg at 50% var(--tooth), #000 0 25%, transparent 0 50%, #000 0 75%, transparent 0) top / calc(var(--tooth) * 2) var(--tooth) repeat-x,
+    linear-gradient(#000 0 0) top / 100% calc(100% - var(--tooth)) no-repeat;
+}
+
+.trc-header-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #10111f;
+}
+
+.trc-header-sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: rgba(16, 17, 31, 0.6);
+}
+
+/* Stamp — a compact rubber-stamp impression, sized to its text. */
+.trc-stamp {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--green-main);
+  color: var(--green-main);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  padding: 9px 16px;
+  white-space: nowrap;
+  background: transparent;
+}
+
+/* Thin inner rule gives it the double-line look of a real stamp. */
+.trc-stamp::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--green-main);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.trc-stamp-static {
+  opacity: 1;
+}
+
+@media (max-width: 520px) {
+  .trc-stamp {
+    font-size: 13px;
+    padding: 8px 13px;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Footnote */
+.trc-footnote {
+  margin: 14px auto 0;
+  max-width: 340px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--ink-muted);
+}
+
+/* -------------------------------- Phase B -------------------------------- */
+
+.trc-b-inner {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.trc-counter {
+  margin-top: 10px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+
+.trc-counter-num {
+  font-size: clamp(64px, 13vw, 120px);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  color: var(--green-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.trc-counter-unit {
+  font-size: 16px;
+  color: var(--ink-muted);
+}
+
+.trc-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  gap: 6px;
+  width: min(640px, 100%);
+}
+
+.trc-tile {
+  aspect-ratio: 1;
+  border-radius: 7px;
+  background: var(--mint-100);
+  border: 1px solid var(--green-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.trc-tile.on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.trc-tile-glyph {
+  color: var(--green-deep);
+}
+
+.trc-revenue {
+  margin-top: 18px;
+  width: min(640px, 100%);
+}
+
+.trc-revenue-text {
+  font-size: 14px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.trc-revenue-bar {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+
+.trc-revenue-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: var(--green-main);
+}
+
+.trc-closing {
+  margin-top: 22px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ink);
+  max-width: 520px;
+  opacity: 0;
+}
+
+/* ------------------------------ Static block ----------------------------- */
+
+.trc-static {
+  padding: 72px 24px 88px;
+  display: flex;
+  justify-content: center;
+}
+
+.trc-static-inner {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.trc-static-heading {
+  font-size: clamp(28px, 5vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+  color: var(--ink);
+  max-width: 560px;
+}
+
+/* Static view keeps the serif figure language: the 4,000 is struck through,
+   the 0 is green. */
+.trc-static-num {
+  font-family: var(--font-playfair), Georgia, 'Times New Roman', serif;
+  font-style: normal;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.03em;
+  text-decoration: line-through;
+  text-decoration-color: var(--green-main);
+  text-decoration-thickness: 3px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.trc-static-zero {
+  color: var(--green-main);
+  white-space: nowrap;
+}
+
+.trc-static-zero-num {
+  font-family: var(--font-playfair), Georgia, 'Times New Roman', serif;
+  font-style: normal;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.trc-static-receipt {
+  position: relative;
+  margin-top: 32px;
+  width: min(340px, 86vw);
+}
+
+.trc-static-line {
+  margin-top: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ink);
+  max-width: 460px;
+}
+
+.trc-static-closing {
+  margin-top: 24px;
+  font-size: 15px;
+  line-height: 23px;
+  color: var(--ink-muted);
+  max-width: 560px;
+}
+
+/* ----------------------------- Reduced motion ---------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .trc-tile {
+    transition: none;
+  }
+}

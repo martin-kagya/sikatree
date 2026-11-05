@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Surfaces */
+  --bg-page: #f1f1f1;
+  --surface-white: #ffffff;
+  --surface-soft: #f1f1f1;
+  --tile: #ffffff;
+  --bg-dark: #0a0a0a;
+  --surface-dark: #171717;
+  --sage: #a5aeab;
+
+  /* Ink */
+  --ink: #10111f;
+  --ink-muted: #6b6b6b;
+  --ink-on-dark: #ffffff;
+  --ink-on-dark-muted: #a3a3a3;
+
+  /* Brand green (borrowed from Ostra) */
+  --green-main: #3fa55c;
+  --green-deep: #1f7a45;
+  --green-mark: #6dbe58;
+  --mint-100: #ddf3e5;
+
+  /* Status */
+  --warn-bg: #fcf1c8;
+  --warn-edge: #f2b632;
+  --warn-text: #b8700e;
+  --danger: #b3261e;
+  --danger-bg: #fdecec;
+
+  /* Lines and overlays */
+  --hairline: #e2e2df;
+  --hairline-dark: rgba(255, 255, 255, 0.14);
+  --glass-bg: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --scrim: rgba(16, 17, 31, 0.4);
+  --hero-scrim: linear-gradient(180deg, rgba(10, 10, 10, 0.25) 0%, rgba(10, 10, 10, 0.55) 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg-page);
+  color: var(--ink);
+  font-family: var(--font-inter-tight), Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide native scrollbars where a custom control replaces them. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hero dotted surface: mint-100 with a green-dot pattern, masked so the dots
+   are strongest behind the phone and fade behind the headline/subcopy. */
+.hero-dots {
+  position: relative;
+}
+
+.hero-dots::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(63, 165, 92, 0.22) 1.25px, transparent 1.75px);
+  background-size: 24px 24px;
+  background-position: center;
+  /* Mobile: phone sits centered below the copy. */
+  -webkit-mask-image: radial-gradient(ellipse 55% 70% at 50% 75%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 55% 70% at 50% 75%, #000 0%, transparent 75%);
+}
+
+@media (min-width: 1024px) {
+  .hero-dots::before {
+    /* Desktop: phone on the right. */
+    -webkit-mask-image: radial-gradient(ellipse 55% 70% at 72% 50%, #000 0%, transparent 75%);
+    mask-image: radial-gradient(ellipse 55% 70% at 72% 50%, #000 0%, transparent 75%);
+  }
+}
+
+/* Fade the bottom of the hero into the page background (no hard edge). */
+.hero-dots::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-page) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
