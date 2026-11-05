@@ -31,6 +31,19 @@ For the Supabase project, set `DATABASE_URL` to the session pooler string
 (`aws-0-eu-west-1.pooler.supabase.com:5432`), then run `pnpm db:migrate`. The direct
 `db.<ref>.supabase.co` host is IPv6 only. Details in `docs/WAITLIST.md`.
 
+## WhatsApp bot
+
+The Phase 1 slice runs without a Meta account: the default `console` provider
+prints replies to the server log, and `pnpm wa:sim` injects signed messages.
+
+```bash
+pnpm dev
+pnpm wa:sim "START"          # then follow the replies in the dev log
+```
+
+Set `WHATSAPP_PROVIDER=cloud` with the phone number id and access token to talk
+to the real Cloud API. Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
+
 ## Scripts
 
 | Command | What it does |
@@ -44,6 +57,7 @@ For the Supabase project, set `DATABASE_URL` to the session pooler string
 | `pnpm db:check` | Print the masked database target and row counts |
 | `pnpm budget` | Performance budget on a production build (needs Chrome) |
 | `pnpm images:build` | Regenerate responsive WebP photos and blur placeholders |
+| `pnpm wa:sim "START"` | Send a signed fake WhatsApp message to the local webhook |
 
 ## Environment
 

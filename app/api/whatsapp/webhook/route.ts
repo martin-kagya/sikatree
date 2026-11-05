@@ -1,0 +1,78 @@
+import { NextResponse, after } from 'next/server';
+import { hitRateLimit } from '@/lib/rate-limit';
+import { handleInbound, markProcessed, rememberInbound } from '@/lib/whatsapp/engine';
+import { parseInbound } from '@/lib/whatsapp/inbound';
+import { verifyWhatsappSignature } from '@/lib/whatsapp/signature';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Meta calls this once when the webhook URL is saved.
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const mode = url.searchParams.get('hub.mode');
+  const token = url.searchParams.get('hub.verify_token');
+  const challenge = url.searchParams.get('hub.challenge');
+  const expected = process.env.WHATSAPP_VERIFY_TOKEN;
+
+  if (mode === 'subscribe' && expected && token === expected && challenge) {
+    return new NextResponse(challenge, {
+      status: 200,
+      headers: { 'content-type': 'text/plain' },
+    });
+  }
+
+  return new NextResponse('Forbidden', { status: 403 });
+}
+
+export async function POST(request: Request) {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  if (!secret) {
+    console.error('[wa] WHATSAPP_APP_SECRET is not set; rejecting webhook');
+    return new NextResponse('Webhook not configured', { status: 503 });
+  }
+
+  const raw = await request.text();
+  const signature = request.headers.get('x-hub-signature-256');
+  if (!verifyWhatsappSignature(raw, signature, secret)) {
+    return new NextResponse('Invalid signature', { status: 401 });
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return new NextResponse('Bad payload', { status: 400 });
+  }
+
+  const messages = parseInbound(payload);
+  let accepted = 0;
+
+  for (const message of messages) {
+    // Per-number throttle (ONB-27). Over the limit, drop quietly: the vendor
+    // gets one nudge, not a ban.
+    const limit = await hitRateLimit(`wa:in:${message.from}`, 30, 60).catch(() => null);
+    if (limit && !limit.allowed) continue;
+
+    const fresh = await rememberInbound(message).catch((error) => {
+      console.error('[wa] could not store message', error);
+      return false;
+    });
+    if (!fresh) continue;
+
+    accepted += 1;
+
+    // Respond to Meta first, then run the conversation. A failure here is
+    // logged and the message stays unprocessed for a retry.
+    after(async () => {
+      try {
+        await handleInbound(message);
+        await markProcessed(message.providerMessageId);
+      } catch (error) {
+        console.error('[wa] processing failed', error);
+      }
+    });
+  }
+
+  return NextResponse.json({ received: accepted });
+}

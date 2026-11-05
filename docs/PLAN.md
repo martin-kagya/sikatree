@@ -265,24 +265,24 @@ Backend detail, environment variables and the operational runbook live in
 
 **Build**
 - [ ] Database: vendors, links, items, categories, wa_message, wa_conversation, notifications
-- [ ] WhatsApp webhook receiver (signature check, idempotent store, enqueue)
+- [x] WhatsApp webhook receiver (signature check, idempotent store, processed after the response; durable queue still pending)
 - [ ] Message sender with interactive buttons and lists; delivery status tracking
-- [ ] Conversation engine: state machine, global intents (menu, help, stop, language), resume
+- [x] Conversation engine: state machine, global intents (menu, help, stop, language), resume
 - [ ] Onboarding steps (ONB-01 to ONB-09): consent, business name, type, handle, optional logo
 - [ ] Item creation by photo plus caption and by text list (ONB-10 to ONB-16) with confirmation
 - [ ] Parsers: price formats, list splitting, rules-first then LLM fallback, validation
-- [ ] Handle availability and reserved-handle checks
-- [ ] Minimal public page `/{handle}`: name, bio, links, items with prices (PG-01 to PG-03 basics)
+- [x] Handle availability and reserved-handle checks
+- [x] Minimal public page `/{handle}`: name, bio, links, items with prices (PG-01 to PG-03 basics)
 - [ ] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01)
 - [ ] Funnel analytics: step reached, time to live page, parse-correction rate
 - [ ] Support handoff: "Help" forwards to an internal inbox or a human WhatsApp number (ONB-25)
 - [ ] English copy catalogue with i18n structure ready for Twi
-- [ ] Waitlist handoff: recognize waitlist members by WhatsApp number, prefill business type, name and reserved handle, and mark them "onboarded" on go-live (LP-22)
+- [x] Waitlist handoff: recognize waitlist members by WhatsApp number, prefill business type, name and reserved handle, and mark them "onboarded" on go-live (LP-22)
 - [ ] Apply the `DESIGN.md` tokens, tile component and pill buttons to the public vendor page so it matches the landing page's gallery look
 
 **Test**
 - [ ] Fixture-based tests for parsers using the Phase 0 message set
-- [ ] Simulated conversation tests (scripted message sequences through the engine)
+- [x] Simulated conversation tests (scripted message sequences through the engine)
 - [ ] Run onboarding with 3 to 5 design partners, watching real behavior
 
 **Exit criteria:** 5 design-partner vendors reach a live page via WhatsApp alone; median onboarding under 15 minutes (tighten to 10 later); parse-correction rate measured; no duplicate items from retried webhooks.
