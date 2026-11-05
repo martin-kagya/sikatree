@@ -1,0 +1,173 @@
+/* Storefront card behaviour. Layout stays in Tailwind; this file owns the
+   hover, touch and reduced-motion rules that are hard to express inline. */
+
+.shop-card {
+  transition:
+    transform 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1)),
+    box-shadow 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1)),
+    border-color 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+.shop-img,
+.shop-img-alt {
+  transition: transform 700ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+.shop-img-alt {
+  opacity: 0;
+  transition:
+    opacity 400ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1)),
+    transform 700ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+.shop-name {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+}
+
+.shop-scrim {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0) 62%);
+  opacity: 0;
+}
+
+.shop-desc {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.shop-view {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.shop-touch-desc {
+  display: none;
+}
+
+.shop-badge {
+  transition: transform 300ms var(--shop-ease, cubic-bezier(0.2, 0.7, 0.2, 1));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .shop-card:hover,
+  .shop-card:focus-within {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px rgba(16, 17, 31, 0.12);
+  }
+
+  .shop-card:hover .shop-img,
+  .shop-card:focus-within .shop-img {
+    transform: scale(1.05);
+  }
+
+  /* A second image takes over instead of zooming. The card is the hover
+     target because the stretched link covers it. */
+  .shop-card:hover .shop-has-alt .shop-img,
+  .shop-card:focus-within .shop-has-alt .shop-img {
+    transform: none;
+  }
+
+  .shop-card:hover .shop-has-alt .shop-img-alt,
+  .shop-card:focus-within .shop-has-alt .shop-img-alt {
+    opacity: 1;
+  }
+
+  .shop-card:hover .shop-name,
+  .shop-card:focus-within .shop-name {
+    background-size: 100% 1px;
+  }
+
+  .shop-card:hover .shop-badge,
+  .shop-card:focus-within .shop-badge {
+    transform: translateY(-2px);
+  }
+
+  .shop-card:hover .shop-scrim,
+  .shop-card:focus-within .shop-scrim {
+    opacity: 1;
+  }
+
+  .shop-card:hover .shop-desc,
+  .shop-card:focus-within .shop-desc {
+    opacity: 1;
+    transform: none;
+    transition-delay: 40ms;
+  }
+
+  .shop-card:hover .shop-view,
+  .shop-card:focus-within .shop-view {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (hover: none) {
+  .shop-scrim,
+  .shop-desc,
+  .shop-view {
+    display: none;
+  }
+
+  .shop-touch-desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .shop-card:active {
+    transform: scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-card,
+  .shop-img,
+  .shop-img-alt,
+  .shop-desc,
+  .shop-view,
+  .shop-badge,
+  .shop-name {
+    transition: none !important;
+  }
+
+  .shop-card:hover,
+  .shop-card:focus-within,
+  .shop-card:active {
+    transform: none;
+  }
+
+  .shop-card:hover .shop-img,
+  .shop-card:focus-within .shop-img {
+    transform: none;
+  }
+
+  .shop-desc,
+  .shop-view {
+    transform: none !important;
+  }
+
+  .shop-scrim {
+    transition: none !important;
+  }
+}
+
+/* Bottom sheet for filters on small screens. */
+.shop-sheet::backdrop {
+  background: rgba(16, 17, 31, 0.4);
+}
+
+.shop-sheet {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.shop-sheet[open] {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0 auto;
+  width: min(520px, 100%);
+}

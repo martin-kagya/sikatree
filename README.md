@@ -61,6 +61,7 @@ Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
 | `pnpm db:check` | Print the masked database target and row counts |
 | `pnpm budget` | Performance budget on a production build (needs Chrome) |
 | `pnpm images:build` | Regenerate responsive WebP photos and blur placeholders |
+| `pnpm seed:demo` | Reseed the demo storefront catalogue and sample photos |
 | `pnpm wa:sim "START"` | Send a signed fake WhatsApp message to the local webhook |
 
 ## Environment
