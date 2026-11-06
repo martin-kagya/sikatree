@@ -13,12 +13,11 @@
 
   // Supabase Postgres through Cloudflare Hyperdrive. The code reads
   // env.HYPERDRIVE.connectionString, so the binding name must be exactly
-  // HYPERDRIVE. Replace the id with your Hyperdrive configuration's id
-  // (Workers & Pages → Hyperdrive → your config).
+  // HYPERDRIVE.
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "<YOUR_HYPERDRIVE_CONFIG_ID>"
+      "id": "a56e4608851d4b47ae6edc7ded341660"
     }
   ]
 }
