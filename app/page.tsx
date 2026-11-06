@@ -11,7 +11,7 @@ import {
 import { TheRealCost } from '@/components/the-real-cost';
 import { HowItWorks } from '@/components/how-it-works';
 import { WhySikatree } from '@/components/why-sikatree';
-import { FooterParallax } from '@/components/footer-parallax';
+import { Footer } from '@/components/footer';
 
 export default function Page() {
   return (
@@ -34,7 +34,7 @@ export default function Page() {
         <WaitlistForm />
       </section>
 
-      <FooterParallax />
+      <Footer />
     </main>
   );
 }
