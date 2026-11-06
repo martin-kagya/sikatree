@@ -79,6 +79,11 @@ function Row({ row }: { row: AdminEntry }) {
           {row.businessType ? TYPE_LABEL[row.businessType] : 'Not said'}
           {row.monthlyOrders ? ` · ${orderBandLabel(row.monthlyOrders)} orders/mo` : ''}
         </span>
+        {row.referrerPhone ? (
+          <span className="block text-[11px] text-ink-muted">
+            Referred by {row.referrerName ?? formatGhanaPhone(row.referrerPhone)}
+          </span>
+        ) : null}
       </td>
       <td className="whitespace-nowrap px-2 py-3 text-small text-ink">
         {row.handle ? `/${row.handle}` : <span className="text-ink-muted">None</span>}

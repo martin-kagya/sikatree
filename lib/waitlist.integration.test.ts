@@ -4,6 +4,7 @@ import {
   checkHandleAvailability,
   createSignup,
   findByPhone,
+  listForAdmin,
   reserveHandle,
 } from '@/lib/waitlist';
 
@@ -85,6 +86,24 @@ describe('createSignup', () => {
   it('ignores a referral code that does not exist', async () => {
     const { entry } = await createSignup({ ...base, phone: '+233241111111', referralCode: 'ZZZZZZ' });
     expect(entry.position).toBe(1);
+  });
+});
+
+describe('admin referrals', () => {
+  it('records and shows who referred each signup', async () => {
+    const referrer = await createSignup({ ...base, phone: '+233241111111' });
+    await createSignup({
+      ...base,
+      phone: '+233242222222',
+      referralCode: referrer.entry.referralCode,
+    });
+
+    const rows = await listForAdmin({});
+    const referred = rows.find((row) => row.phone === '+233242222222');
+    const direct = rows.find((row) => row.phone === '+233241111111');
+
+    expect(referred?.referrerPhone).toBe('+233241111111');
+    expect(direct?.referrerPhone).toBeNull();
   });
 });
 

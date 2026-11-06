@@ -35,6 +35,8 @@ export async function GET(request: Request): Promise<Response> {
     'status',
     'notes',
     'referral_code',
+    'referred_by_phone',
+    'referred_by_name',
     'joined_at',
   ];
 
@@ -51,6 +53,8 @@ export async function GET(request: Request): Promise<Response> {
         row.status,
         row.notes ?? '',
         row.referralCode,
+        row.referrerPhone ?? '',
+        row.referrerName ?? '',
         row.createdAt,
       ]
         .map(cell)

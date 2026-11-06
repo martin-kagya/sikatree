@@ -270,7 +270,11 @@ export type AdminFilters = {
   type?: string;
 };
 
-export type AdminEntry = WaitlistEntry & { notes: string | null };
+export type AdminEntry = WaitlistEntry & {
+  notes: string | null;
+  referrerPhone: string | null;
+  referrerName: string | null;
+};
 
 export async function listForAdmin(filters: AdminFilters, limit = 200): Promise<AdminEntry[]> {
   const clauses: string[] = [];
@@ -294,15 +298,28 @@ export async function listForAdmin(filters: AdminFilters, limit = 200): Promise<
   const where = clauses.length ? `where ${clauses.join(' and ')}` : '';
   params.push(limit);
 
-  const rows = await query<EntryRow & { notes: string | null }>(
-    `select ${ENTRY_COLUMNS}, w.notes
+  const rows = await query<
+    EntryRow & {
+      notes: string | null;
+      referrer_phone: string | null;
+      referrer_name: string | null;
+    }
+  >(
+    `select ${ENTRY_COLUMNS}, w.notes,
+            r.phone as referrer_phone, r.business_name as referrer_name
        from waitlist_signup w
+       left join waitlist_signup r on r.id = w.referred_by
        ${where}
       order by w.created_at desc
       limit $${params.length}`,
     params,
   );
-  return rows.map((row) => ({ ...toEntry(row), notes: row.notes }));
+  return rows.map((row) => ({
+    ...toEntry(row),
+    notes: row.notes,
+    referrerPhone: row.referrer_phone,
+    referrerName: row.referrer_name,
+  }));
 }
 
 export async function statusCounts(): Promise<Record<string, number>> {
