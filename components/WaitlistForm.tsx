@@ -1,14 +1,14 @@
 'use client';
 
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Copy, MessageCircle, Share2 } from '@/components/icons';
+import { Check, ChevronDown, Copy, MessageCircle, Share2 } from '@/components/icons';
+import { Eyebrow } from '@/components/ui/eyebrow';
 import {
   claimHandle,
   joinWaitlist,
   saveShopDetails,
   type ClaimState,
   type WaitlistState,
-  type DetailsState,
 } from '@/app/actions';
 import { normalizeGhanaPhone, formatGhanaPhone } from '@/lib/phone';
 import { checkHandle, normalizeHandle, suggestHandle, type HandleStatus } from '@/lib/handle';
@@ -24,7 +24,6 @@ const TYPES = [
 ] as const;
 
 const initialWaitlist: WaitlistState = { ok: false };
-const initialDetails: DetailsState = { ok: false };
 
 type HandleCheck =
   | { status: 'idle' | 'checking' }
@@ -47,10 +46,6 @@ const handleMessage = (status: HandleStatus): string | null => {
 
 export function WaitlistForm() {
   const [state, formAction, pending] = useActionState(joinWaitlist, initialWaitlist);
-  const [detailsState, detailsAction, detailsPending] = useActionState(
-    saveShopDetails,
-    initialDetails,
-  );
 
   const [phone, setPhone] = useState('');
   const [handle, setHandle] = useState('');
@@ -58,7 +53,11 @@ export function WaitlistForm() {
   const [businessType, setBusinessType] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [monthlyOrders, setMonthlyOrders] = useState('');
-  const [shared, setShared] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsSaved, setDetailsSaved] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [copied, setCopied] = useState(false);
   const [handleCheck, setHandleCheck] = useState<HandleCheck>({ status: 'idle' });
   const [attrs, setAttrs] = useState({
@@ -70,6 +69,16 @@ export function WaitlistForm() {
 
   const mountedAt = useRef<number>(0);
   const elapsedInput = useRef<HTMLInputElement>(null);
+  const savedTimer = useRef<number | undefined>(undefined);
+  const linkCopiedTimer = useRef<number | undefined>(undefined);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(savedTimer.current);
+      window.clearTimeout(linkCopiedTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     mountedAt.current = Date.now();
@@ -131,8 +140,7 @@ export function WaitlistForm() {
     );
   };
 
-  const share = async () => {
-    const url = site.url;
+  const share = async (url: string) => {
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: 'sikatree', text: 'Send photos. Get a store.', url });
@@ -141,17 +149,47 @@ export function WaitlistForm() {
         /* dismissed */
       }
     }
-    await copy(url);
+    if (await copy(url)) {
+      setLinkCopied(true);
+      window.clearTimeout(linkCopiedTimer.current);
+      linkCopiedTimer.current = window.setTimeout(() => setLinkCopied(false), 2200);
+    }
   };
 
-  const copy = async (value: string) => {
-    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+  const copy = async (value: string): Promise<boolean> => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return false;
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
+      return true;
     } catch {
-      /* noop */
+      return false;
+    }
+  };
+
+  const persistDetails = async (next: { businessType?: string; monthlyOrders?: string }) => {
+    if (!state.phone) return;
+    const data = new FormData();
+    data.set('phone', state.phone);
+    if (next.businessType !== undefined) data.set('businessType', next.businessType);
+    if (next.monthlyOrders !== undefined) data.set('monthlyOrders', next.monthlyOrders);
+
+    setDetailsSaving(true);
+    setDetailsError(null);
+    try {
+      const result = await saveShopDetails({ ok: false }, data);
+      if (result.ok) {
+        setDetailsSaved(true);
+        window.clearTimeout(savedTimer.current);
+        savedTimer.current = window.setTimeout(() => setDetailsSaved(false), 2200);
+      } else {
+        setDetailsError(result.error ?? 'Could not save. Try again.');
+      }
+    } catch {
+      setDetailsError('Could not save. Try again.');
+    } finally {
+      setDetailsSaving(false);
     }
   };
 
@@ -164,219 +202,217 @@ export function WaitlistForm() {
   if (state.ok) {
     const position = state.position;
     const referralUrl = state.referralUrl ?? '';
+    const phoneLine = state.phone ? formatGhanaPhone(state.phone) : '';
 
     return (
-      <div className="wl-success mx-auto max-w-md">
-        <div className="text-center">
-          <div className="wl-success-check mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-mint-100 text-green-deep">
-            <Check className="h-7 w-7" strokeWidth={1.75} />
-          </div>
-          <h3 className="mt-5 text-h3 text-white sm:text-h3-lg">
-            {state.already ? 'You’re already in.' : 'You’re in.'}
-          </h3>
+      <div className="mx-auto w-full max-w-[960px] px-5 pb-16 pt-10 lg:pt-14">
+        <div className="lg:grid lg:grid-cols-[380px_1fr] lg:items-start lg:gap-14">
+          <div className="wl-success text-center lg:text-left">
+            <div className="wl-success-check mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(63,165,92,0.16)] text-[var(--green-main)] lg:mx-0">
+              <Check className="h-5 w-5" strokeWidth={2} />
+            </div>
 
-          {position ? (
-            <p className="mt-3 text-small text-ink-on-dark-muted">
-              You’re spot{' '}
-              <span className="text-[22px] font-medium tracking-tight text-white">#{position}</span>{' '}
-              in line.
-            </p>
-          ) : (
-            <p className="mt-2 text-body text-ink-on-dark-muted">Your spot is saved.</p>
-          )}
+            <h3 className="mt-4 text-[26px] font-semibold leading-tight text-white">
+              {state.already ? 'You’re already in' : 'You’re in'}
+            </h3>
 
-          {state.handle ? (
-            <p className="mt-1 text-small text-ink-on-dark-muted">
-              {site.domain}/<span className="font-medium text-white">{state.handle}</span> is
-              reserved for you.
-            </p>
-          ) : state.handleTaken ? (
-            <p className="mt-1 text-small text-warn-edge">
-              That link was claimed while you were typing. Pick another below.
-            </p>
-          ) : null}
+            {position ? (
+              <div className="mt-1 flex items-end justify-center gap-2 lg:justify-start">
+                <span className="text-[72px] font-bold leading-none tracking-[-0.05em] text-white">
+                  #{position}
+                </span>
+                <span className="pb-2.5 text-small text-ink-on-dark-muted">in line</span>
+              </div>
+            ) : (
+              <p className="mt-2 text-small text-ink-on-dark-muted">Your spot is saved.</p>
+            )}
 
-          {state.phone && (
-            <p className="mt-1 text-small text-ink-on-dark-muted">
-              We’ll message {formatGhanaPhone(state.phone)} on WhatsApp.
-            </p>
-          )}
-        </div>
-
-        <div className="mt-8 rounded-card border border-hairline-dark bg-surface-dark p-5 text-left">
-          {state.referralUrl ? (
-            <>
-              <h4 className="text-label text-white">Move up the line</h4>
-              <p className="mt-1 text-small text-ink-on-dark-muted">
-                Invite a vendor who sells. Every vendor who joins with your link moves you up a spot.
+            {state.handle ? (
+              <p className="mt-3 inline-flex max-w-full items-center gap-1 rounded-pill border border-[#2B2B2B] px-3 py-1.5 text-[13px] text-ink-on-dark-muted">
+                <span className="truncate">
+                  {site.domain}/<span className="font-medium text-white">{state.handle}</span>
+                </span>
+                <span className="shrink-0">· reserved</span>
               </p>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  readOnly
-                  value={referralUrl.replace(/^https?:\/\//, '')}
-                  aria-label="Your referral link"
-                  onFocus={(event) => event.currentTarget.select()}
-                  className="h-11 min-w-0 flex-1 rounded-inner border border-hairline-dark bg-[#101010] px-3 text-small text-white"
-                />
+            ) : null}
+
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => track('whatsapp_click', { surface: 'success' })}
+                className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-pill bg-[var(--green-main)] px-6 text-label font-medium text-[#0B2218] transition-transform duration-150 hover:-translate-y-px active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-dark)]"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Confirm on WhatsApp
+              </a>
+            ) : null}
+
+            {phoneLine ? (
+              <p className="mt-3 text-[13px] leading-snug text-ink-on-dark-muted">
+                We’ll message {phoneLine}. Say hi and we’ll start your setup early.
+              </p>
+            ) : null}
+
+            {!state.handle && state.phone ? (
+              <div className="mt-6 text-left">
+                <ClaimHandleForm phone={state.phone} suggested={state.handleSuggestion} />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-6 space-y-3 lg:mt-0">
+            {referralUrl ? (
+              <div className="rounded-card border border-[#2B2B2B] bg-[var(--surface-dark)] p-5">
+                <h4 className="text-label text-white">Move up the line</h4>
+                <p className="mt-1 text-small text-ink-on-dark-muted">
+                  Invite a vendor who sells. Every vendor who joins with your link moves you up a
+                  spot.
+                </p>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={referralUrl.replace(/^https?:\/\//, '')}
+                    aria-label="Your referral link"
+                    onFocus={(event) => event.currentTarget.select()}
+                    className="h-12 min-w-0 flex-1 rounded-pill border border-[#2B2B2B] bg-[#101010] px-4 text-small text-white outline-none focus:border-white/40 focus:ring-2 focus:ring-white/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      track('share_click', { kind: 'copy_referral' });
+                      void copy(referralUrl);
+                    }}
+                    className="inline-flex h-12 shrink-0 items-center gap-1.5 rounded-pill border border-[#2B2B2B] px-4 text-small text-white transition-colors hover:border-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-dark)]"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
-                    track('share_click', { kind: 'copy_referral' });
-                    void copy(referralUrl);
+                    track('share_click', { kind: 'share' });
+                    void share(referralUrl);
                   }}
-                  className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-pill border border-hairline-dark px-4 text-small text-white transition-colors hover:border-white/60"
+                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-[#2C2C2A] text-label text-white transition-colors hover:bg-[#363633] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-dark)]"
                 >
-                  <Copy className="h-3.5 w-3.5" />
-                  {copied ? 'Copied' : 'Copy'}
+                  <Share2 className="h-4 w-4" />
+                  Share your link
                 </button>
-              </div>
-            </>
-          ) : null}
 
-          <div className={cn(state.referralUrl && 'mt-5 border-t border-hairline-dark pt-5')}>
-            <h4 className="text-label text-white">Tell us about your shop</h4>
-            <p className="mt-1 text-small text-ink-on-dark-muted">
-              Optional, and it helps us get you set up faster.
-            </p>
-
-            {detailsState.ok ? (
-              <p className="mt-4 text-small text-green-main">
-                {detailsState.message ?? 'Thanks, that helps.'}
-              </p>
-            ) : (
-            <form action={detailsAction} className="mt-4 space-y-4">
-              <input type="hidden" name="phone" value={state.phone ?? ''} />
-
-              <fieldset>
-                <legend className="mb-2 block text-label text-white">I mostly…</legend>
-                <div className="flex flex-wrap gap-2">
-                  {TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      className={cn(
-                        'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
-                        businessType === type.value
-                          ? 'border-white bg-white text-ink'
-                          : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="businessType"
-                        value={type.value}
-                        checked={businessType === type.value}
-                        onChange={() => setBusinessType(type.value)}
-                        className="sr-only"
-                      />
-                      {type.label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset>
-                <legend className="mb-2 block text-label text-white">
-                  Roughly how many orders a month?{' '}
-                  <span className="text-ink-on-dark-muted">(optional)</span>
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {ORDER_BANDS.map((band) => (
-                    <label
-                      key={band.value}
-                      className={cn(
-                        'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
-                        monthlyOrders === band.value
-                          ? 'border-white bg-white text-ink'
-                          : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
-                      )}
-                    >
-                      <input
-                        type="radio"
-                        name="monthlyOrders"
-                        value={band.value}
-                        checked={monthlyOrders === band.value}
-                        onChange={() => setMonthlyOrders(band.value)}
-                        className="sr-only"
-                      />
-                      {band.label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              {detailsState.error && (
-                <p role="alert" className="text-small text-danger">
-                  {detailsState.error}
+                <p aria-live="polite" className="mt-2 text-center text-[12px] text-ink-on-dark-muted">
+                  {linkCopied ? 'Link copied' : ''}
                 </p>
-              )}
+              </div>
+            ) : null}
 
+            <div className="rounded-card border border-[#2B2B2B] bg-[var(--surface-dark)]">
               <button
-                type="submit"
-                disabled={detailsPending}
-                className="w-full rounded-pill bg-green-main px-6 py-3 text-label text-ink disabled:opacity-50"
+                type="button"
+                aria-expanded={detailsOpen}
+                aria-controls="setup-details"
+                onClick={() => setDetailsOpen((value) => !value)}
+                className="flex w-full items-center justify-between gap-3 p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-dark)]"
               >
-                {detailsPending ? 'Saving…' : 'Save details'}
+                <span>
+                  <span className="block text-label text-white">Help us set you up faster</span>
+                  <span className="mt-0.5 block text-[12px] text-ink-on-dark-muted">
+                    Optional · takes 30 seconds
+                  </span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 text-ink-on-dark-muted transition-transform duration-[250ms]',
+                    detailsOpen && 'rotate-180',
+                  )}
+                />
               </button>
-            </form>
-            )}
+
+              <div
+                id="setup-details"
+                className={cn(
+                  'grid transition-[grid-template-rows] duration-[250ms] ease-out',
+                  detailsOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                )}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-4 px-5 pb-5">
+                    <fieldset>
+                      <legend className="mb-2 block text-label text-white">I mostly…</legend>
+                      <div className="flex flex-wrap gap-2">
+                        {TYPES.map((type) => (
+                          <label
+                            key={type.value}
+                            className={cn(
+                              'inline-flex h-12 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
+                              businessType === type.value
+                                ? 'border-transparent bg-white text-ink'
+                                : 'border-[#2B2B2B] text-white hover:border-white/40',
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="businessType"
+                              value={type.value}
+                              checked={businessType === type.value}
+                              onChange={() => {
+                                setBusinessType(type.value);
+                                void persistDetails({ businessType: type.value });
+                              }}
+                              className="sr-only"
+                            />
+                            {type.label}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend className="mb-2 block text-label text-white">
+                        Roughly how many orders a month?{' '}
+                        <span className="text-ink-on-dark-muted">(optional)</span>
+                      </legend>
+                      <div className="flex flex-wrap gap-2">
+                        {ORDER_BANDS.map((band) => (
+                          <label
+                            key={band.value}
+                            className={cn(
+                              'inline-flex h-12 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
+                              monthlyOrders === band.value
+                                ? 'border-transparent bg-white text-ink'
+                                : 'border-[#2B2B2B] text-white hover:border-white/40',
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="monthlyOrders"
+                              value={band.value}
+                              checked={monthlyOrders === band.value}
+                              onChange={() => {
+                                setMonthlyOrders(band.value);
+                                void persistDetails({ monthlyOrders: band.value });
+                              }}
+                              className="sr-only"
+                            />
+                            {band.label}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <p aria-live="polite" className="text-[12px] text-ink-on-dark-muted">
+                      {detailsSaving ? 'Saving…' : detailsSaved ? 'Saved' : (detailsError ?? '')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-          {whatsappHref ? (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => track('whatsapp_click', { surface: 'success' })}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-green-main px-6 text-label text-ink transition-transform duration-150 hover:-translate-y-px active:scale-[0.98] sm:w-auto sm:flex-1"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Confirm on WhatsApp
-            </a>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              track('share_click', { kind: 'share' });
-              void share();
-            }}
-            className={cn(
-              'inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill border border-hairline-dark px-6 text-label text-white transition-colors hover:border-white/60 sm:w-auto',
-              whatsappHref ? 'sm:w-auto' : 'sm:flex-1',
-            )}
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </button>
-        </div>
-
-        {referralUrl ? (
-          <div className="mt-3 text-center">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                `I’m on the sikatree waitlist. Vendors: send photos, get a store. ${referralUrl}`,
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => track('share_click', { kind: 'whatsapp_share' })}
-              className="text-small text-ink-on-dark-muted underline underline-offset-4 hover:text-white"
-            >
-              Share on WhatsApp
-            </a>
-          </div>
-        ) : null}
-
-        <p className="mt-4 text-center text-[12px] text-ink-on-dark-muted">
-          {whatsappHref
-            ? 'Tapping Confirm opens WhatsApp. Say hi and we’ll start your setup early.'
-            : 'We’ll reach out on WhatsApp when your spot opens.'}
-        </p>
-
-        {!state.handle && state.phone ? (
-          <ClaimHandleForm phone={state.phone} suggested={state.handleSuggestion} />
-        ) : null}
-
       </div>
     );
   }
@@ -390,8 +426,17 @@ export function WaitlistForm() {
         : null);
 
   return (
-    <form
-      action={formAction}
+    <div className="mx-auto max-w-[560px]">
+      <div className="flex justify-center">
+        <Eyebrow onDark>Early access</Eyebrow>
+      </div>
+      <h2 className="mt-4 text-center text-h2 text-white sm:text-h2-lg">Reserve your spot</h2>
+      <p className="mx-auto mt-3 max-w-md text-center text-body text-ink-on-dark-muted">
+        Just your WhatsApp number. Everything else is optional.
+      </p>
+
+      <form
+        action={formAction}
       onSubmit={() => {
         if (elapsedInput.current) {
           elapsedInput.current.value = String(Date.now() - mountedAt.current);
@@ -399,7 +444,7 @@ export function WaitlistForm() {
         track('form_submit', { surface: 'waitlist', handle: normalizedHandle || null });
       }}
       onFocus={() => track('form_start', { surface: 'waitlist' })}
-      className="relative mx-auto max-w-md space-y-5 text-left"
+      className="relative mx-auto mt-8 max-w-md space-y-5 text-left"
     >
       {/* Anti-bot: hidden from people, irresistible to scripts (LP-19). */}
       <div aria-hidden className="pointer-events-none absolute left-[-9999px] top-auto h-px w-px overflow-hidden">
@@ -541,7 +586,8 @@ export function WaitlistForm() {
       <p className="text-center text-[12px] text-ink-on-dark-muted">
         We’ll message you on WhatsApp when your spot opens.
       </p>
-    </form>
+      </form>
+    </div>
   );
 }
 
