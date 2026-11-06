@@ -4,7 +4,7 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { getInsights, type Insights } from '@/lib/insights';
 import { formatGhanaPhone } from '@/lib/phone';
 import { requireAdmin } from '@/lib/admin-auth';
-import { listForAdmin, statusCounts, type AdminEntry } from '@/lib/waitlist';
+import { listForAdmin, orderBandLabel, statusCounts, type AdminEntry } from '@/lib/waitlist';
 import { logoutAction, setNotesAction, setStatusAction } from './actions';
 
 export const metadata: Metadata = {
@@ -77,6 +77,7 @@ function Row({ row }: { row: AdminEntry }) {
         {row.businessName ?? <span className="text-ink-muted">No name</span>}
         <span className="block text-[11px] text-ink-muted">
           {row.businessType ? TYPE_LABEL[row.businessType] : 'Not said'}
+          {row.monthlyOrders ? ` · ${orderBandLabel(row.monthlyOrders)} orders/mo` : ''}
         </span>
       </td>
       <td className="whitespace-nowrap px-2 py-3 text-small text-ink">

@@ -10,6 +10,7 @@ import {
 const base = {
   businessType: 'products' as const,
   businessName: 'Ama Glow',
+  monthlyOrders: null,
   handle: null,
   referralCode: null,
   source: 'test',

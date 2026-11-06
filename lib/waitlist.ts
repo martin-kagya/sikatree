@@ -1,6 +1,9 @@
 import { db, query } from '@/lib/db';
 import { checkHandle, suggestHandleVariant } from '@/lib/handle';
 import { newReferralCode, parseReferralCode } from '@/lib/referral';
+import { type OrderBand, isOrderBand } from '@/lib/waitlist-bands';
+
+export { ORDER_BANDS, orderBandLabel, type OrderBand } from '@/lib/waitlist-bands';
 
 export const BUSINESS_TYPES = ['products', 'services', 'both'] as const;
 export type BusinessType = (typeof BUSINESS_TYPES)[number];
@@ -12,6 +15,7 @@ export type WaitlistEntry = {
   phone: string;
   businessType: BusinessType | null;
   businessName: string | null;
+  monthlyOrders: OrderBand | null;
   handle: string | null;
   referralCode: string;
   status: SignupStatus;
@@ -24,6 +28,7 @@ type EntryRow = {
   phone: string;
   business_type: BusinessType | null;
   business_name: string | null;
+  monthly_orders: OrderBand | null;
   handle: string | null;
   referral_code: string;
   status: SignupStatus;
@@ -34,7 +39,8 @@ type EntryRow = {
 // Position in line counts live signups that arrived earlier, minus the spots
 // earned from referrals. Never below 1.
 const ENTRY_COLUMNS = `
-  w.id, w.phone, w.business_type, w.business_name, w.handle, w.referral_code,
+  w.id, w.phone, w.business_type, w.business_name, w.monthly_orders, w.handle,
+  w.referral_code,
   w.status, w.created_at,
   greatest(1, (
     select count(*) from waitlist_signup x
@@ -49,6 +55,7 @@ function toEntry(row: EntryRow): WaitlistEntry {
     phone: row.phone,
     businessType: row.business_type,
     businessName: row.business_name,
+    monthlyOrders: row.monthly_orders,
     handle: row.handle,
     referralCode: row.referral_code,
     status: row.status,
@@ -159,6 +166,7 @@ export type CreateSignupInput = {
   phone: string;
   businessType: BusinessType | null;
   businessName: string | null;
+  monthlyOrders: OrderBand | null;
   handle: string | null;
   referralCode: string | null;
   source: string | null;
@@ -192,15 +200,16 @@ export async function createSignup(input: CreateSignupInput): Promise<CreateSign
 
   const inserted = await query<{ id: string }>(
     `insert into waitlist_signup
-       (phone, business_type, business_name, referral_code, referred_by,
+       (phone, business_type, business_name, monthly_orders, referral_code, referred_by,
         source, utm_source, utm_medium, utm_campaign, consent_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
      on conflict (phone) do nothing
      returning id`,
     [
       input.phone,
       input.businessType,
       input.businessName,
+      input.monthlyOrders,
       newReferralCode(),
       referrerId,
       input.source,
@@ -237,15 +246,20 @@ export async function createSignup(input: CreateSignupInput): Promise<CreateSign
 
 export async function updateDetails(
   phone: string,
-  details: { businessType: BusinessType | null; businessName: string | null },
+  details: {
+    businessType: BusinessType | null;
+    businessName: string | null;
+    monthlyOrders: OrderBand | null;
+  },
 ): Promise<boolean> {
   const rows = await query<{ id: string }>(
     `update waitlist_signup
         set business_type = coalesce($2, business_type),
-            business_name = coalesce($3, business_name)
+            business_name = coalesce($3, business_name),
+            monthly_orders = coalesce($4, monthly_orders)
       where phone = $1
       returning id`,
-    [phone, details.businessType, details.businessName],
+    [phone, details.businessType, details.businessName, details.monthlyOrders],
   );
   return rows.length > 0;
 }

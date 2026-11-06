@@ -17,6 +17,7 @@ import {
   updateDetails,
   type BusinessType,
 } from '@/lib/waitlist';
+import { isOrderBand, type OrderBand } from '@/lib/waitlist-bands';
 
 export type WaitlistState = {
   ok: boolean;
@@ -46,6 +47,10 @@ export type ClaimState = {
 
 const GENERIC_ERROR = 'Something went wrong on our side. Try again in a minute.';
 const RATE_ERROR = 'Too many attempts. Give it a few minutes and try again.';
+
+function asOrderBand(raw: FormDataEntryValue | null): OrderBand | null {
+  return isOrderBand(raw) ? raw : null;
+}
 
 function asBusinessType(raw: FormDataEntryValue | null): BusinessType | null {
   const value = String(raw ?? '');
@@ -90,6 +95,7 @@ export async function joinWaitlist(
   }
 
   const businessType = asBusinessType(formData.get('businessType'));
+  const monthlyOrders = asOrderBand(formData.get('monthlyOrders'));
   const businessNameRaw = String(formData.get('businessName') ?? '').trim().slice(0, 80);
   const handleRaw = String(formData.get('handle') ?? '');
   const handle = handleRaw ? normalizeHandle(handleRaw) : null;
@@ -141,6 +147,7 @@ export async function joinWaitlist(
       phone,
       businessType,
       businessName: businessNameRaw || null,
+      monthlyOrders,
       handle,
       referralCode,
       source: String(formData.get('source') ?? 'landing').slice(0, 40) || 'landing',
@@ -187,9 +194,10 @@ export async function saveShopDetails(
 
   const businessName = String(formData.get('businessName') ?? '').trim().slice(0, 80) || null;
   const businessType = asBusinessType(formData.get('businessType'));
+  const monthlyOrders = asOrderBand(formData.get('monthlyOrders'));
 
   try {
-    const updated = await updateDetails(phone, { businessType, businessName });
+    const updated = await updateDetails(phone, { businessType, businessName, monthlyOrders });
     if (!updated) return { ok: false, error: 'We could not find that signup. Join again above.' };
     return { ok: true, message: 'Thanks, that helps.' };
   } catch (error) {

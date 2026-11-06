@@ -13,6 +13,7 @@ import {
 import { normalizeGhanaPhone, formatGhanaPhone } from '@/lib/phone';
 import { checkHandle, normalizeHandle, suggestHandle, type HandleStatus } from '@/lib/handle';
 import { contact, site } from '@/lib/brand';
+import { ORDER_BANDS } from '@/lib/waitlist-bands';
 import { attribution, track } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +57,7 @@ export function WaitlistForm() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [monthlyOrders, setMonthlyOrders] = useState('');
   const [shared, setShared] = useState(false);
   const [copied, setCopied] = useState(false);
   const [handleCheck, setHandleCheck] = useState<HandleCheck>({ status: 'idle' });
@@ -328,6 +330,36 @@ export function WaitlistForm() {
                 </div>
               </fieldset>
 
+              <fieldset>
+                <legend className="mb-2 block text-label text-white">
+                  Roughly how many orders a month?{' '}
+                  <span className="text-ink-on-dark-muted">(optional)</span>
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {ORDER_BANDS.map((band) => (
+                    <label
+                      key={band.value}
+                      className={cn(
+                        'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
+                        monthlyOrders === band.value
+                          ? 'border-white bg-white text-ink'
+                          : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="monthlyOrders"
+                        value={band.value}
+                        checked={monthlyOrders === band.value}
+                        onChange={() => setMonthlyOrders(band.value)}
+                        className="sr-only"
+                      />
+                      {band.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
               <div>
                 <label htmlFor="businessName" className="mb-1.5 block text-label text-white">
                   Business name <span className="text-ink-on-dark-muted">(optional)</span>
@@ -458,6 +490,36 @@ export function WaitlistForm() {
                 className="sr-only"
               />
               {type.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-2 block text-label text-white">
+          Roughly how many orders a month?{' '}
+          <span className="text-ink-on-dark-muted">(optional)</span>
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {ORDER_BANDS.map((band) => (
+            <label
+              key={band.value}
+              className={cn(
+                'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
+                monthlyOrders === band.value
+                  ? 'border-white bg-white text-ink'
+                  : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
+              )}
+            >
+              <input
+                type="radio"
+                name="monthlyOrders"
+                value={band.value}
+                checked={monthlyOrders === band.value}
+                onChange={() => setMonthlyOrders(band.value)}
+                className="sr-only"
+              />
+              {band.label}
             </label>
           ))}
         </div>
