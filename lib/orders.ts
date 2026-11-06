@@ -360,6 +360,9 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'cancelled',
 ];
 
+// Still on the dashboard; completed and cancelled move to the orders archive.
+export const ACTIVE_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'ready'];
+
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['ready', 'cancelled'],
@@ -525,11 +528,21 @@ function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
   };
 }
 
-export async function listVendorOrders(vendorId: string, limit = 50): Promise<OrderRecord[]> {
-  const rows = await db().query<OrderRow>(
-    `${ORDER_SELECT} where o.vendor_id = $1 order by o.created_at desc limit $2`,
-    [vendorId, limit],
-  );
+export async function listVendorOrders(
+  vendorId: string,
+  options: { limit?: number; statuses?: OrderStatus[] } = {},
+): Promise<OrderRecord[]> {
+  const limit = options.limit ?? 50;
+  const statuses = options.statuses;
+  const rows = statuses?.length
+    ? await db().query<OrderRow>(
+        `${ORDER_SELECT} where o.vendor_id = $1 and o.status = any($3::text[]) order by o.created_at desc limit $2`,
+        [vendorId, limit, statuses],
+      )
+    : await db().query<OrderRow>(
+        `${ORDER_SELECT} where o.vendor_id = $1 order by o.created_at desc limit $2`,
+        [vendorId, limit],
+      );
   const lines = await loadLines(rows.rows.map((row) => row.id));
   return rows.rows.map((row) => toOrder(row, lines.get(row.id) ?? []));
 }

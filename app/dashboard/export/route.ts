@@ -19,7 +19,7 @@ export async function GET(): Promise<Response> {
   const vendorId = await currentVendorId();
   if (!vendorId) return new Response('Unauthorized', { status: 401 });
 
-  const orders = await listVendorOrders(vendorId, 5000);
+  const orders = await listVendorOrders(vendorId, { limit: 5000 });
 
   const header = [
     'code',

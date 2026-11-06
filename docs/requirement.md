@@ -297,12 +297,12 @@ The public storefront implements ORD-01 (single-vendor cart, guest checkout), OR
 
 The order loop now continues after checkout:
 
-- **Vendor orders.** `/dashboard` lists orders newest first with items, customer, fulfilment, email, notes and total. Vendors move an order through `pending → confirmed → ready → completed` or cancel it from `pending`, `confirmed` or `ready`. The transition is enforced in the database transaction and scoped to the order's vendor.
+- **Vendor orders.** `/dashboard` lists **active** orders (`pending`, `confirmed`, `ready`) newest first with items, customer, fulfilment, email, notes and total. Completed and cancelled orders move to `/dashboard/orders`, which lists every order with All / Active / Completed / Cancelled filters. Vendors move an order through `pending → confirmed → ready → completed` or cancel it from `pending`, `confirmed` or `ready`. The transition is enforced in the database transaction and scoped to the order's vendor.
 - **Vendor alert.** A new order sends a WhatsApp text to the vendor with the code, items, total, customer, delivery details, note and a single-use dashboard login link. It runs after the checkout response, so a slow provider cannot delay the client. Interactive action buttons are not built.
 - **Client tracking.** `/o/{code}` shows a four-step status, items, total, fulfilment type and ETA. It deliberately hides the customer's address, email and phone, so no phone verification is needed for the data shown. The page updates when the vendor changes the status.
 - **Vendor contact.** The dashboard has a Message link that opens WhatsApp with the order code prefilled.
 - **Vendor support view.** `/dashboard/support` shows the vendor's own tickets with Open or Resolved state, last message and updated time. Replies and the full conversation remain in WhatsApp and the admin inbox.
-- **Vendor settings.** `/dashboard/settings` holds the delivery fee configuration (free / fixed with within-region and outside-region rates / confirm-after) and the zonal delivery (within/outside region) and pickup ETA text, linked from the dashboard header next to Support.
+- **Vendor navigation.** The dashboard header is a hamburger menu that expands into Settings, Orders, Support and Sign out. The same menu links to `/dashboard/orders` (the order archive) and `/dashboard/settings`.
 
 The following behaviours remain deferred or partial and must not be described as fully working:
 
@@ -379,7 +379,7 @@ Channels: **WhatsApp** (primary), **PWA push** (secondary), **SMS** (fallback, P
 | DASH-15 | Language toggle and settings (profile, notifications, sessions, plan). | P0 |
 | DASH-16 | Installation prompt and onboarding checklist ("Add 3 items", "Share your link", "Set payout"). | P0 |
 
-**Implementation (2026-11-05):** DASH-03 (orders) and DASH-05/06 (catalogue and stock basics) are partially live in the single-page dashboard: order list and status actions, item list with add, edit, hide, manual sold out and stock. A `/dashboard/settings` page holds delivery-fee configuration and delivery/pickup ETA text (part of DASH-15). The shell, home, bookings, payments, page editor, customers, analytics and the remaining settings remain deferred.
+**Implementation (2026-11-05, updated 2026-11-06):** DASH-03 (orders) and DASH-05/06 (catalogue and stock basics) are partially live: the dashboard shows active orders with status actions, and `/dashboard/orders` lists every order with All / Active / Completed / Cancelled filters. The header is a hamburger menu (Settings, Orders, Support, Sign out). The item list supports add, edit, hide, manual availability and stock. A `/dashboard/settings` page holds delivery-fee configuration, delivery/pickup ETA text and service availability (part of DASH-15 and DASH-07). The shell, home, bookings calendar, payments, page editor, customers, analytics and the remaining settings remain deferred.
 
 ### 6.11 Client experience (CLI)
 
