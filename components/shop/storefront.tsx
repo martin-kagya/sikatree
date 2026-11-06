@@ -122,12 +122,14 @@ function storeWhatsappHref(phone: string, name: string): string {
     priority,
     tint,
     onAdd,
+    onViewImages,
   }: {
     item: ShopItem;
     phone: string;
     priority: boolean;
     tint: string;
     onAdd: (id: string) => void;
+    onViewImages: (item: ShopItem, index: number) => void;
   }) {
     const soldOut = isSoldOut(item);
     const low = soldOut ? null : stockLabel(item.stock);
@@ -136,7 +138,6 @@ function storeWhatsappHref(phone: string, name: string): string {
     const focal = `${(item.focalX ?? 0.5) * 100}% ${(item.focalY ?? 0.5) * 100}%`;
     const href = enquiryHref(phone, item);
     const price = formatShopPrice(item.pricePesewas);
-    const [active, setActive] = useState(0);
     const images = item.images.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
     const multiple = images.length > 1;
 
@@ -145,9 +146,12 @@ function storeWhatsappHref(phone: string, name: string): string {
         className="shop-card group relative flex flex-col rounded-[20px] border border-[var(--shop-hair)] bg-[var(--shop-card)] p-2 shadow-[0_1px_2px_rgba(16,17,31,0.04)] sm:p-2.5"
       >
         <div
-          className="shop-media relative w-full overflow-hidden rounded-[14px]"
+          className={cn(
+            'shop-media relative z-30 w-full overflow-hidden rounded-[14px]',
+            images.length && 'cursor-zoom-in',
+          )}
           style={{ aspectRatio: 'var(--card-image-ratio)' }}
-          onClick={multiple ? () => setActive((active + 1) % images.length) : undefined}
+          onClick={images.length ? () => onViewImages(item, 0) : undefined}
         >
           {images.length ? (
             images.map((url, index) => (
@@ -160,7 +164,7 @@ function storeWhatsappHref(phone: string, name: string): string {
                 fetchPriority={index === 0 && priority ? 'high' : 'auto'}
                 className={cn(
                   'shop-img absolute inset-0 h-full w-full object-cover transition-opacity duration-200',
-                  index === active ? 'opacity-100' : 'opacity-0',
+                  index === 0 ? 'opacity-100' : 'opacity-0',
                   soldOut && 'grayscale-[0.6]',
                 )}
                 style={{ objectPosition: focal }}
@@ -178,17 +182,22 @@ function storeWhatsappHref(phone: string, name: string): string {
           )}
 
           {multiple ? (
-            <div className="pointer-events-none absolute bottom-2 right-2 z-30 flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 backdrop-blur">
-              {images.map((url, index) => (
-                <span
-                  key={url}
-                  className={cn(
-                    'h-1.5 rounded-full transition-all duration-200',
-                    index === active ? 'w-4 bg-white' : 'w-1.5 bg-white/50',
-                  )}
-                />
-              ))}
-            </div>
+            <>
+              <span className="pointer-events-none absolute right-2 top-2 z-30 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+                {images.length} photos
+              </span>
+              <div className="pointer-events-none absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/45 px-2 py-1 backdrop-blur">
+                {images.map((url, index) => (
+                  <span
+                    key={url}
+                    className={cn(
+                      'h-1.5 rounded-full transition-all duration-200',
+                      index === 0 ? 'w-4 bg-white' : 'w-1.5 bg-white/50',
+                    )}
+                  />
+                ))}
+              </div>
+            </>
           ) : null}
 
           {badge ? (
@@ -218,6 +227,7 @@ function storeWhatsappHref(phone: string, name: string): string {
             href={href}
             target="_blank"
             rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
             className="shop-view absolute bottom-2 left-2 z-30 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--shop-ink)]"
           >
             Enquire <ArrowRight className="h-3 w-3" />
@@ -382,6 +392,10 @@ export function Storefront({
   const headerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   const checkoutRef = useRef<HTMLDialogElement>(null);
+  const galleryRef = useRef<HTMLDialogElement>(null);
+  const [gallery, setGallery] = useState<{ images: string[]; name: string; index: number } | null>(
+    null,
+  );
   const [stuck, setStuck] = useState(false);
 
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -602,6 +616,25 @@ export function Storefront({
       dialog.classList.remove('is-closing');
       dialog.close();
     }, 170);
+  }
+
+  function openGallery(item: ShopItem, index: number) {
+    const images = item.images.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
+    if (!images.length) return;
+    setGallery({ images, name: item.name, index: Math.min(index, images.length - 1) });
+    galleryRef.current?.showModal();
+  }
+
+  function closeGallery() {
+    galleryRef.current?.close();
+  }
+
+  function stepGallery(delta: number) {
+    setGallery((current) => {
+      if (!current) return current;
+      const next = (current.index + delta + current.images.length) % current.images.length;
+      return { ...current, index: next };
+    });
   }
 
   async function onCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
@@ -909,6 +942,7 @@ export function Storefront({
                   priority={index < 4}
                   tint={FALLBACK_TINTS[index % FALLBACK_TINTS.length]}
                   onAdd={addToCart}
+                  onViewImages={openGallery}
                 />
               ))}
             </div>
@@ -1438,6 +1472,84 @@ export function Storefront({
             </form>
           )}
         </div>
+      </dialog>
+
+      <dialog
+        ref={galleryRef}
+        aria-label="Product photos"
+        className="shop-gallery"
+        onCancel={(event) => {
+          event.preventDefault();
+          closeGallery();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') stepGallery(-1);
+          if (event.key === 'ArrowRight') stepGallery(1);
+        }}
+      >
+        {gallery ? (
+          <div className="shop-gallery-panel">
+            <button
+              type="button"
+              onClick={closeGallery}
+              aria-label="Close photos"
+              className="shop-gallery-close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="shop-gallery-media">
+              <img
+                src={gallery.images[gallery.index]}
+                alt={gallery.name}
+                className="shop-gallery-img"
+              />
+              {gallery.images.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      stepGallery(-1);
+                    }}
+                    aria-label="Previous photo"
+                    className="shop-gallery-nav left-3"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      stepGallery(1);
+                    }}
+                    aria-label="Next photo"
+                    className="shop-gallery-nav right-3"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-1 pb-1">
+              <p className="truncate text-[14px] font-medium text-ink">{gallery.name}</p>
+              {gallery.images.length > 1 ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {gallery.images.map((url, index) => (
+                    <span
+                      key={url}
+                      className={cn(
+                        'h-1.5 rounded-full transition-all duration-200',
+                        index === gallery.index ? 'w-4 bg-ink' : 'w-1.5 bg-ink/25',
+                      )}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </dialog>
     </div>
   );

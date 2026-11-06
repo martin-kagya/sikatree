@@ -229,7 +229,7 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | CAT-08 | Bulk import from CSV and from a WhatsApp Business catalogue export (if feasible). | P2 |
 | CAT-09 | Drag-and-drop ordering and "featured" flag. | P1 |
 
-**Implementation (2026-11-05, updated 2026-11-06):** `/dashboard/items/new` and `/dashboard/items/[id]` create and edit an item with up to five photos, name, description, price, compare-at price, category, stock, visibility, badge and numeric position. Photos upload to the `items` bucket (JPG, PNG, WebP or AVIF, up to 10MB each); the first is the cover and the storefront shows the rest in a carousel. Manual sold out is a status, independent of the stock count. The storefront reflects price, stock, hidden and sold-out changes immediately.
+**Implementation (2026-11-05, updated 2026-11-06):** `/dashboard/items/new` and `/dashboard/items/[id]` create and edit an item with up to five photos, name, description, price, compare-at price, category, stock, visibility, badge and numeric position. Photos upload to the `items` bucket (JPG, PNG, WebP or AVIF, up to 10MB each); the first is the cover and customers open a photo lightbox (tap/click the cover) that browses every photo. Manual sold out is a status, independent of the stock count. The storefront reflects price, stock, hidden and sold-out changes immediately.
 
 Still deferred: variants, the featured flag, true drag-and-drop (reorder is up/down buttons), image compression and responsive sizes, and bulk import. Category management (CAT-03) is a managed, ordered list in `/dashboard/settings`.
 
