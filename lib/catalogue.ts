@@ -197,3 +197,50 @@ export async function replaceItemImages(itemId: string, urls: string[]): Promise
     ]);
   }
 }
+
+// Reorder by swapping the item's numeric position with its neighbour (CAT-09).
+// Mobile-friendly up/down controls drive this; drag-and-drop can layer on top.
+export async function moveItem(
+  vendorId: string,
+  itemId: string,
+  direction: 'up' | 'down',
+): Promise<void> {
+  const client = await db().connect();
+  try {
+    await client.query('begin');
+
+    const current = await client.query<{ position: number }>(
+      'select position from items where id = $1 and vendor_id = $2 for update',
+      [itemId, vendorId],
+    );
+    const item = current.rows[0];
+    if (!item) {
+      await client.query('rollback');
+      return;
+    }
+
+    const cmp = direction === 'up' ? '<' : '>';
+    const order = direction === 'up' ? 'desc' : 'asc';
+    const neighbour = await client.query<{ id: string; position: number }>(
+      `select id, position from items
+        where vendor_id = $1 and id <> $2 and position ${cmp} $3
+        order by position ${order}, created_at ${order}
+        limit 1 for update`,
+      [vendorId, itemId, item.position],
+    );
+    const other = neighbour.rows[0];
+    if (!other) {
+      await client.query('rollback');
+      return;
+    }
+
+    await client.query('update items set position = $2 where id = $1', [itemId, other.position]);
+    await client.query('update items set position = $2 where id = $1', [other.id, item.position]);
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}

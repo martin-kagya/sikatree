@@ -9,7 +9,7 @@ import { listVendorOrders, nextStatuses, type OrderRecord, type OrderStatus } fr
 import { formatGhanaPhone } from '@/lib/phone';
 import { requireVendor } from '@/lib/vendor-auth';
 import { cn } from '@/lib/utils';
-import { logoutAction, setOrderDeliveryFeeAction, updateOrderStatusAction } from './actions';
+import { logoutAction, moveItemAction, setOrderDeliveryFeeAction, updateOrderStatusAction } from './actions';
 import { setItemStatusAction } from './items/actions';
 import { CopyLink } from './copy-link';
 
@@ -396,6 +396,30 @@ export default async function DashboardPage({
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1">
+                          <form action={moveItemAction}>
+                            <input type="hidden" name="id" value={item.id} />
+                            <input type="hidden" name="direction" value="up" />
+                            <button
+                              type="submit"
+                              aria-label="Move up"
+                              className="pressable inline-flex h-8 w-8 items-center justify-center rounded-pill border border-hairline text-[14px] text-ink hover:border-ink/40"
+                            >
+                              ↑
+                            </button>
+                          </form>
+                          <form action={moveItemAction}>
+                            <input type="hidden" name="id" value={item.id} />
+                            <input type="hidden" name="direction" value="down" />
+                            <button
+                              type="submit"
+                              aria-label="Move down"
+                              className="pressable inline-flex h-8 w-8 items-center justify-center rounded-pill border border-hairline text-[14px] text-ink hover:border-ink/40"
+                            >
+                              ↓
+                            </button>
+                          </form>
+                        </span>
                         <span className="text-label text-ink">
                           {formatCedis(item.price_pesewas)}
                         </span>

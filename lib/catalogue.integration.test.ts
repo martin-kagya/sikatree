@@ -4,6 +4,9 @@ import {
   getVendorItem,
   itemError,
   listCategories,
+  listItemImages,
+  moveItem,
+  replaceItemImages,
   setItemStatus,
   updateItem,
   type ItemInput,
@@ -123,5 +126,31 @@ describe('catalogue editor', () => {
     expect(itemError({ ...base, compareAtPesewas: 10000 })).toContain('higher');
     expect(itemError({ ...base, stock: -2 })).toContain('Stock');
     expect(itemError({ ...base, status: 'hidden' })).toBeNull();
+  });
+
+  it('moves an item up and down by swapping positions', async () => {
+    const a = await createItem(vendorId, { ...base, name: 'Item A' });
+    const b = await createItem(vendorId, { ...base, name: 'Item B' });
+    const c = await createItem(vendorId, { ...base, name: 'Item C' });
+    if (!a.ok || !b.ok || !c.ok) throw new Error('create failed');
+
+    await moveItem(vendorId, c.id, 'up');
+    expect((await getVendorItem(vendorId, c.id))?.position).toBe(1);
+    expect((await getVendorItem(vendorId, b.id))?.position).toBe(2);
+
+    await moveItem(vendorId, a.id, 'down');
+    expect((await getVendorItem(vendorId, a.id))?.position).toBe(1);
+    expect((await getVendorItem(vendorId, c.id))?.position).toBe(0);
+  });
+
+  it('stores and lists additional item images', async () => {
+    const created = await createItem(vendorId, base);
+    if (!created.ok) throw new Error(created.error);
+
+    await replaceItemImages(created.id, ['/a.jpg', '/b.jpg']);
+    expect(await listItemImages(created.id)).toEqual(['/a.jpg', '/b.jpg']);
+
+    await replaceItemImages(created.id, ['/c.jpg']);
+    expect(await listItemImages(created.id)).toEqual(['/c.jpg']);
   });
 });

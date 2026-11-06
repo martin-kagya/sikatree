@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { moveItem } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import { updateLowStockThreshold } from '@/lib/inventory';
 import { parsePesewas } from '@/lib/money';
@@ -32,6 +33,17 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
   if (!id || !ORDER_STATUSES.includes(status)) return;
 
   await updateOrderStatus(id, vendorId, status, reason);
+  revalidatePath('/dashboard');
+}
+
+export async function moveItemAction(formData: FormData): Promise<void> {
+  const vendorId = await requireVendor();
+  const id = String(formData.get('id') ?? '');
+  const direction = String(formData.get('direction') ?? '') as 'up' | 'down';
+
+  if (!id || (direction !== 'up' && direction !== 'down')) return;
+
+  await moveItem(vendorId, id, direction);
   revalidatePath('/dashboard');
 }
 
