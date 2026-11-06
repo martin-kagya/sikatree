@@ -346,11 +346,13 @@ function storeWhatsappHref(phone: string, name: string): string {
 export function Storefront({
   vendor,
   items,
+  categoryOrder = [],
   pageUrl,
   domain,
 }: {
   vendor: StorefrontVendor;
   items: ShopItem[];
+  categoryOrder?: string[];
   pageUrl: string;
   domain: string;
 }) {
@@ -441,10 +443,12 @@ export function Storefront({
     gridHeadingRef.current?.focus({ preventScroll: true });
   }, [page]);
 
-  const categories = useMemo(
-    () => [...new Set(items.map((item) => item.category).filter((value): value is string => Boolean(value)))],
-    [items],
-  );
+  const categories = useMemo(() => {
+    const present = [...new Set(items.map((item) => item.category).filter((value): value is string => Boolean(value)))];
+    const ordered = categoryOrder.filter((name) => present.includes(name));
+    const extras = present.filter((name) => !ordered.includes(name)).sort();
+    return [...ordered, ...extras];
+  }, [items, categoryOrder]);
 
   const minPesewas = min ? Math.round(Number(min) * 100) : null;
   const maxPesewas = max ? Math.round(Number(max) * 100) : null;

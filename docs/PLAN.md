@@ -361,7 +361,7 @@ Backend detail, environment variables and the operational runbook live in
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
 | Order tools | Vendor CSV export of orders | None | ORD-11, ORD-12 | Done (2026-11-06) |
 | Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out, a stock movement log and low-stock alerts | Payment-time 15-minute holds | INV-01 to INV-06 | Phase 2/3 |
-| Catalogue tools | Create and edit items with up to five photos (cover plus a carousel), price, compare-at, description, category, stock, visibility, badge and position; up/down reorder; hide and manual sold out | Variants, the featured flag, drag-and-drop, category management, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
+| Catalogue tools | Create and edit items with up to five photos (cover plus a carousel), price, compare-at, description, category, stock, visibility, badge and position; up/down reorder; managed, ordered categories; hide and manual sold out | Variants, the featured flag, drag-and-drop, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
 | Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
 

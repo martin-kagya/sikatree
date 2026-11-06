@@ -5,8 +5,10 @@ import {
   itemError,
   listCategories,
   listItemImages,
+  listManagedCategories,
   moveItem,
   replaceItemImages,
+  saveCategories,
   setItemStatus,
   updateItem,
   type ItemInput,
@@ -152,5 +154,14 @@ describe('catalogue editor', () => {
 
     await replaceItemImages(created.id, ['/c.jpg']);
     expect(await listItemImages(created.id)).toEqual(['/c.jpg']);
+  });
+
+  it('saves and lists managed categories in order', async () => {
+    expect((await saveCategories(vendorId, ['Body', 'Serums', 'Gift sets'])).ok).toBe(true);
+    expect(await listManagedCategories(vendorId)).toEqual(['Body', 'Serums', 'Gift sets']);
+
+    // Re-saving replaces the whole ordered list.
+    expect((await saveCategories(vendorId, ['Gift sets', 'Body'])).ok).toBe(true);
+    expect(await listManagedCategories(vendorId)).toEqual(['Gift sets', 'Body']);
   });
 });

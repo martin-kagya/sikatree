@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft } from '@/components/icons';
+import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import type { DeliveryFeeMode } from '@/lib/shop';
 import { requireVendor } from '@/lib/vendor-auth';
 import { logoutAction } from '../actions';
+import { CategoriesSettings } from '../categories-settings';
 import { DeliverySettings } from '../delivery-settings';
 import { EtaSettings } from '../eta-settings';
 import { LowStockSettings } from '../low-stock-settings';
@@ -41,6 +43,7 @@ export default async function SettingsPage() {
   if (!vendor) notFound();
 
   const deliveryFeeMode = vendor.delivery_fee_mode as DeliveryFeeMode;
+  const categories = await listManagedCategories(vendorId);
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
@@ -91,6 +94,14 @@ export default async function SettingsPage() {
               outsideText={vendor.eta_delivery_outside_text}
               pickupText={vendor.eta_pickup_text}
             />
+          </section>
+
+          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+            <h2 className="text-h2 text-ink">Categories</h2>
+            <p className="mt-1 text-small text-ink-muted">
+              Order the category chips shown on your page.
+            </p>
+            <CategoriesSettings categories={categories} />
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">

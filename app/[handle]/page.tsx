@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Storefront } from '@/components/shop/storefront';
 import { site } from '@/lib/brand';
+import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import { normalizeHandle } from '@/lib/handle';
 import { DELIVERY_FEE_MODES, type DeliveryFeeMode, type ShopItem } from '@/lib/shop';
@@ -9,6 +10,7 @@ import { DELIVERY_FEE_MODES, type DeliveryFeeMode, type ShopItem } from '@/lib/s
 export const dynamic = 'force-dynamic';
 
 type VendorRow = {
+  id: string;
   name: string;
   handle: string;
   phone: string;
@@ -42,12 +44,12 @@ type ItemRow = {
 
 async function loadVendor(
   rawHandle: string,
-): Promise<{ vendor: VendorRow; items: ShopItem[] } | null> {
+): Promise<{ vendor: VendorRow; items: ShopItem[]; categoryOrder: string[] } | null> {
   const handle = normalizeHandle(decodeURIComponent(rawHandle));
   if (!handle) return null;
 
   const vendors = await query<VendorRow>(
-    `select name, handle, phone, type, bio, location, category, accent, card_image_ratio,
+    `select id, name, handle, phone, type, bio, location, category, accent, card_image_ratio,
             delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas
        from vendors
       where handle = $1 and status = 'live'`,
@@ -99,7 +101,9 @@ async function loadVendor(
     createdAt: row.created_at.toISOString(),
   }));
 
-  return { vendor, items };
+  const categoryOrder = await listManagedCategories(vendor.id);
+
+  return { vendor, items, categoryOrder };
 }
 
 export async function generateMetadata({
@@ -142,7 +146,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
   }
   if (!data) notFound();
 
-  const { vendor, items } = data;
+  const { vendor, items, categoryOrder } = data;
 
   const deliveryFeeMode: DeliveryFeeMode = DELIVERY_FEE_MODES.includes(
     vendor.delivery_fee_mode as DeliveryFeeMode,
@@ -167,6 +171,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         deliveryFeeOutsidePesewas: vendor.delivery_fee_outside_pesewas,
       }}
       items={items}
+      categoryOrder={categoryOrder}
       pageUrl={`https://${site.domain}/${vendor.handle}`}
       domain={site.domain}
     />

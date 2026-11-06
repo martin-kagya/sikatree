@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { moveItem } from '@/lib/catalogue';
+import { moveItem, saveCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import { updateLowStockThreshold } from '@/lib/inventory';
 import { parsePesewas } from '@/lib/money';
@@ -127,5 +127,26 @@ export async function updateLowStockThresholdAction(
   const result = await updateLowStockThreshold(vendorId, threshold);
   if (!result.ok) return { error: result.error };
 
+  return { saved: true };
+}
+
+export type CategoriesState = { error?: string; saved?: boolean };
+
+export async function saveCategoriesAction(
+  _previous: CategoriesState,
+  formData: FormData,
+): Promise<CategoriesState> {
+  const vendorId = await requireVendor();
+  const raw = String(formData.get('categories') ?? '');
+  const names = raw.split('\n');
+
+  const result = await saveCategories(vendorId, names);
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath('/dashboard/settings');
+  const rows = await query<{ handle: string }>('select handle from vendors where id = $1', [
+    vendorId,
+  ]);
+  if (rows[0]) revalidatePath(`/${rows[0].handle}`);
   return { saved: true };
 }

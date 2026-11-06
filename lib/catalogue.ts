@@ -244,3 +244,43 @@ export async function moveItem(
     client.release();
   }
 }
+
+// Vendor-defined category order (CAT-03). Items still use a free-text name;
+// this list supplies the display order and the managed set.
+export async function listManagedCategories(vendorId: string): Promise<string[]> {
+  const rows = await db().query<{ name: string }>(
+    `select name from vendor_categories where vendor_id = $1 order by position, name`,
+    [vendorId],
+  );
+  return rows.rows.map((row) => row.name);
+}
+
+export type CategoriesResult = { ok: true } | { ok: false; error: string };
+
+export async function saveCategories(vendorId: string, names: string[]): Promise<CategoriesResult> {
+  const cleaned = names.map((name) => name.trim()).filter(Boolean).slice(0, 50);
+  if (cleaned.some((name) => name.length > 40)) {
+    return { ok: false, error: 'Category names must be 40 characters or fewer.' };
+  }
+  const unique = [...new Set(cleaned)];
+
+  const client = await db().connect();
+  try {
+    await client.query('begin');
+    await client.query('delete from vendor_categories where vendor_id = $1', [vendorId]);
+    for (let index = 0; index < unique.length; index += 1) {
+      await client.query('insert into vendor_categories (vendor_id, name, position) values ($1, $2, $3)', [
+        vendorId,
+        unique[index],
+        index,
+      ]);
+    }
+    await client.query('commit');
+    return { ok: true };
+  } catch (error) {
+    await client.query('rollback').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
