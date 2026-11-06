@@ -102,7 +102,7 @@ export function FooterParallax() {
     m.vh = vh;
     // Pull the wordmark up from the vertical centre so it sits closer to the
     // footer links above it. The zoom still targets the glyph core.
-    svg.setAttribute('viewBox', `${-vw / 2} ${-vh / 2 + vh * 0.26} ${vw} ${vh}`);
+    svg.setAttribute('viewBox', `${-vw / 2} ${-vh / 2 + vh * 0.3} ${vw} ${vh}`);
 
     const size = Math.min(160, Math.max(96, vw * 0.18));
     text.style.fontSize = `${size}px`;
@@ -266,7 +266,7 @@ export function FooterParallax() {
       </div>
 
       {/* Infinite-scroll zoom: scales into the "e" and loops back to the top. */}
-      <div ref={sectionRef} className="relative" style={reduced ? undefined : { height: '180vh' }}>
+      <div ref={sectionRef} className="relative" style={reduced ? undefined : { height: '160vh' }}>
         <div
           ref={stickyRef}
           className={reduced ? 'flex justify-center py-16' : 'sticky top-0 h-svh overflow-hidden'}

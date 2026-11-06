@@ -129,7 +129,20 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `/${data.vendor.handle}` },
-    openGraph: { title, description, url: `${site.url}/${data.vendor.handle}`, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      url: `${site.url}/${data.vendor.handle}`,
+      type: 'website',
+      images: [
+        {
+          url: `${site.url}/opengraph-image`,
+          width: 1200,
+          height: 630,
+          alt: `${data.vendor.name} on sikatree`,
+        },
+      ],
+    },
   };
 }
 
