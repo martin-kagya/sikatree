@@ -1,52 +1,56 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { query } from '@/lib/db';
+import { verifyPasswordHash } from '@/lib/password';
 
-// Single-operator admin gate. The password lives in ADMIN_PASSWORD; the cookie
-// is an HMAC over an expiry, so it cannot be forged and self-expires.
+// Single-operator admin gate. The credential lives in the admin_credential table
+// as a salted scrypt hash; the cookie is an HMAC over an expiry keyed by that
+// hash, so it cannot be forged and self-expires.
 export const ADMIN_COOKIE = 'ska_admin';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
-function secret(): string | null {
-  const value = process.env.ADMIN_PASSWORD?.trim();
-  return value ? value : null;
+type Credential = { passwordHash: string };
+
+async function readCredential(): Promise<Credential | null> {
+  const rows = await query<{ password_hash: string }>(
+    'select password_hash from admin_credential where id = 1 limit 1',
+  ).catch(() => []);
+  const stored = rows[0]?.password_hash;
+  return stored ? { passwordHash: stored } : null;
 }
 
-export function adminEnabled(): boolean {
-  return secret() !== null;
+export async function adminEnabled(): Promise<boolean> {
+  return (await readCredential()) !== null;
 }
 
-function digest(value: string): Buffer {
-  return createHash('sha256').update(value).digest();
-}
-
-export function verifyPassword(input: string): boolean {
-  const expected = secret();
-  if (!expected) return false;
-  // Compare digests so the check does not leak the password length.
-  return timingSafeEqual(digest(input), digest(expected));
+export async function verifyPassword(input: string): Promise<boolean> {
+  const credential = await readCredential();
+  if (!credential) return false;
+  return verifyPasswordHash(input, credential.passwordHash);
 }
 
 function sign(payload: string, key: string): string {
   return createHmac('sha256', key).update(payload).digest('base64url');
 }
 
-export function createSessionToken(): string {
-  const key = secret();
-  if (!key) throw new Error('ADMIN_PASSWORD is not set');
+export async function createSessionToken(): Promise<string> {
+  const credential = await readCredential();
+  if (!credential) throw new Error('Admin credential is not set');
   const expires = Date.now() + SESSION_TTL_MS;
-  return `${expires}.${sign(String(expires), key)}`;
+  return `${expires}.${sign(String(expires), credential.passwordHash)}`;
 }
 
-export function isValidSessionToken(token: string | undefined): boolean {
-  const key = secret();
-  if (!key || !token) return false;
+export async function isValidSessionToken(token: string | undefined): Promise<boolean> {
+  if (!token) return false;
+  const credential = await readCredential();
+  if (!credential) return false;
   const [expiresRaw, signature] = token.split('.');
   if (!expiresRaw || !signature) return false;
   const expires = Number(expiresRaw);
   if (!Number.isFinite(expires) || expires < Date.now()) return false;
 
-  const expected = Buffer.from(sign(expiresRaw, key));
+  const expected = Buffer.from(sign(expiresRaw, credential.passwordHash));
   const actual = Buffer.from(signature);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
@@ -57,7 +61,7 @@ export async function isAdmin(): Promise<boolean> {
 }
 
 export async function requireAdmin(): Promise<void> {
-  if (!adminEnabled()) redirect('/admin/login?disabled=1');
+  if (!(await adminEnabled())) redirect('/admin/login?disabled=1');
   if (!(await isAdmin())) redirect('/admin/login');
 }
 

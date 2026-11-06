@@ -59,8 +59,9 @@ pooler on port 6543 and keep 5432 for migrations. Our advisory lock is
 transaction-scoped, so it is safe in transaction mode; the migration script's
 session lock is not, which is why migrations use 5432.
 
-`ADMIN_PASSWORD` unlocks `/admin`. Without it the admin answers 404/redirects and
-cannot be used. Generate one with `openssl rand -base64 24`.
+The `admin_credential` row unlocks `/admin` (salted scrypt hash in the database).
+Without it the admin redirects and cannot be used. Rotate it by replacing
+`password_hash` with a new hash from `lib/password.ts`.
 
 `NEXT_PUBLIC_WHATSAPP_NUMBER` (digits, e.g. `233241234567`) adds the "Confirm on
 WhatsApp" button. The prefilled text is `WAITLIST <referral code>` so the bot can
@@ -168,7 +169,7 @@ threshold we set. Change the values, rebuild, and the copy follows.
 
 ## Admin
 
-`/admin` (password from `ADMIN_PASSWORD`, 12-hour HMAC cookie, 8 attempts per
+`/admin` (password hash from `admin_credential`, 12-hour HMAC cookie, 8 attempts per
 5 minutes per IP) lists up to 200 rows with search, status and type filters,
 inline status changes, notes, a `wa.me` link that prefills `START`, and CSV
 export of the filtered set (5,000 rows). `/admin` is disallowed in `robots.txt`

@@ -19,13 +19,13 @@ production), pnpm.
 ```bash
 pnpm install
 createdb sikatree_dev
-cp .env.example .env.local     # then set ADMIN_PASSWORD
+cp .env.example .env.local     # then set DATABASE_URL
 pnpm db:migrate
 pnpm dev
 ```
 
-Open http://localhost:3000. The waitlist writes to Postgres; `/admin` is protected by
-`ADMIN_PASSWORD`.
+Open http://localhost:3000. The waitlist writes to Postgres; `/admin` is protected by the
+credential in the `admin_credential` table (seeded by the migrations).
 
 For the Supabase project, set `DATABASE_URL` to the session pooler string
 (`aws-0-eu-west-1.pooler.supabase.com:5432`), then run `pnpm db:migrate`. The direct
@@ -66,8 +66,8 @@ Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
 
 ## Environment
 
-See `.env.example`. `DATABASE_URL` is required in production. `ADMIN_PASSWORD` enables the
-admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button. Never commit
+See `.env.example`. `DATABASE_URL` is required in production. The `admin_credential` table
+enables the admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button. Never commit
 `.env.local`.
 
 ## Deployment
@@ -85,7 +85,7 @@ pnpm deploy            # opennextjs-cloudflare build && opennextjs-cloudflare de
 
 [`wrangler.jsonc`](wrangler.jsonc) is version-controlled and declares the `main` entry, the static
 `assets`, the `nodejs_compat` + `global_fetch_strictly_public` flags, the `WORKER_SELF_REFERENCE`
-service, and the `HYPERDRIVE` binding (with the Hyperdrive config id). Set `ADMIN_PASSWORD`,
+service, and the `HYPERDRIVE` binding (with the Hyperdrive config id). Set
 `AUTH_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_WHATSAPP_NUMBER` and the Supabase storage keys as Worker
 secrets/variables, and run `pnpm db:migrate` against the Supabase database before the first deploy
 and after every migration.

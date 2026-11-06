@@ -20,7 +20,7 @@ export type LoginState = { error?: string };
 const STATUSES: SignupStatus[] = ['waiting', 'invited', 'onboarded', 'unsubscribed'];
 
 export async function loginAction(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  if (!adminEnabled()) return { error: 'Set ADMIN_PASSWORD in the environment to use the admin.' };
+  if (!(await adminEnabled())) return { error: 'No admin credential is stored.' };
 
   const requestHeaders = await headers();
   const ip = clientIp(requestHeaders);
@@ -30,10 +30,10 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   }
 
   const password = String(formData.get('password') ?? '');
-  if (!verifyPassword(password)) return { error: 'Wrong password.' };
+  if (!(await verifyPassword(password))) return { error: 'Wrong password.' };
 
   const store = await cookies();
-  store.set(ADMIN_COOKIE, createSessionToken(), {
+  store.set(ADMIN_COOKIE, await createSessionToken(), {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',

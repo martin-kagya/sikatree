@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default async function AdminLoginPage() {
   if (await isAdmin()) redirect('/admin');
 
-  const enabled = adminEnabled();
+  const enabled = await adminEnabled();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-4">
@@ -25,8 +25,8 @@ export default async function AdminLoginPage() {
             <LoginForm />
           ) : (
             <p className="text-small text-danger">
-              Admin is disabled. Set <code className="font-mono">ADMIN_PASSWORD</code> in the
-              environment, then restart the server.
+              Admin is disabled. Add a credential to the{' '}
+              <code className="font-mono">admin_credential</code> table.
             </p>
           )}
         </div>
