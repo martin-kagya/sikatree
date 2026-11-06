@@ -56,8 +56,9 @@ retried job does not advance the conversation twice.
 
 `GET /api/whatsapp/webhook` answers Meta's subscription check with
 `WHATSAPP_VERIFY_TOKEN`. The worker endpoint is `GET /api/internal/jobs/run`,
-secured by `CRON_SECRET`; `vercel.json` schedules it every minute. In local dev
-the webhook drains immediately, so `pnpm wa:sim` stays responsive.
+secured by `CRON_SECRET` and scheduled by a Cloudflare Cron Trigger (or an HTTP
+scheduler) on production; Vercel Cron is not used. In local dev the webhook
+drains immediately, so `pnpm wa:sim` stays responsive.
 
 ## Providers
 

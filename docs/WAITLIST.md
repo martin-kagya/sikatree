@@ -54,7 +54,7 @@ The publishable and secret keys in `.env.local` are not used yet; they are there
 for Storage, Auth and Edge Functions later. Only `NEXT_PUBLIC_*` values may reach
 the browser, and the secret key must never be exposed.
 
-If connection limits bite on Vercel, switch the runtime URL to the transaction
+If connection limits bite on the Worker, switch the runtime URL to the transaction
 pooler on port 6543 and keep 5432 for migrations. Our advisory lock is
 transaction-scoped, so it is safe in transaction mode; the migration script's
 session lock is not, which is why migrations use 5432.

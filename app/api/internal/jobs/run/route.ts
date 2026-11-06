@@ -4,8 +4,9 @@ import { drainOnce } from '@/lib/wa-jobs';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Called by the scheduler (Vercel Cron) to drain the queue. The Authorization
-// header carries CRON_SECRET; without it the endpoint stays closed.
+// Called by the scheduler (Cloudflare Cron Trigger or an HTTP scheduler) to
+// drain the queue. The Authorization header carries CRON_SECRET; without it the
+// endpoint stays closed.
 function authorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;

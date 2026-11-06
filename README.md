@@ -72,30 +72,35 @@ admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button. 
 
 ## Deployment
 
-Vercel for the web app, Supabase for Postgres. Set `DATABASE_URL`, `ADMIN_PASSWORD` and
-`NEXT_PUBLIC_WHATSAPP_NUMBER` in the hosting project, then run `pnpm db:migrate` against the
-Supabase database before the first deploy and after every migration.
+**Cloudflare Workers** for the web app, **Supabase** for Postgres. The production target is
+`sikatree.zqt.workers.dev`; Vercel is not used.
+
+Deployment config is version-controlled in [`wrangler.jsonc`](wrangler.jsonc): it declares the
+`HYPERDRIVE` binding, the `nodejs_compat` flag and the compatibility date. Fill in the Hyperdrive
+config id there. Set `DATABASE_URL`, `ADMIN_PASSWORD` and `NEXT_PUBLIC_WHATSAPP_NUMBER` as Worker
+secrets/variables, and run `pnpm db:migrate` against the Supabase database before the first deploy
+and after every migration.
 
 ### Cloudflare Workers
 
 The Worker opens one Postgres client per query or transaction and closes it before the request
 ends. A global pool leaves dead sockets behind between Workers requests.
 
-For the connection, create a **Hyperdrive** configuration for the Supabase database and bind it
-to the Worker as `HYPERDRIVE`. Keep `DATABASE_URL` for local development and `pnpm db:migrate`.
-At runtime the Worker reads `env.HYPERDRIVE.connectionString` from `cloudflare:workers`; without
-that binding it fails loudly with `[db] HYPERDRIVE binding missing` instead of the misleading
+For the connection, create a **Hyperdrive** configuration for the Supabase database (pooler host
+on port 5432) and declare it in `wrangler.jsonc` under `hyperdrive` with `binding = "HYPERDRIVE"`.
+Keep `DATABASE_URL` for local development and `pnpm db:migrate`. At runtime the Worker reads
+`env.HYPERDRIVE.connectionString` from `cloudflare:workers`; without that binding it fails loudly
+with `[db] HYPERDRIVE binding missing` instead of the misleading
 `Connection terminated unexpectedly`.
 
-The Worker runtime needs Node compatibility. Create the Hyperdrive config against the Supabase
-pooler host on port 5432, add the binding in the Cloudflare dashboard, and redeploy after any
-binding change.
+The Worker runtime needs Node compatibility (`nodejs_compat`, already in `wrangler.jsonc`).
 
 **Verify after every deploy** — hit `GET /api/health`:
 
 - `{"ok":true,"source":"HYPERDRIVE"}` → the database hop is wired correctly.
 - `{"ok":false,"source":"DATABASE_URL"}` (or 503) → the binding is missing; re-attach it.
 
-The binding is dashboard-only (there is no `wrangler.toml`), so recreating the Worker or
-switching deploy methods can silently drop it. `/api/health` catches that in seconds rather than
-waiting for `Connection terminated unexpectedly` in the logs.
+**Scheduled jobs.** `GET /api/internal/jobs/run` drains the WhatsApp queue (secured by
+`CRON_SECRET`). Schedule it with a Cloudflare Cron Trigger plus a `scheduled` handler, or an
+external HTTP scheduler that GETs that path with `Authorization: Bearer $CRON_SECRET`. Vercel Cron
+is not used.
