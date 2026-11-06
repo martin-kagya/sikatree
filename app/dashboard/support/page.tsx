@@ -4,6 +4,7 @@ import { MessageCircle } from '@/components/icons';
 import { contact, site } from '@/lib/brand';
 import { listVendorSupportTickets } from '@/lib/support';
 import { requireVendor } from '@/lib/vendor-auth';
+import { DashboardMenu } from '../dashboard-menu';
 
 export const metadata: Metadata = {
   title: 'Support | sikatree',
@@ -38,15 +39,11 @@ export default async function VendorSupportPage() {
             </Link>
             <h1 className="mt-1 text-h1 text-ink">Support</h1>
           </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
-          >
-            Dashboard
-          </Link>
+          <DashboardMenu />
         </header>
 
-        <p className="mt-2 text-small text-ink-muted">
+        <main className="mt-6 space-y-5 stagger">
+        <p className="text-small text-ink-muted">
           Replies arrive on WhatsApp. This page shows the requests you have opened.
         </p>
 
@@ -99,6 +96,7 @@ export default async function VendorSupportPage() {
         <p className="mt-6 text-center text-[12px] text-ink-muted">
           sikatree support · {site.email}
         </p>
+        </main>
       </div>
     </div>
   );

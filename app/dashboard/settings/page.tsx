@@ -7,8 +7,8 @@ import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import type { DeliveryFeeMode } from '@/lib/shop';
 import { requireVendor } from '@/lib/vendor-auth';
-import { logoutAction } from '../actions';
 import { AvailabilitySettings } from '../availability-settings';
+import { DashboardMenu } from '../dashboard-menu';
 import { CategoriesSettings } from '../categories-settings';
 import { DeliverySettings } from '../delivery-settings';
 import { EtaSettings } from '../eta-settings';
@@ -62,14 +62,7 @@ export default async function SettingsPage() {
             <ChevronLeft className="h-4 w-4" />
             Dashboard
           </Link>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-small text-ink hover:border-ink/40"
-            >
-              Sign out
-            </button>
-          </form>
+          <DashboardMenu />
         </header>
 
         <main className="mt-6 space-y-5 stagger">

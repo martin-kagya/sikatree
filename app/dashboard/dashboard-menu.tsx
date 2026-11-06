@@ -59,8 +59,9 @@ export function DashboardMenu() {
         <div className="overflow-hidden">
           <div
             className={cn(
-              'rounded-[16px] border border-hairline bg-white p-1.5 shadow-float transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-              open ? 'translate-y-0' : '-translate-y-1',
+              'rounded-[16px] border border-hairline bg-white p-1.5 shadow-float',
+              'transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+              open ? 'translate-y-0 scale-100' : '-translate-y-1 scale-95',
             )}
           >
             {LINKS.map(({ href, label, icon: Icon }) => (
