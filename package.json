@@ -15,7 +15,10 @@
     "budget": "node scripts/perf-budget.mjs",
     "images:build": "node scripts/optimize-images.mjs",
     "wa:sim": "node scripts/wa-sim.mjs",
-    "seed:demo": "node scripts/seed-demo-store.mjs"
+    "seed:demo": "node scripts/seed-demo-store.mjs",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -26,6 +29,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.16",
     "@types/node": "^22.10.0",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
@@ -36,6 +40,7 @@
     "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
   }
 }

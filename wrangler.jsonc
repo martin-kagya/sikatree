@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sikatree",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": [
+    // Required for Next.js + pg on Workers.
+    "nodejs_compat",
+    // Allow the global fetch() to reach Supabase Storage and the WhatsApp API.
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // Supabase Postgres through Cloudflare Hyperdrive. lib/db.ts reads
+  // env.HYPERDRIVE.connectionString, so the binding name must be exactly
+  // HYPERDRIVE.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "a56e4608851d4b47ae6edc7ded341660"
+    }
+  ],
+  // OpenNext self-reference, required for server actions and routing.
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "sikatree"
+    }
+  ]
+}

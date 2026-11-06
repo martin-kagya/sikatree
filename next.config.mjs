@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // OpenNext Cloudflare builds from the standalone output.
+  output: 'standalone',
   // Keep pg as a runtime package so Cloudflare Hyperdrive can supply the
   // connection string without the driver being rewritten by the bundler.
   serverExternalPackages: ['pg'],

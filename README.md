@@ -75,9 +75,18 @@ admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button. 
 **Cloudflare Workers** for the web app, **Supabase** for Postgres. The production target is
 `sikatree.zqt.workers.dev`; Vercel is not used.
 
-Deployment config is version-controlled in [`wrangler.jsonc`](wrangler.jsonc): it declares the
-`HYPERDRIVE` binding, the `nodejs_compat` flag and the compatibility date. Fill in the Hyperdrive
-config id there. Set `DATABASE_URL`, `ADMIN_PASSWORD` and `NEXT_PUBLIC_WHATSAPP_NUMBER` as Worker
+The app is adapted with **OpenNext Cloudflare** (`@opennextjs/cloudflare` + `wrangler`). Build and
+deploy with:
+
+```bash
+pnpm deploy            # opennextjs-cloudflare build && opennextjs-cloudflare deploy
+# or, in Workers Builds: build command `opennextjs-cloudflare build`, deploy command `npx wrangler deploy`
+```
+
+[`wrangler.jsonc`](wrangler.jsonc) is version-controlled and declares the `main` entry, the static
+`assets`, the `nodejs_compat` + `global_fetch_strictly_public` flags, the `WORKER_SELF_REFERENCE`
+service, and the `HYPERDRIVE` binding (with the Hyperdrive config id). Set `ADMIN_PASSWORD`,
+`AUTH_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_WHATSAPP_NUMBER` and the Supabase storage keys as Worker
 secrets/variables, and run `pnpm db:migrate` against the Supabase database before the first deploy
 and after every migration.
 
