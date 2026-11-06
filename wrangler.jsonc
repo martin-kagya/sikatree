@@ -19,7 +19,11 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "a56e4608851d4b47ae6edc7ded341660"
+      "id": "a56e4608851d4b47ae6edc7ded341660",
+      // Used only when running `wrangler dev` / the local platform proxy; the
+      // real connection string is supplied by Hyperdrive at runtime. This local
+      // value just needs to be a syntactically valid Postgres URL.
+      "localConnectionString": "postgres://localhost:5432/sikatree_dev"
     }
   ],
   // OpenNext self-reference, required for server actions and routing.
