@@ -1,10 +1,21 @@
 'use client';
 
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Menu, MessageCircle, Settings, ShoppingCart, X } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { logoutAction } from './actions';
+
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-auto h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink/20 border-t-ink"
+    />
+  );
+}
 
 const LINKS = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
@@ -73,6 +84,7 @@ export function DashboardMenu() {
               >
                 <Icon className="h-4 w-4 text-ink-muted" />
                 {label}
+                <PendingDot />
               </Link>
             ))}
             <form action={logoutAction}>

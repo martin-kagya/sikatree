@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronLeft } from '@/components/icons';
 import { readAvailability } from '@/lib/availability';
 import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import type { DeliveryFeeMode } from '@/lib/shop';
 import { requireVendor } from '@/lib/vendor-auth';
 import { AvailabilitySettings } from '../availability-settings';
-import { DashboardMenu } from '../dashboard-menu';
 import { CategoriesSettings } from '../categories-settings';
 import { DeliverySettings } from '../delivery-settings';
 import { EtaSettings } from '../eta-settings';
@@ -52,20 +50,10 @@ export default async function SettingsPage() {
   const sellsServices = pureServices || vendor.type === 'both';
 
   return (
-    <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-[720px]">
-        <header className="flex items-center justify-between">
-          <Link
-            href="/dashboard"
-            className="inline-flex h-9 items-center gap-1 rounded-pill border border-hairline bg-white px-3 text-small text-ink hover:border-ink/40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Dashboard
+    <main className="mx-auto mt-6 max-w-[720px] space-y-5 stagger">
+          <Link href="/dashboard" className="text-[13px] text-ink-muted hover:text-ink">
+            Back to dashboard
           </Link>
-          <DashboardMenu />
-        </header>
-
-        <main className="mt-6 space-y-5 stagger">
           <div>
             <p className="text-[12px] uppercase tracking-wide text-ink-muted">Settings</p>
             <h1 className="mt-1 text-h1 text-ink">{vendor.name}</h1>
@@ -132,8 +120,6 @@ export default async function SettingsPage() {
               <LowStockSettings threshold={vendor.low_stock_threshold} />
             </section>
           ) : null}
-        </main>
-      </div>
-    </div>
+    </main>
   );
 }

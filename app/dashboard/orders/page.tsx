@@ -5,7 +5,6 @@ import { query } from '@/lib/db';
 import { ACTIVE_ORDER_STATUSES, listVendorOrders, type OrderStatus } from '@/lib/orders';
 import { requireVendor } from '@/lib/vendor-auth';
 import { cn } from '@/lib/utils';
-import { DashboardMenu } from '../dashboard-menu';
 import { OrderCard } from '../order-card';
 
 export const metadata: Metadata = {
@@ -39,16 +38,7 @@ export default async function OrdersPage({
   if (!vendor) notFound();
 
   return (
-    <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-[960px]">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="text-[20px] font-semibold tracking-[-0.03em] text-ink">
-            sikatree
-          </Link>
-          <DashboardMenu />
-        </header>
-
-        <main className="mt-6 space-y-5 stagger">
+    <main className="mt-6 space-y-5 stagger">
           <div>
             <Link href="/dashboard" className="text-[13px] text-ink-muted hover:text-ink">
               Back to dashboard
@@ -95,8 +85,6 @@ export default async function OrdersPage({
               No {filter.key === 'all' ? '' : `${filter.label.toLowerCase()} `}orders yet.
             </p>
           )}
-        </main>
-      </div>
-    </div>
+    </main>
   );
 }

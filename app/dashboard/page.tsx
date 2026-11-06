@@ -9,7 +9,6 @@ import { requireVendor } from '@/lib/vendor-auth';
 import { moveItemAction } from './actions';
 import { setItemStatusAction } from './items/actions';
 import { CopyLink } from './copy-link';
-import { DashboardMenu } from './dashboard-menu';
 import { OrderCard } from './order-card';
 
 export const metadata: Metadata = {
@@ -68,16 +67,7 @@ export default async function DashboardPage({
   const newOrders = orders.filter((order) => order.status === 'pending').length;
 
   return (
-    <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
-      <div className="mx-auto max-w-[960px]">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="text-[20px] font-semibold tracking-[-0.03em] text-ink">
-            sikatree
-          </Link>
-          <DashboardMenu />
-        </header>
-
-        <main className="mt-6 space-y-5 stagger">
+    <main className="mt-6 space-y-5 stagger">
           {params.item ? (
             <p className="rounded-card bg-mint-100 p-4 text-small text-green-deep">
               Item saved. Your page is up to date.
@@ -280,8 +270,6 @@ export default async function DashboardPage({
           <p className="text-center text-[12px] text-ink-muted">
             Online payments, payouts and the full PWA follow.
           </p>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 }
