@@ -203,101 +203,47 @@ export function WaitlistForm() {
           )}
         </div>
 
-        {state.referralUrl && (
-          <div className="mt-8 rounded-card border border-hairline-dark bg-surface-dark p-5">
-            <h4 className="text-label text-white">Move up the line</h4>
-            <p className="mt-1 text-small text-ink-on-dark-muted">
-              Invite a vendor who sells. Every vendor who joins with your link moves you up a spot.
-            </p>
-            <div className="mt-3 flex items-center gap-2">
-              <input
-                readOnly
-                value={referralUrl.replace(/^https?:\/\//, '')}
-                aria-label="Your referral link"
-                onFocus={(event) => event.currentTarget.select()}
-                className="h-11 min-w-0 flex-1 rounded-inner border border-hairline-dark bg-[#101010] px-3 text-small text-white"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  track('share_click', { kind: 'copy_referral' });
-                  void copy(referralUrl);
-                }}
-                className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-pill border border-hairline-dark px-4 text-small text-white transition-colors hover:border-white/60"
-              >
-                <Copy className="h-3.5 w-3.5" />
-                {copied ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
-          {whatsappHref ? (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => track('whatsapp_click', { surface: 'success' })}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-green-main px-6 text-label text-ink transition-transform duration-150 hover:-translate-y-px active:scale-[0.98]"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Confirm on WhatsApp
-            </a>
+        <div className="mt-8 rounded-card border border-hairline-dark bg-surface-dark p-5 text-left">
+          {state.referralUrl ? (
+            <>
+              <h4 className="text-label text-white">Move up the line</h4>
+              <p className="mt-1 text-small text-ink-on-dark-muted">
+                Invite a vendor who sells. Every vendor who joins with your link moves you up a spot.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  readOnly
+                  value={referralUrl.replace(/^https?:\/\//, '')}
+                  aria-label="Your referral link"
+                  onFocus={(event) => event.currentTarget.select()}
+                  className="h-11 min-w-0 flex-1 rounded-inner border border-hairline-dark bg-[#101010] px-3 text-small text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    track('share_click', { kind: 'copy_referral' });
+                    void copy(referralUrl);
+                  }}
+                  className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-pill border border-hairline-dark px-4 text-small text-white transition-colors hover:border-white/60"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              track('share_click', { kind: 'share' });
-              void share();
-            }}
-            className={cn(
-              'inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-hairline-dark px-6 text-label text-white transition-colors hover:border-white/60',
-              whatsappHref ? 'sm:w-auto' : 'flex-1',
-            )}
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </button>
-        </div>
 
-        {referralUrl ? (
-          <div className="mt-3 text-center">
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                `I’m on the sikatree waitlist. Vendors: send photos, get a store. ${referralUrl}`,
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => track('share_click', { kind: 'whatsapp_share' })}
-              className="text-small text-ink-on-dark-muted underline underline-offset-4 hover:text-white"
-            >
-              Share on WhatsApp
-            </a>
-          </div>
-        ) : null}
-
-        <p className="mt-4 text-center text-[12px] text-ink-on-dark-muted">
-          {whatsappHref
-            ? 'Tapping Confirm opens WhatsApp. Say hi and we’ll start your setup early.'
-            : 'We’ll reach out on WhatsApp when your spot opens.'}
-        </p>
-
-        {!state.handle && state.phone ? (
-          <ClaimHandleForm phone={state.phone} suggested={state.handleSuggestion} />
-        ) : null}
-
-        <div className="mt-8 rounded-card border border-hairline-dark bg-surface-dark p-6 text-left">
-          <h4 className="text-h3 text-white">One more thing: tell us about your shop</h4>
-          <p className="mt-1 text-small text-ink-on-dark-muted">
-            Optional, and it helps us get you set up faster.
-          </p>
-
-          {detailsState.ok ? (
-            <p className="mt-4 text-small text-green-main">
-              {detailsState.message ?? 'Thanks, that helps.'}
+          <div className={cn(state.referralUrl && 'mt-5 border-t border-hairline-dark pt-5')}>
+            <h4 className="text-label text-white">Tell us about your shop</h4>
+            <p className="mt-1 text-small text-ink-on-dark-muted">
+              Optional, and it helps us get you set up faster.
             </p>
-          ) : (
+
+            {detailsState.ok ? (
+              <p className="mt-4 text-small text-green-main">
+                {detailsState.message ?? 'Thanks, that helps.'}
+              </p>
+            ) : (
             <form action={detailsAction} className="mt-4 space-y-4">
               <input type="hidden" name="phone" value={state.phone ?? ''} />
 
@@ -372,8 +318,65 @@ export function WaitlistForm() {
                 {detailsPending ? 'Saving…' : 'Save details'}
               </button>
             </form>
-          )}
+            )}
+          </div>
         </div>
+
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+          {whatsappHref ? (
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => track('whatsapp_click', { surface: 'success' })}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-green-main px-6 text-label text-ink transition-transform duration-150 hover:-translate-y-px active:scale-[0.98]"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Confirm on WhatsApp
+            </a>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              track('share_click', { kind: 'share' });
+              void share();
+            }}
+            className={cn(
+              'inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-hairline-dark px-6 text-label text-white transition-colors hover:border-white/60',
+              whatsappHref ? 'sm:w-auto' : 'flex-1',
+            )}
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </button>
+        </div>
+
+        {referralUrl ? (
+          <div className="mt-3 text-center">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `I’m on the sikatree waitlist. Vendors: send photos, get a store. ${referralUrl}`,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => track('share_click', { kind: 'whatsapp_share' })}
+              className="text-small text-ink-on-dark-muted underline underline-offset-4 hover:text-white"
+            >
+              Share on WhatsApp
+            </a>
+          </div>
+        ) : null}
+
+        <p className="mt-4 text-center text-[12px] text-ink-on-dark-muted">
+          {whatsappHref
+            ? 'Tapping Confirm opens WhatsApp. Say hi and we’ll start your setup early.'
+            : 'We’ll reach out on WhatsApp when your spot opens.'}
+        </p>
+
+        {!state.handle && state.phone ? (
+          <ClaimHandleForm phone={state.phone} suggested={state.handleSuggestion} />
+        ) : null}
+
       </div>
     );
   }
