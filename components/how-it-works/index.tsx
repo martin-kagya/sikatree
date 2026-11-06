@@ -14,6 +14,7 @@ import { Eyebrow } from '@/components/ui/eyebrow';
 import { Accent } from '@/components/ui/accent';
 import { SignalIcon, WifiIcon, BatteryIcon } from '@/components/hero/icons';
 import { InboxScreen, ParseScreen, HiwShopScreen, OrderScreen } from './screens';
+import { cn } from '@/lib/utils';
 import { STEPS } from './data';
 import './how-it-works.css';
 
@@ -148,6 +149,60 @@ function StepList({
         </li>
       ))}
     </ol>
+  );
+}
+
+
+function MobileSteps() {
+  const [current, setCurrent] = useState(0);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const index = itemRefs.current.indexOf(entry.target as HTMLLIElement);
+          if (index >= 0) setCurrent(index);
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px', threshold: 0 },
+    );
+    for (const item of itemRefs.current) if (item) observer.observe(item);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="hiw-mobile">
+      <ol className="hiw-mobile-steps">
+        {STEPS.map((step, i) => (
+          <li
+            key={step.title}
+            ref={(el) => {
+              itemRefs.current[i] = el;
+            }}
+            className={cn('hiw-mobile-step', i === current && 'is-current')}
+          >
+            <div className="hiw-mobile-step-top">
+              <span className="hiw-step-tag">{step.tag}</span>
+              <span className="hiw-mobile-count">
+                {i + 1} / {STEPS.length}
+              </span>
+            </div>
+            <div className="hiw-mobile-step-main">
+              <h3 className="hiw-step-title">{step.title}</h3>
+              <p className="hiw-step-body">{step.body}</p>
+            </div>
+            {i < STEPS.length - 1 ? (
+              <div className="hiw-hint hiw-mobile-hint" aria-hidden>
+                Scroll to continue
+                <span className="hiw-hint-bar" />
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -302,6 +357,7 @@ export function HowItWorks() {
     const settle = () => {
       if (reducedRef.current || touchingRef.current) return;
       const D = track.offsetHeight - stage.offsetHeight;
+      if (D <= 0) return;
       const p = clamp01(-track.getBoundingClientRect().top / Math.max(1, D));
       const w = computeWeights(p);
       if (!w.every((x) => x < 1 - 1e-6)) return; // already in a hold zone
@@ -349,6 +405,8 @@ export function HowItWorks() {
           </div>
         </div>
       </div>
+
+      <MobileSteps />
     </section>
   );
 }
