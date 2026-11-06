@@ -329,7 +329,7 @@ export function WaitlistForm() {
               target="_blank"
               rel="noreferrer"
               onClick={() => track('whatsapp_click', { surface: 'success' })}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-pill bg-green-main px-6 text-label text-ink transition-transform duration-150 hover:-translate-y-px active:scale-[0.98]"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-green-main px-6 text-label text-ink transition-transform duration-150 hover:-translate-y-px active:scale-[0.98] sm:w-auto sm:flex-1"
             >
               <MessageCircle className="h-4 w-4" />
               Confirm on WhatsApp
@@ -342,8 +342,8 @@ export function WaitlistForm() {
               void share();
             }}
             className={cn(
-              'inline-flex h-12 items-center justify-center gap-2 rounded-pill border border-hairline-dark px-6 text-label text-white transition-colors hover:border-white/60',
-              whatsappHref ? 'sm:w-auto' : 'flex-1',
+              'inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill border border-hairline-dark px-6 text-label text-white transition-colors hover:border-white/60 sm:w-auto',
+              whatsappHref ? 'sm:w-auto' : 'sm:flex-1',
             )}
           >
             <Share2 className="h-4 w-4" />
