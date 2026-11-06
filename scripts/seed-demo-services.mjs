@@ -80,6 +80,35 @@ const SERVICES = [
     source: 'public/hustles/heels.jpg',
     position: 'centre',
   },
+  {
+    slug: 'birthday-glam',
+    name: 'Birthday glam',
+    price: 30000,
+    category: 'Events',
+    description: 'A bold, photo-ready look for your birthday dinner or night out. About 60 minutes.',
+    source: 'public/hustles/beauty.jpg',
+    position: 'bottom',
+  },
+  {
+    slug: 'content-day',
+    name: 'Content day',
+    price: 120000,
+    category: 'Photoshoot',
+    description:
+      'Half-day glam with up to three looks and a touch-up artist on set for your content shoot.',
+    source: 'public/hustles/photography.jpg',
+    position: 'bottom',
+  },
+  {
+    slug: 'makeup-lesson',
+    name: 'One-on-one makeup lesson',
+    price: 40000,
+    category: 'Events',
+    description:
+      'Bring your kit and learn your everyday face in 90 minutes. Notes and a product list included.',
+    source: 'public/hustles/beauty.jpg',
+    position: 'left',
+  },
 ];
 
 await mkdir(OUT_DIR, { recursive: true });
