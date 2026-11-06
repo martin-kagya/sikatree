@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Dropdown } from '@/components/ui/dropdown';
 import {
   SLOT_MINUTES_OPTIONS,
   WEEKDAY_NAMES,
@@ -93,18 +94,16 @@ export function AvailabilitySettings({
           <label htmlFor="slotMinutes" className="mb-1.5 block text-[13px] font-medium text-ink">
             Slot length
           </label>
-          <select
+          <Dropdown
             id="slotMinutes"
             name="slotMinutes"
             defaultValue={String(slotMinutes)}
-            className={`${field} w-full`}
-          >
-            {SLOT_MINUTES_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option} minutes
-              </option>
-            ))}
-          </select>
+            ariaLabel="Slot length"
+            options={SLOT_MINUTES_OPTIONS.map((option) => ({
+              value: String(option),
+              label: `${option} minutes`,
+            }))}
+          />
         </div>
         <div>
           <label htmlFor="weeklyCap" className="mb-1.5 block text-[13px] font-medium text-ink">
