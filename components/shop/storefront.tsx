@@ -129,7 +129,7 @@ function storeWhatsappHref(phone: string, name: string): string {
     priority: boolean;
     tint: string;
     onAdd: (id: string) => void;
-    onViewImages: (item: ShopItem, index: number) => void;
+    onViewImages: (item: ShopItem) => void;
   }) {
     const soldOut = isSoldOut(item);
     const low = soldOut ? null : stockLabel(item.stock);
@@ -151,7 +151,7 @@ function storeWhatsappHref(phone: string, name: string): string {
             images.length && 'cursor-zoom-in',
           )}
           style={{ aspectRatio: 'var(--card-image-ratio)' }}
-          onClick={images.length ? () => onViewImages(item, 0) : undefined}
+          onClick={images.length ? () => onViewImages(item) : undefined}
         >
           {images.length ? (
             images.map((url, index) => (
@@ -392,10 +392,10 @@ export function Storefront({
   const headerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   const checkoutRef = useRef<HTMLDialogElement>(null);
-  const galleryRef = useRef<HTMLDialogElement>(null);
-  const [gallery, setGallery] = useState<{ images: string[]; name: string; index: number } | null>(
-    null,
-  );
+  const quickViewRef = useRef<HTMLDialogElement>(null);
+  const [quickView, setQuickView] = useState<{ item: ShopItem; index: number } | null>(null);
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
   const [stuck, setStuck] = useState(false);
 
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -434,6 +434,17 @@ export function Storefront({
       /* storage full or private mode */
     }
   }, [cart, cartKey, cartReady]);
+
+  // Lock the page behind the quick-view modal while it is open.
+  useEffect(() => {
+    if (!quickView) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [quickView]);
+
   useEffect(() => {
     const element = headerRef.current;
     if (!element) return;
@@ -582,10 +593,10 @@ export function Storefront({
     }
   }
 
-  function addToCart(id: string) {
+  function addToCart(id: string, quantity = 1) {
     setCart((previous) => ({
       ...previous,
-      [id]: Math.min((previous[id] ?? 0) + 1, 20),
+      [id]: Math.min((previous[id] ?? 0) + quantity, 20),
     }));
   }
 
@@ -618,23 +629,48 @@ export function Storefront({
     }, 170);
   }
 
-  function openGallery(item: ShopItem, index: number) {
-    const images = item.images.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
-    if (!images.length) return;
-    setGallery({ images, name: item.name, index: Math.min(index, images.length - 1) });
-    galleryRef.current?.showModal();
+  function quickViewImages(item: ShopItem): string[] {
+    return item.images.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
   }
 
-  function closeGallery() {
-    galleryRef.current?.close();
+  function openQuickView(item: ShopItem) {
+    if (!quickViewImages(item).length) return;
+    setQuickView({ item, index: 0 });
+    setQty(1);
+    setAdded(false);
+    const dialog = quickViewRef.current;
+    if (!dialog) return;
+    dialog.classList.remove('is-closing');
+    dialog.showModal();
   }
 
-  function stepGallery(delta: number) {
-    setGallery((current) => {
+  function closeQuickView() {
+    const dialog = quickViewRef.current;
+    if (!dialog || dialog.classList.contains('is-closing')) return;
+    dialog.classList.add('is-closing');
+    window.setTimeout(() => {
+      dialog.classList.remove('is-closing');
+      dialog.close();
+      setQuickView(null);
+      setQty(1);
+      setAdded(false);
+    }, 220);
+  }
+
+  function stepQuickView(delta: number) {
+    setQuickView((current) => {
       if (!current) return current;
-      const next = (current.index + delta + current.images.length) % current.images.length;
-      return { ...current, index: next };
+      const count = quickViewImages(current.item).length;
+      if (count < 2) return current;
+      return { ...current, index: (current.index + delta + count) % count };
     });
+  }
+
+  function addFromQuickView() {
+    if (!quickView || added) return;
+    addToCart(quickView.item.id, qty);
+    setAdded(true);
+    window.setTimeout(() => closeQuickView(), 900);
   }
 
   async function onCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
@@ -678,6 +714,12 @@ export function Storefront({
 
   const locationLine = [vendor.category, vendor.location].filter(Boolean).join(', ');
   const ctaHref = storeWhatsappHref(vendor.phone, vendor.name);
+
+  const qvItem = quickView?.item ?? null;
+  const qvImages = qvItem ? quickViewImages(qvItem) : [];
+  const qvIndex = quickView?.index ?? 0;
+  const qvSoldOut = qvItem ? isSoldOut(qvItem) : false;
+  const qvFocal = qvItem ? `${(qvItem.focalX ?? 0.5) * 100}% ${(qvItem.focalY ?? 0.5) * 100}%` : '50% 50%';
 
   return (
     <div className="shop-root min-h-screen bg-[var(--shop-bg)] pb-16" style={themeStyle}>
@@ -942,7 +984,7 @@ export function Storefront({
                   priority={index < 4}
                   tint={FALLBACK_TINTS[index % FALLBACK_TINTS.length]}
                   onAdd={addToCart}
-                  onViewImages={openGallery}
+                  onViewImages={openQuickView}
                 />
               ))}
             </div>
@@ -1475,78 +1517,155 @@ export function Storefront({
       </dialog>
 
       <dialog
-        ref={galleryRef}
-        aria-label="Product photos"
-        className="shop-gallery"
+        ref={quickViewRef}
+        aria-modal="true"
+        aria-label={qvItem ? qvItem.name : 'Product quick view'}
+        className="shop-quickview"
         onCancel={(event) => {
           event.preventDefault();
-          closeGallery();
+          closeQuickView();
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) closeQuickView();
         }}
         onKeyDown={(event) => {
-          if (event.key === 'ArrowLeft') stepGallery(-1);
-          if (event.key === 'ArrowRight') stepGallery(1);
+          if (event.key === 'ArrowLeft') stepQuickView(-1);
+          if (event.key === 'ArrowRight') stepQuickView(1);
         }}
       >
-        {gallery ? (
-          <div className="shop-gallery-panel">
-            <button
-              type="button"
-              onClick={closeGallery}
-              aria-label="Close photos"
-              className="shop-gallery-close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+        {qvItem ? (
+          <div className="shop-quickview-panel" onClick={(event) => event.stopPropagation()}>
+            <div className="shop-quickview-media">
+              {qvImages.map((url, index) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt={index === 0 ? qvItem.name : ''}
+                  className={cn(
+                    'shop-quickview-img',
+                    index === qvIndex ? 'opacity-100' : 'opacity-0',
+                  )}
+                  style={{ objectPosition: qvFocal }}
+                />
+              ))}
 
-            <div className="shop-gallery-media">
-              <img
-                src={gallery.images[gallery.index]}
-                alt={gallery.name}
-                className="shop-gallery-img"
-              />
-              {gallery.images.length > 1 ? (
+              {qvImages.length > 1 ? (
                 <>
                   <button
                     type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      stepGallery(-1);
-                    }}
+                    onClick={() => stepQuickView(-1)}
                     aria-label="Previous photo"
-                    className="shop-gallery-nav left-3"
+                    className="shop-quickview-arrow left-3"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                   </button>
                   <button
                     type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      stepGallery(1);
-                    }}
+                    onClick={() => stepQuickView(1)}
                     aria-label="Next photo"
-                    className="shop-gallery-nav right-3"
+                    className="shop-quickview-arrow right-3"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </button>
+                  <div className="shop-quickview-dots" aria-hidden="true">
+                    {qvImages.map((url, index) => (
+                      <span
+                        key={url}
+                        className={cn(
+                          'h-1.5 rounded-full bg-white transition-all duration-300',
+                          index === qvIndex ? 'w-4' : 'w-1.5 opacity-60',
+                        )}
+                      />
+                    ))}
+                  </div>
                 </>
               ) : null}
+
+              <button
+                type="button"
+                onClick={closeQuickView}
+                aria-label="Close quick view"
+                className="shop-quickview-close"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
             </div>
 
-            <div className="flex items-center justify-between gap-3 px-1 pb-1">
-              <p className="truncate text-[14px] font-medium text-ink">{gallery.name}</p>
-              {gallery.images.length > 1 ? (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {gallery.images.map((url, index) => (
-                    <span
-                      key={url}
-                      className={cn(
-                        'h-1.5 rounded-full transition-all duration-200',
-                        index === gallery.index ? 'w-4 bg-ink' : 'w-1.5 bg-ink/25',
-                      )}
-                    />
-                  ))}
-                </div>
+            <div className="shop-quickview-details">
+              {qvItem.category ? (
+                <p className="text-[11px] font-medium text-stone-500">{qvItem.category}</p>
               ) : null}
+
+              <h2 className="text-2xl font-semibold tracking-tight text-stone-900">
+                {qvItem.name}
+              </h2>
+
+              <div className="flex items-baseline gap-2">
+                <p className="text-xl font-semibold tabular-nums text-stone-900">
+                  {formatShopPrice(qvItem.pricePesewas)}
+                </p>
+                {qvItem.compareAtPesewas ? (
+                  <p className="text-sm tabular-nums text-stone-400 line-through">
+                    {formatShopPrice(qvItem.compareAtPesewas)}
+                  </p>
+                ) : null}
+              </div>
+
+              {qvItem.description ? (
+                <p className="max-w-[34ch] text-[15px] leading-relaxed text-stone-500">
+                  {qvItem.description}
+                </p>
+              ) : null}
+
+              <div className="mt-1 inline-flex w-fit items-center rounded-full border border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setQty((value) => Math.max(1, value - 1))}
+                  disabled={qty <= 1}
+                  aria-label="Decrease quantity"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-stone-700 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30 focus-visible:ring-offset-2 disabled:opacity-40"
+                >
+                  <span aria-hidden="true" className="text-lg leading-none">
+                    −
+                  </span>
+                </button>
+                <span className="w-8 text-center text-sm font-medium tabular-nums text-stone-900">
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQty((value) => Math.min(10, value + 1))}
+                  disabled={qty >= 10}
+                  aria-label="Increase quantity"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-stone-700 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30 focus-visible:ring-offset-2 disabled:opacity-40"
+                >
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={addFromQuickView}
+                disabled={qvSoldOut || added}
+                className={cn(
+                  'mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-[15px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/40 focus-visible:ring-offset-2',
+                  added
+                    ? 'bg-green-deep text-white'
+                    : 'bg-stone-900 text-white hover:bg-stone-800',
+                  qvSoldOut && !added && 'cursor-not-allowed opacity-50',
+                )}
+              >
+                {added ? (
+                  <>
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                    Added to cart
+                  </>
+                ) : qvSoldOut ? (
+                  'Sold out'
+                ) : (
+                  <>Add to cart · {formatShopPrice(qvItem.pricePesewas * qty)}</>
+                )}
+              </button>
             </div>
           </div>
         ) : null}
