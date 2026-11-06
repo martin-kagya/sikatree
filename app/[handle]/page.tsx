@@ -27,6 +27,7 @@ type VendorRow = {
 
 type ItemRow = {
   id: string;
+  kind: 'product' | 'service';
   name: string;
   description: string | null;
   price_pesewas: number;
@@ -59,8 +60,8 @@ async function loadVendor(
   if (!vendor) return null;
 
   const rows = await query<ItemRow>(
-    `select id, name, description, price_pesewas, compare_at_pesewas, stock, status, category,
-            badge, focal_x, focal_y, image_url, image_url_alt, created_at
+    `select id, kind, name, description, price_pesewas, compare_at_pesewas, stock, status,
+            category, badge, focal_x, focal_y, image_url, image_url_alt, created_at
        from items
       where vendor_id = (select id from vendors where handle = $1)
         and status in ('active', 'sold_out')
@@ -83,6 +84,7 @@ async function loadVendor(
 
   const items: ShopItem[] = rows.map((row) => ({
     id: row.id,
+    kind: row.kind,
     name: row.name,
     description: row.description,
     pricePesewas: row.price_pesewas,

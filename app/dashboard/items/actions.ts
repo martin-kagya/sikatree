@@ -12,6 +12,7 @@ import {
   updateItem,
   type ItemBadge,
   type ItemInput,
+  type ItemKind,
   type ItemStatus,
 } from '@/lib/catalogue';
 import { query } from '@/lib/db';
@@ -84,7 +85,11 @@ export async function saveItemAction(
     return { error: 'Enter a valid compare-at price.' };
   }
 
-  const stockRaw = text(formData, 'stock');
+  const kindRaw = text(formData, 'kind');
+  const kind: ItemKind = kindRaw === 'service' ? 'service' : 'product';
+
+  // Services have no stock; the field is hidden for them.
+  const stockRaw = kind === 'service' ? '' : text(formData, 'stock');
   const stock = stockRaw === '' ? null : Number(stockRaw);
   if (stock !== null && !Number.isInteger(stock)) {
     return { error: 'Stock must be a whole number, or blank for unlimited.' };
@@ -113,6 +118,7 @@ export async function saveItemAction(
     imageUrl,
     imageUrlAlt: existing?.imageUrlAlt ?? null,
     badge,
+    kind,
     position,
   };
 

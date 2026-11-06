@@ -5,6 +5,7 @@ export type SortKey = 'featured' | 'price-asc' | 'price-desc' | 'newest';
 
 export type ShopItem = {
   id: string;
+  kind: 'product' | 'service';
   name: string;
   description: string | null;
   pricePesewas: number;

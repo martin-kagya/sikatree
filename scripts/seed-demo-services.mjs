@@ -152,8 +152,8 @@ await client.query('delete from items where vendor_id = $1', [vendorId]);
 for (const [index, service] of SERVICES.entries()) {
   await client.query(
     `insert into items
-       (vendor_id, name, description, price_pesewas, stock, status, category, position, image_url)
-     values ($1, $2, $3, $4, null, 'active', $5, $6, $7)`,
+       (vendor_id, name, description, price_pesewas, stock, status, category, position, image_url, kind)
+     values ($1, $2, $3, $4, null, 'active', $5, $6, $7, 'service')`,
     [
       vendorId,
       service.name,

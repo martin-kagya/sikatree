@@ -16,6 +16,7 @@ import {
 function item(overrides: Partial<ShopItem> = {}): ShopItem {
   return {
     id: Math.random().toString(36),
+    kind: 'product',
     name: 'Serum',
     description: 'A brightening serum.',
     pricePesewas: 12000,

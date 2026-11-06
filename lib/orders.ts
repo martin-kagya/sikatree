@@ -169,12 +169,22 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     price_pesewas: number;
     stock: number | null;
     status: string;
+    kind: 'product' | 'service';
   }>(
-    `select id, name, price_pesewas, stock, status
+    `select id, name, price_pesewas, stock, status, kind
        from items
       where vendor_id = $1 and id = any($2::uuid[])`,
     [vendor.id, ids],
   );
+
+  // A shop order and a service booking never share a cart.
+  if (fulfilment === 'appointment') {
+    if (itemRows.rows.some((row) => row.kind !== 'service')) {
+      return { ok: false, error: 'Product and service bookings are checked out separately.' };
+    }
+  } else if (itemRows.rows.some((row) => row.kind === 'service')) {
+    return { ok: false, error: 'Product and service bookings are checked out separately.' };
+  }
 
   const byId = new Map(itemRows.rows.map((row) => [row.id, row]));
   const orderItems: { id: string; name: string; price: number; quantity: number; total: number }[] = [];
@@ -187,12 +197,14 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     if (item.stock !== null && item.stock <= 0) {
       return { ok: false, error: `${item.name} is sold out.` };
     }
+    // A service is booked once; quantity never stacks on an appointment.
+    const quantity = fulfilment === 'appointment' ? 1 : line.quantity;
     orderItems.push({
       id: item.id,
       name: item.name,
       price: item.price_pesewas,
-      quantity: line.quantity,
-      total: item.price_pesewas * line.quantity,
+      quantity,
+      total: item.price_pesewas * quantity,
     });
   }
 

@@ -29,6 +29,7 @@ const base: ItemInput = {
   imageUrl: null,
   imageUrlAlt: null,
   badge: 'discount',
+  kind: 'product',
   position: null,
 };
 

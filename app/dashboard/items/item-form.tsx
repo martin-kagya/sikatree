@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { Dropdown } from '@/components/ui/dropdown';
-import type { EditableItem } from '@/lib/catalogue';
+import type { EditableItem, ItemKind } from '@/lib/catalogue';
 import { saveItemAction, type ItemFormState } from './actions';
 
 const initial: ItemFormState = {};
@@ -15,13 +15,16 @@ const label = 'mb-1.5 block text-[13px] font-medium text-ink';
 export function ItemForm({
   item,
   categories,
-  isService = false,
+  vendorType = 'products',
 }: {
   item: EditableItem | null;
   categories: string[];
-  isService?: boolean;
+  vendorType?: 'products' | 'services' | 'both';
 }) {
   const [state, action, pending] = useActionState(saveItemAction, initial);
+  const [kind, setKind] = useState<ItemKind>(
+    item?.kind ?? (vendorType === 'services' ? 'service' : 'product'),
+  );
   const [preview, setPreview] = useState(item?.imageUrl ?? null);
   const [newFile, setNewFile] = useState(false);
   const [remove, setRemove] = useState(false);
@@ -94,6 +97,31 @@ export function ItemForm({
             {state.error}
           </p>
         ) : null}
+
+        {vendorType === 'both' ? (
+          <div>
+            <label htmlFor="kind" className={label}>
+              Type
+            </label>
+            <Dropdown
+              id="kind"
+              name="kind"
+              value={kind}
+              onChange={(value) => setKind(value === 'service' ? 'service' : 'product')}
+              ariaLabel="Item type"
+              size="lg"
+              options={[
+                { value: 'product', label: 'Product' },
+                { value: 'service', label: 'Service' },
+              ]}
+            />
+            <p className="mt-1.5 text-[11px] text-ink-muted">
+              Services are booked, not shipped: no stock, and customers pick a time.
+            </p>
+          </div>
+        ) : (
+          <input type="hidden" name="kind" value={kind} />
+        )}
 
         <div>
           <label htmlFor="name" className={label}>
@@ -176,7 +204,7 @@ export function ItemForm({
               ))}
             </datalist>
           </div>
-          {!isService ? (
+          {kind !== 'service' ? (
             <div>
               <label htmlFor="stock" className={label}>
                 Stock
@@ -215,7 +243,7 @@ export function ItemForm({
               size="lg"
               options={[
                 { value: 'active', label: 'Active' },
-                { value: 'sold_out', label: isService ? 'Unavailable' : 'Sold out' },
+                { value: 'sold_out', label: kind === 'service' ? 'Unavailable' : 'Sold out' },
                 { value: 'hidden', label: 'Hidden' },
               ]}
             />

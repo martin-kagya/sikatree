@@ -5,6 +5,9 @@ export const ITEM_STATUSES: ItemStatus[] = ['active', 'sold_out', 'hidden'];
 
 export type ItemBadge = 'discount' | 'popular' | 'new' | null;
 
+export type ItemKind = 'product' | 'service';
+export const ITEM_KINDS: ItemKind[] = ['product', 'service'];
+
 export type ItemInput = {
   name: string;
   description: string | null;
@@ -16,6 +19,7 @@ export type ItemInput = {
   imageUrl: string | null;
   imageUrlAlt: string | null;
   badge: ItemBadge;
+  kind: ItemKind;
   position: number | null;
 };
 
@@ -44,6 +48,7 @@ export function itemError(input: ItemInput): string | null {
     return 'Stock must be a whole number from 0 to 999,999, or blank for unlimited.';
   }
   if (!ITEM_STATUSES.includes(input.status)) return 'Choose a valid visibility.';
+  if (!ITEM_KINDS.includes(input.kind)) return 'Choose whether this is a product or a service.';
   if (input.badge !== null && !['discount', 'popular', 'new'].includes(input.badge)) {
     return 'Choose a valid badge.';
   }
@@ -59,7 +64,7 @@ export function itemError(input: ItemInput): string | null {
 export type ItemResult = { ok: true; id: string } | { ok: false; error: string };
 
 const COLUMNS = `name, description, price_pesewas, compare_at_pesewas, category, stock,
-  status, image_url, image_url_alt, badge, position`;
+  status, image_url, image_url_alt, badge, kind, position`;
 
 function values(input: ItemInput): unknown[] {
   return [
@@ -73,6 +78,7 @@ function values(input: ItemInput): unknown[] {
     input.imageUrl,
     input.imageUrlAlt,
     input.badge,
+    input.kind,
   ];
 }
 
@@ -82,8 +88,8 @@ export async function createItem(vendorId: string, input: ItemInput): Promise<It
 
   const rows = await db().query<{ id: string }>(
     `insert into items (vendor_id, ${COLUMNS})
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
-             coalesce($12, (select coalesce(max(position), -1) + 1 from items where vendor_id = $1)))
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+             coalesce($13, (select coalesce(max(position), -1) + 1 from items where vendor_id = $1)))
      returning id`,
     [vendorId, ...values(input), input.position],
   );
@@ -103,8 +109,8 @@ export async function updateItem(
     `update items
         set name = $2, description = $3, price_pesewas = $4, compare_at_pesewas = $5,
             category = $6, stock = $7, status = $8, image_url = $9, image_url_alt = $10,
-            badge = $11, position = coalesce($12, position)
-      where id = $1 and vendor_id = $13
+            badge = $11, kind = $12, position = coalesce($13, position)
+      where id = $1 and vendor_id = $14
       returning id`,
     [id, ...values(input), input.position, vendorId],
   );
@@ -126,10 +132,11 @@ export async function getVendorItem(vendorId: string, id: string): Promise<Edita
     image_url: string | null;
     image_url_alt: string | null;
     badge: ItemBadge;
+    kind: ItemKind;
     position: number;
   }>(
     `select id, name, description, price_pesewas, compare_at_pesewas, category, stock,
-            status, image_url, image_url_alt, badge, position
+            status, image_url, image_url_alt, badge, kind, position
        from items where id = $1 and vendor_id = $2`,
     [id, vendorId],
   );
@@ -148,6 +155,7 @@ export async function getVendorItem(vendorId: string, id: string): Promise<Edita
     imageUrl: row.image_url,
     imageUrlAlt: row.image_url_alt,
     badge: row.badge,
+    kind: row.kind,
     position: row.position,
   };
 }
@@ -285,12 +293,13 @@ export async function saveCategories(vendorId: string, names: string[]): Promise
   }
 }
 
-// Service vendors book appointments instead of selling stock.
-export async function vendorIsService(vendorId: string): Promise<boolean> {
+export async function getVendorType(
+  vendorId: string,
+): Promise<'products' | 'services' | 'both'> {
   const rows = await db().query<{ type: string | null }>(
     'select type from vendors where id = $1',
     [vendorId],
   );
   const type = rows.rows[0]?.type;
-  return type === 'services' || type === 'both';
+  return type === 'services' || type === 'both' ? type : 'products';
 }

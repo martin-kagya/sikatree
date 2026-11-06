@@ -395,7 +395,13 @@ export function Storefront({
   const [added, setAdded] = useState(false);
   const [stuck, setStuck] = useState(false);
 
-  const [cart, setCart] = useState<Record<string, number>>({});
+  const [activeKind, setActiveKind] = useState<'product' | 'service'>(
+    vendor.type === 'services' ? 'service' : 'product',
+  );
+  const [carts, setCarts] = useState<Record<'product' | 'service', Record<string, number>>>({
+    product: {},
+    service: {},
+  });
   const [cartReady, setCartReady] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -419,7 +425,18 @@ export function Storefront({
       const raw = window.localStorage.getItem(cartKey);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') setCart(parsed as Record<string, number>);
+        if (parsed && typeof parsed === 'object') {
+          const record = parsed as Record<string, unknown>;
+          if ('product' in record || 'service' in record) {
+            setCarts({
+              product: (record.product as Record<string, number>) ?? {},
+              service: (record.service as Record<string, number>) ?? {},
+            });
+          } else {
+            // Legacy single cart: treat it as the product cart.
+            setCarts({ product: record as Record<string, number>, service: {} });
+          }
+        }
       }
     } catch {
       /* ignore corrupt storage */
@@ -430,11 +447,11 @@ export function Storefront({
   useEffect(() => {
     if (!cartReady) return;
     try {
-      window.localStorage.setItem(cartKey, JSON.stringify(cart));
+      window.localStorage.setItem(cartKey, JSON.stringify(carts));
     } catch {
       /* storage full or private mode */
     }
-  }, [cart, cartKey, cartReady]);
+  }, [carts, cartKey, cartReady]);
 
   // Lock the page behind the quick-view modal while it is open.
   useEffect(() => {
@@ -469,18 +486,27 @@ export function Storefront({
     gridHeadingRef.current?.focus({ preventScroll: true });
   }, [page]);
 
+  const sellsServices = vendor.type === 'services' || vendor.type === 'both';
+  const sellingServices = sellsServices && activeKind === 'service';
+  // A vendor with both a shop and services switches between them, so the grid,
+  // filters and cart only ever deal with one kind at a time.
+  const kindItems =
+    vendor.type === 'both' ? items.filter((item) => item.kind === activeKind) : items;
+
   const categories = useMemo(() => {
-    const present = [...new Set(items.map((item) => item.category).filter((value): value is string => Boolean(value)))];
+    const present = [
+      ...new Set(kindItems.map((item) => item.category).filter((value): value is string => Boolean(value))),
+    ];
     const ordered = categoryOrder.filter((name) => present.includes(name));
     const extras = present.filter((name) => !ordered.includes(name)).sort();
     return [...ordered, ...extras];
-  }, [items, categoryOrder]);
+  }, [kindItems, categoryOrder]);
 
   const minPesewas = min ? Math.round(Number(min) * 100) : null;
   const maxPesewas = max ? Math.round(Number(max) * 100) : null;
 
   const filtered = useMemo(() => {
-    const base = filterItems(items, {
+    const base = filterItems(kindItems, {
       q: query,
       category,
       minPesewas: Number.isFinite(minPesewas) ? minPesewas : null,
@@ -488,18 +514,19 @@ export function Storefront({
       inStockOnly,
     });
     return soldOutLast(sortItems(base, sort));
-  }, [items, query, category, sort, minPesewas, maxPesewas, inStockOnly]);
+  }, [kindItems, query, category, sort, minPesewas, maxPesewas, inStockOnly]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
   const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const showSearch = items.length > 12;
-  const showSort = items.length > 8;
+  const showSearch = kindItems.length > 12;
+  const showSort = kindItems.length > 8;
   const showChips = categories.length >= 2;
-  const showSidebar = items.length >= 40;
-  const hasProducts = items.length > 0;
-  const sellingServices = vendor.type === 'services';
+  const showSidebar = kindItems.length >= 40;
+  const hasProducts = kindItems.length > 0;
+
+  const cart = carts[activeKind];
 
   const cartLines = useMemo(
     () =>
@@ -624,18 +651,25 @@ export function Storefront({
   }
 
   function addToCart(id: string, quantity = 1) {
-    setCart((previous) => ({
-      ...previous,
-      [id]: Math.min((previous[id] ?? 0) + quantity, 20),
-    }));
+    const item = items.find((candidate) => candidate.id === id);
+    const kind = item?.kind ?? activeKind;
+    // A service is booked once; adding it again does not stack.
+    const isService = kind === 'service';
+    setCarts((current) => {
+      const next = { ...current[kind] };
+      next[id] = isService ? 1 : Math.min((next[id] ?? 0) + quantity, 20);
+      return { ...current, [kind]: next };
+    });
   }
 
   function changeQuantity(id: string, quantity: number) {
-    setCart((previous) => {
-      const next = { ...previous };
+    const item = items.find((candidate) => candidate.id === id);
+    const kind = item?.kind ?? activeKind;
+    setCarts((current) => {
+      const next = { ...current[kind] };
       if (quantity <= 0) delete next[id];
       else next[id] = Math.min(quantity, 20);
-      return next;
+      return { ...current, [kind]: next };
     });
   }
 
@@ -701,7 +735,7 @@ export function Storefront({
 
   function addFromQuickView() {
     if (!quickView || added) return;
-    addToCart(quickView.item.id, qty);
+    addToCart(quickView.item.id, quickView.item.kind === 'service' ? 1 : qty);
     setAdded(true);
     window.setTimeout(() => closeQuickView(), 900);
   }
@@ -732,7 +766,7 @@ export function Storefront({
         setLeaving(true);
         window.setTimeout(() => {
           setOrder(placed);
-          setCart({});
+          setCarts((current) => ({ ...current, [activeKind]: {} }));
           setLeaving(false);
         }, 190);
       } else {
@@ -752,6 +786,7 @@ export function Storefront({
   const qvImages = qvItem ? quickViewImages(qvItem) : [];
   const qvIndex = quickView?.index ?? 0;
   const qvSoldOut = qvItem ? isSoldOut(qvItem) : false;
+  const qvIsService = qvItem?.kind === 'service';
   const qvFocal = qvItem ? `${(qvItem.focalX ?? 0.5) * 100}% ${(qvItem.focalY ?? 0.5) * 100}%` : '50% 50%';
 
   return (
@@ -883,6 +918,44 @@ export function Storefront({
             </div>
           ) : null}
         </div>
+
+        {/* Shop and services live side by side without mixing. */}
+        {vendor.type === 'both' ? (
+          <div className="mt-6 flex gap-2" role="tablist" aria-label="Catalogue">
+            {(['product', 'service'] as const).map((kind) => {
+              const active = activeKind === kind;
+              const count = items.filter((item) => item.kind === kind).length;
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => {
+                    setActiveKind(kind);
+                    navigate({ category: null });
+                  }}
+                  className={cn(
+                    'flex h-11 items-center gap-2 rounded-[12px] border px-4 text-[14px] font-medium transition-colors duration-200',
+                    active
+                      ? 'border-transparent bg-[var(--shop-ink)] text-white'
+                      : 'border-[var(--shop-hair)] bg-[var(--shop-card)] text-[var(--shop-ink)] hover:border-[var(--shop-muted)]',
+                  )}
+                >
+                  {kind === 'product' ? 'Products' : 'Services'}
+                  <span
+                    className={cn(
+                      'text-[12px]',
+                      active ? 'text-white/70' : 'text-[var(--shop-muted)]',
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {/* Toolbar: chips first, then the controls a small catalogue needs. */}
         {(showChips || showSearch || showSort) && hasProducts ? (
@@ -1259,27 +1332,33 @@ export function Storefront({
                             <p className="text-[12px] text-[var(--shop-muted)]">
                               {formatShopPrice(item.pricePesewas)}
                             </p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => changeQuantity(item.id, quantity - 1)}
-                                aria-label={`Remove one ${item.name}`}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
-                              >
-                                −
-                              </button>
-                              <span className="w-6 text-center text-[13px] text-[var(--shop-ink)]">
-                                {quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => changeQuantity(item.id, quantity + 1)}
-                                aria-label={`Add one ${item.name}`}
-                                className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
-                              >
-                                +
-                              </button>
-                            </div>
+                            {item.kind === 'service' ? (
+                              <p className="mt-1 text-[12px] text-[var(--shop-muted)]">
+                                One booking
+                              </p>
+                            ) : (
+                              <div className="mt-1 flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => changeQuantity(item.id, quantity - 1)}
+                                  aria-label={`Remove one ${item.name}`}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
+                                >
+                                  −
+                                </button>
+                                <span className="w-6 text-center text-[13px] text-[var(--shop-ink)]">
+                                  {quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => changeQuantity(item.id, quantity + 1)}
+                                  aria-label={`Add one ${item.name}`}
+                                  className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--shop-hair)] text-[15px] leading-none"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
                           </div>
                           <p className="whitespace-nowrap text-[13px] font-medium text-[var(--shop-ink)]">
                             {formatShopPrice(item.pricePesewas * quantity)}
@@ -1671,7 +1750,8 @@ export function Storefront({
                 </p>
               ) : null}
 
-              <div className="mt-1 inline-flex w-fit items-center rounded-full border border-stone-200">
+              {!qvIsService ? (
+                <div className="mt-1 inline-flex w-fit items-center rounded-full border border-stone-200">
                 <button
                   type="button"
                   onClick={() => setQty((value) => Math.max(1, value - 1))}
@@ -1695,7 +1775,8 @@ export function Storefront({
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
-              </div>
+                </div>
+              ) : null}
 
               <button
                 type="button"
@@ -1715,9 +1796,9 @@ export function Storefront({
                     Added to cart
                   </>
                 ) : qvSoldOut ? (
-                  sellingServices ? 'Unavailable' : 'Sold out'
+                  qvIsService ? 'Unavailable' : 'Sold out'
                 ) : (
-                  <>Add to cart · {formatShopPrice(qvItem.pricePesewas * qty)}</>
+                  <>Add to cart · {formatShopPrice(qvItem.pricePesewas * (qvIsService ? 1 : qty))}</>
                 )}
               </button>
             </div>

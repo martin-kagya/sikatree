@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getVendorItem, listCategories, vendorIsService } from '@/lib/catalogue';
+import { getVendorItem, getVendorType, listCategories } from '@/lib/catalogue';
 import { requireVendor } from '@/lib/vendor-auth';
 import { ItemForm } from '../item-form';
 
@@ -19,10 +19,10 @@ export default async function EditItemPage({
 }) {
   const vendorId = await requireVendor();
   const { id } = await params;
-  const [item, categories, isService] = await Promise.all([
+  const [item, categories, vendorType] = await Promise.all([
     getVendorItem(vendorId, id),
     listCategories(vendorId),
-    vendorIsService(vendorId),
+    getVendorType(vendorId),
   ]);
   if (!item) notFound();
 
@@ -36,7 +36,7 @@ export default async function EditItemPage({
         <p className="mt-1 text-small text-ink-muted">
           Changes appear on your page as soon as you save.
         </p>
-        <ItemForm item={item} categories={categories} isService={isService} />
+        <ItemForm item={item} categories={categories} vendorType={vendorType} />
       </div>
     </div>
   );

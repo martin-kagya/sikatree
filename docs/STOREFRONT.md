@@ -49,8 +49,18 @@ about 40% without descriptions).
 with Monday-Saturday 09:00-18:00 availability, 60-minute slots and no weekly
 cap, so the booking flow can be tested end to end.
 
+## Products and services together
+
+A vendor whose type is `both` carries items of either kind. The storefront shows
+a **Products / Services** switch above the catalogue; the grid, category chips,
+search and cart only ever cover the active kind, and each kind keeps its own
+cart in `localStorage` (switching tabs never mixes them). Services are booked one
+at a time — the quick view hides the quantity stepper and the cart line reads
+"One booking". `placeOrder` also rejects a cart that mixes the two kinds.
+
 ## Conditional UI
 
+- Products / Services tabs when the vendor sells both.
 - Category chips when the store has at least 2 categories.
 - Search above 12 products, sort above 8.
 - Pagination and the footer count above 24 products.

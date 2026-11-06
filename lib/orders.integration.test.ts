@@ -91,6 +91,7 @@ describe('placeOrder', () => {
 
   it('books an appointment for a service vendor', async () => {
     await query("update vendors set type = 'services' where id = $1", [vendorId]);
+    await query("update items set kind = 'service' where vendor_id = $1", [vendorId]);
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     await query(
       `insert into vendor_availability (vendor_id, weekday, start_minute, end_minute)
@@ -108,8 +109,11 @@ describe('placeOrder', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.order.fulfilment).toBe('appointment');
-    expect(result.order.totalPesewas).toBe(24000);
+    // Services are booked once, even if the cart asked for two.
+    expect(result.order.totalPesewas).toBe(12000);
     expect(result.order.eta).toContain('Appointment on');
+    const lines = await query<{ quantity: number }>('select quantity from order_items');
+    expect(lines[0].quantity).toBe(1);
   });
 
   it('waives delivery for pickup', async () => {

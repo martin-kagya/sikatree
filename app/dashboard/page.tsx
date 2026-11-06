@@ -34,6 +34,7 @@ type Item = {
   price_pesewas: number;
   stock: number | null;
   status: string;
+  kind: 'product' | 'service';
   image_url: string | null;
 };
 
@@ -241,7 +242,7 @@ export default async function DashboardPage({
       [vendorId],
     ),
     query<Item>(
-      `select id, name, category, price_pesewas, stock, status, image_url
+      `select id, name, category, price_pesewas, stock, status, kind, image_url
          from items where vendor_id = $1 order by position, created_at`,
       [vendorId],
     ),
@@ -380,6 +381,7 @@ export default async function DashboardPage({
                   const soldOut =
                     item.status === 'sold_out' || (item.stock !== null && item.stock <= 0);
                   const hidden = item.status === 'hidden';
+                  const itemIsService = item.kind === 'service';
                   return (
                     <li
                       key={item.id}
@@ -397,14 +399,15 @@ export default async function DashboardPage({
                         <div className="min-w-0">
                           <p className="truncate text-body text-ink">{item.name}</p>
                           <p className="text-[11px] text-ink-muted">
+                            {itemIsService ? 'Service' : 'Product'} ·{' '}
                             {item.category ?? 'No category'} ·{' '}
                             {hidden
                               ? 'Hidden'
                               : soldOut
-                                ? isService
+                                ? itemIsService
                                   ? 'Unavailable'
                                   : 'Sold out'
-                                : isService
+                                : itemIsService
                                   ? 'Open for bookings'
                                   : item.stock === null
                                     ? 'Unlimited'
@@ -454,7 +457,7 @@ export default async function DashboardPage({
                               type="submit"
                               className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
                             >
-                              {isService ? 'Unavailable' : 'Sold out'}
+                              {itemIsService ? 'Unavailable' : 'Sold out'}
                             </button>
                           </form>
                         ) : item.status !== 'active' ? (
