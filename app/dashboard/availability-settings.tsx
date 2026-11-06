@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import {
   SLOT_MINUTES_OPTIONS,
   WEEKDAY_NAMES,
+  WEEKDAY_SHORT,
   minuteToTime,
 } from '@/lib/availability-shared';
 import { saveAvailabilityAction, type AvailabilitySettingsState } from './actions';
@@ -12,6 +13,9 @@ const initial: AvailabilitySettingsState = {};
 
 const field =
   'h-10 rounded-[10px] border border-hairline bg-white px-3 text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:border-ink/20 focus:border-green-deep focus:ring-2 focus:ring-green-deep';
+
+const timeField =
+  'h-10 min-w-0 flex-1 rounded-[10px] border border-hairline bg-white px-2 text-[12px] text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-green-deep focus:ring-2 focus:ring-green-deep';
 
 // Monday first.
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -51,31 +55,34 @@ export function AvailabilitySettings({
         {ORDER.map((weekday) => {
           const window = byDay.get(weekday);
           return (
-            <div key={weekday} className="flex flex-wrap items-center gap-2">
-              <label className="flex w-[136px] items-center gap-2 text-[13px] text-ink">
+            <div key={weekday} className="flex items-center gap-2">
+              <label className="flex w-[72px] shrink-0 items-center gap-1.5 text-[13px] text-ink sm:w-[128px] sm:gap-2">
                 <input
                   type="checkbox"
                   name={`enabled-${weekday}`}
                   defaultChecked={Boolean(window)}
-                  className="h-4 w-4 rounded border-hairline"
+                  className="h-4 w-4 shrink-0 rounded border-hairline"
                 />
-                {WEEKDAY_NAMES[weekday]}
+                <span className="sm:hidden">{WEEKDAY_SHORT[weekday]}</span>
+                <span className="hidden sm:inline">{WEEKDAY_NAMES[weekday]}</span>
               </label>
-              <input
-                type="time"
-                name={`start-${weekday}`}
-                defaultValue={window ? minuteToTime(window.startMinute) : '09:00'}
-                aria-label={`${WEEKDAY_NAMES[weekday]} start time`}
-                className={field}
-              />
-              <span className="text-[12px] text-ink-muted">to</span>
-              <input
-                type="time"
-                name={`end-${weekday}`}
-                defaultValue={window ? minuteToTime(window.endMinute) : '17:00'}
-                aria-label={`${WEEKDAY_NAMES[weekday]} end time`}
-                className={field}
-              />
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <input
+                  type="time"
+                  name={`start-${weekday}`}
+                  defaultValue={window ? minuteToTime(window.startMinute) : '09:00'}
+                  aria-label={`${WEEKDAY_NAMES[weekday]} start time`}
+                  className={timeField}
+                />
+                <span className="shrink-0 text-[11px] text-ink-muted">–</span>
+                <input
+                  type="time"
+                  name={`end-${weekday}`}
+                  defaultValue={window ? minuteToTime(window.endMinute) : '17:00'}
+                  aria-label={`${WEEKDAY_NAMES[weekday]} end time`}
+                  className={timeField}
+                />
+              </div>
             </div>
           );
         })}
