@@ -16,6 +16,7 @@
     "images:build": "node scripts/optimize-images.mjs",
     "wa:sim": "node scripts/wa-sim.mjs",
     "seed:demo": "node scripts/seed-demo-store.mjs",
+    "seed:services": "node scripts/seed-demo-services.mjs",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
