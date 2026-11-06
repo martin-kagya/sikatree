@@ -225,6 +225,41 @@ a[class*='rounded-pill']:active {
   }
 }
 
+/* Waitlist success reveal: the card springs up, the tick pops. */
+@keyframes wl-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes wl-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.wl-success {
+  animation: wl-in 520ms var(--ease-spring) both;
+}
+
+.wl-success-check {
+  animation: wl-pop 620ms var(--ease-standard) 80ms both;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *,

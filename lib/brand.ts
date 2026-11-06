@@ -24,5 +24,5 @@ export const ostra = {
 // the "Confirm on WhatsApp" deep link. Blank falls back to the wa.me share link.
 export const contact = {
   whatsappNumber: (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, ''),
-  prefilled: 'WAITLIST',
+  prefilled: 'START',
 } as const;

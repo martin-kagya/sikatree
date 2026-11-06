@@ -157,20 +157,18 @@ export function WaitlistForm() {
 
   const whatsappHref = useMemo(() => {
     if (!contact.whatsappNumber) return null;
-    const text = state.referralCode
-      ? `${contact.prefilled} ${state.referralCode}`
-      : contact.prefilled;
-    return `https://wa.me/${contact.whatsappNumber}?text=${encodeURIComponent(text)}`;
-  }, [state.referralCode]);
+    // The bot matches the whole message against START, so keep it exact.
+    return `https://wa.me/${contact.whatsappNumber}?text=${encodeURIComponent(contact.prefilled)}`;
+  }, []);
 
   if (state.ok) {
     const position = state.position;
     const referralUrl = state.referralUrl ?? '';
 
     return (
-      <div className="mx-auto max-w-md">
+      <div className="wl-success mx-auto max-w-md">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-mint-100 text-green-deep">
+          <div className="wl-success-check mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-mint-100 text-green-deep">
             <Check className="h-7 w-7" strokeWidth={1.75} />
           </div>
           <h3 className="mt-5 text-h3 text-white sm:text-h3-lg">
@@ -360,24 +358,6 @@ export function WaitlistForm() {
                 </div>
               </fieldset>
 
-              <div>
-                <label htmlFor="businessName" className="mb-1.5 block text-label text-white">
-                  Business name <span className="text-ink-on-dark-muted">(optional)</span>
-                </label>
-                <input
-                  id="businessName"
-                  name="businessName"
-                  type="text"
-                  value={businessName}
-                  onChange={(event) => setBusinessName(event.target.value)}
-                  placeholder="Ama’s Glow Studio"
-                  className={cn(
-                    inputCls,
-                    'h-[52px] rounded-inner border border-hairline-dark bg-surface-dark px-4 focus:border-green-main focus:ring-2 focus:ring-green-main',
-                  )}
-                />
-              </div>
-
               {detailsState.error && (
                 <p role="alert" className="text-small text-danger">
                   {detailsState.error}
@@ -465,65 +445,6 @@ export function WaitlistForm() {
           </p>
         )}
       </div>
-
-      <fieldset>
-        <legend className="mb-2 block text-label text-white">
-          I mostly… <span className="text-ink-on-dark-muted">(optional)</span>
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {TYPES.map((type) => (
-            <label
-              key={type.value}
-              className={cn(
-                'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
-                businessType === type.value
-                  ? 'border-white bg-white text-ink'
-                  : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
-              )}
-            >
-              <input
-                type="radio"
-                name="businessType"
-                value={type.value}
-                checked={businessType === type.value}
-                onChange={() => setBusinessType(type.value)}
-                className="sr-only"
-              />
-              {type.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="mb-2 block text-label text-white">
-          Roughly how many orders a month?{' '}
-          <span className="text-ink-on-dark-muted">(optional)</span>
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {ORDER_BANDS.map((band) => (
-            <label
-              key={band.value}
-              className={cn(
-                'inline-flex h-11 cursor-pointer items-center rounded-pill border px-4 text-[15px] font-medium transition-colors',
-                monthlyOrders === band.value
-                  ? 'border-white bg-white text-ink'
-                  : 'border-hairline-dark bg-surface-dark text-white hover:border-white/60',
-              )}
-            >
-              <input
-                type="radio"
-                name="monthlyOrders"
-                value={band.value}
-                checked={monthlyOrders === band.value}
-                onChange={() => setMonthlyOrders(band.value)}
-                className="sr-only"
-              />
-              {band.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
