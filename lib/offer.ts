@@ -43,13 +43,13 @@ export function monthsLabel(months: number): string {
 }
 
 export function foundingHeadline(offer: FoundingOffer): string {
-  return `First ${offer.capacity.toLocaleString('en-GH')} vendors get zero fees for ${monthsLabel(
+  return `First ${offer.capacity.toLocaleString('en-GH')} vendors get a fee cut for ${monthsLabel(
     offer.feeFreeMonths,
   )}`;
 }
 
 export function foundingDescription(offer: FoundingOffer): string {
-  return `Zero fees for ${monthsLabel(
+  return `A fee cut for ${monthsLabel(
     offer.feeFreeMonths,
   )}, a ${offer.badge} badge and a direct line to the team. Be early. Shape it. Keep the perks.`;
 }

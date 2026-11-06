@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'sikatree: send photos, get a store';
+export const alt = 'sikatree: your whole store on WhatsApp';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -55,7 +55,7 @@ export default function OpengraphImage() {
               lineHeight: 1,
             }}
           >
-            Send photos.
+            Your whole store
           </div>
           <div
             style={{
@@ -67,11 +67,11 @@ export default function OpengraphImage() {
               lineHeight: 1.1,
             }}
           >
-            <span>Get a</span>
-            <span style={{ color: '#1f7a45', marginLeft: '16px' }}>store.</span>
+            <span>on</span>
+            <span style={{ color: '#1f7a45', marginLeft: '16px' }}>WhatsApp.</span>
           </div>
           <div style={{ display: 'flex', marginTop: '26px', fontSize: '28px', color: '#6b6b6b' }}>
-            Your shop, prices and MoMo payments. Live in 10 minutes.
+            Photos, prices, orders and MoMo payments. All from one chat.
           </div>
         </div>
 

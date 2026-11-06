@@ -61,7 +61,7 @@ export function FoundingVendors() {
         </div>
         <h2 className="mt-4 text-h2 text-white sm:text-h2-lg">
           First {foundingOffer.capacity.toLocaleString('en-GH')} vendors get{' '}
-          <Accent>zero fees</Accent> for {monthsLabel(foundingOffer.feeFreeMonths)}
+          <Accent>a fee cut</Accent> for {monthsLabel(foundingOffer.feeFreeMonths)}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-body text-ink-on-dark-muted">
           {foundingDescription(foundingOffer)}

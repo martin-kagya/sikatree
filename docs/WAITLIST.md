@@ -160,7 +160,7 @@ because `/` is static:
 |---|---|---|
 | `FOUNDING_VENDORS_ENABLED` | `true` | `false` removes the block |
 | `FOUNDING_VENDORS_CAPACITY` | `100` | Number of vendors in the headline |
-| `FOUNDING_FEE_FREE_MONTHS` | `3` | Zero-fee period |
+| `FOUNDING_FEE_FREE_MONTHS` | `3` | Fee-cut period |
 | `FOUNDING_BADGE_NAME` | `Founding Vendor` | Badge name in the copy |
 
 No live counter is shown: LP-17 forbids one until the number is real and above a

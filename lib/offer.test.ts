@@ -58,7 +58,7 @@ describe('offer copy', () => {
   const offer = getFoundingOffer({ FOUNDING_VENDORS_CAPACITY: '50' });
 
   it('renders the real numbers', () => {
-    expect(foundingHeadline(offer)).toBe('First 50 vendors get zero fees for 3 months');
+    expect(foundingHeadline(offer)).toBe('First 50 vendors get a fee cut for 3 months');
     expect(foundingDescription(offer)).toContain('a Founding Vendor badge');
   });
 

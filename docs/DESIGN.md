@@ -700,7 +700,7 @@ Replace the first column with verified figures before launch.
 
 ### 9.8 Founding vendor block
 
-- "First 100 vendors get **zero fees for 3 months**, a Founding Vendor badge, and a direct line to the team."
+- "First 100 vendors get **a fee cut for 3 months**, a Founding Vendor badge, and a direct line to the team."
 - "Be early. Shape it. Keep the perks forever."
 
 ### 9.9 FAQ starter
