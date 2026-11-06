@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, AtSign, Globe } from '@/components/icons';
-import { Button } from '@/components/ui/button';
 import { Accent } from '@/components/ui/accent';
 import { OstraMark } from '@/components/ui/ostra-mark';
 import { site } from '@/lib/brand';
@@ -206,13 +205,10 @@ export function FooterParallax() {
 
   return (
     <footer className="bg-dark">
-      <div className="mx-auto max-w-[1120px] px-5 pt-16 sm:pt-20">
-        <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-          <h2 className="max-w-2xl text-h2 text-white sm:text-h2-lg">
-            Your shop is one <Accent>photo</Accent> away.
-          </h2>
-          <Button href="#waitlist">Join the waitlist</Button>
-        </div>
+      <div className="mx-auto max-w-[1120px] px-5 pt-10 sm:pt-12">
+        <h2 className="max-w-2xl text-h2 text-white sm:text-h2-lg">
+          Your shop is one <Accent>photo</Accent> away.
+        </h2>
 
         <div className="mt-12 grid gap-8 border-t border-hairline-dark pt-8 sm:grid-cols-2 md:grid-cols-4">
           <div>

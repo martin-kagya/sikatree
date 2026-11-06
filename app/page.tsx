@@ -29,7 +29,7 @@ export default function Page() {
 
       <section
         id="waitlist"
-        className="scroll-mt-24 bg-dark px-3 pb-24 pt-6 sm:px-5 sm:pb-40 sm:pt-8"
+        className="scroll-mt-24 bg-dark px-3 pb-16 pt-6 sm:px-5 sm:pb-24 sm:pt-8"
       >
         <WaitlistForm />
       </section>
