@@ -35,7 +35,8 @@ keep its label at 4.5:1.
 
 Stock rules on the storefront: 0 shows a "Sold out" overlay and a desaturated
 image; 1 to 5 shows "Only n left"; above 5 shows nothing. Exact counts stay in
-the dashboard.
+the dashboard. Service vendors do not track stock: their cards never show a
+count and a paused service reads **Unavailable**, not "Sold out".
 
 ## Demo
 
@@ -43,6 +44,10 @@ the dashboard.
 `public/sample-stores/amasglow/` and replaces the catalogue with ten products
 (three categories, badges, compare-at prices, sold-out and low-stock cases, and
 about 40% without descriptions).
+
+`pnpm seed:services` seeds a service provider at `/naasglow` (eight services)
+with Monday-Saturday 09:00-18:00 availability, 60-minute slots and no weekly
+cap, so the booking flow can be tested end to end.
 
 ## Conditional UI
 
@@ -69,7 +74,10 @@ as hover.
   with within-region and outside-region rates, or "confirm after order"; pickup
   is always free), and the total. A fixed-fee delivery asks the client to pick a
   zone and offers "pay the delivery fee on arrival", which excludes it from the
-  total. Delivery asks for an address; services ask for a date and time.
+  total. Delivery asks for an address. Services ask for a date and only offer
+  the open slots from the vendor's published availability (`GET
+  /api/availability?handle=…&date=…`), with "closed", "fully booked" and "no
+  times" states; the server re-checks the slot, blocked day and weekly cap.
 - Name, Ghana WhatsApp number and email are required. The email is stored on
   the order for updates; no email is sent yet.
 - Orders are written server-side to `orders` and `order_items` with a unique
@@ -80,9 +88,13 @@ as hover.
 - Payment is **not** connected. Orders are pay on delivery, at pickup or at the
   appointment, and the copy says so.
 
+Appointment tracking is its own three-step flow (requested → confirmed → done)
+with no delivery steps; booking a slot is also the item the vendor sees under
+"Your booking".
+
 Deferred items and their requirement IDs are recorded in `PLAN.md` and
 `requirement.md` (online payment, vendor notifications, tracking, inventory,
-service slots, email sending).
+booking buffers and deposits, email sending).
 
 ## Motion
 

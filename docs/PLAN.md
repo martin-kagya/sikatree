@@ -362,7 +362,7 @@ Backend detail, environment variables and the operational runbook live in
 | Order tools | Vendor CSV export of orders | None | ORD-11, ORD-12 | Done (2026-11-06) |
 | Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out, a stock movement log and low-stock alerts | Payment-time 15-minute holds | INV-01 to INV-06 | Phase 2/3 |
 | Catalogue tools | Create and edit items with up to five photos (cover + tap-to-open lightbox gallery), price, compare-at, description, category, stock, visibility, badge and position; up/down reorder; managed, ordered categories; hide and manual sold out | Variants, the featured flag, drag-and-drop, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
-| Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
+| Services | Weekly availability (multiple windows/day), blocked dates, optional weekly cap and a slot engine; the storefront offers only open slots and the server re-checks them; service items have no stock and read "Unavailable" | Buffers, minimum notice, advance windows, deposits, rescheduling, calendar, DB exclusion constraint | BK-02, BK-04 (partial BK-01, BK-05) | Phase 4 (partial) |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
 
 **Payment framing:** the success card confirms an **order**, not a payment. It must not claim money was received until PAY-01/PAY-02 exist.
@@ -402,9 +402,9 @@ Backend detail, environment variables and the operational runbook live in
 **Goal:** Service providers can set availability and accept paid bookings.
 
 **Build**
-- [ ] Service configuration and availability rules/exceptions (BK-01 to BK-03)
+- [x] Service availability: weekly windows, blocked dates and an optional weekly cap in `/dashboard/settings`, with a slot engine and server-side checks (BK-02, BK-04 partial; BK-01/03/05 still open)
 - [ ] WhatsApp setup for services and natural-language availability parser (ONB-17, ONB-18)
-- [ ] Slot calculation engine with unit tests across edge cases (BK-04)
+- [x] Slot calculation engine (availability windows, booked slots, blocked dates, weekly cap) with integration tests (BK-04 partial)
 - [ ] Booking flow with deposit or full payment, holds and exclusion constraint (BK-05, BK-07, BK-08)
 - [ ] Instant vs request confirmation modes (BK-06)
 - [ ] Booking notifications with Accept / Decline / Reschedule buttons (ONB-24)

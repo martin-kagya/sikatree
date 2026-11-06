@@ -166,5 +166,21 @@ for (const [index, service] of SERVICES.entries()) {
   );
 }
 
+// Weekly availability: Monday to Saturday, 09:00-18:00, 60-minute slots.
+await client.query('delete from vendor_availability where vendor_id = $1', [vendorId]);
+for (const weekday of [1, 2, 3, 4, 5, 6]) {
+  await client.query(
+    `insert into vendor_availability (vendor_id, weekday, start_minute, end_minute)
+     values ($1, $2, $3, $4)`,
+    [vendorId, weekday, 9 * 60, 18 * 60],
+  );
+}
+await client.query('delete from vendor_blocked_date where vendor_id = $1', [vendorId]);
+await client.query(
+  'update vendors set booking_slot_minutes = 60, weekly_booking_cap = null where id = $1',
+  [vendorId],
+);
+
 await client.end();
 console.log(`seeded ${SERVICES.length} services for /${HANDLE} (vendor ${vendorId})`);
+console.log('availability: Mon-Sat 09:00-18:00, 60-minute slots, no weekly cap');

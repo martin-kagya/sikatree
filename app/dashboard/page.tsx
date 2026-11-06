@@ -5,7 +5,7 @@ import { Settings } from '@/components/icons';
 import { site } from '@/lib/brand';
 import { query } from '@/lib/db';
 import { formatCedis } from '@/lib/money';
-import { listVendorOrders, nextStatuses, type OrderRecord, type OrderStatus } from '@/lib/orders';
+import { listVendorOrders, nextStatusesFor, type OrderRecord, type OrderStatus } from '@/lib/orders';
 import { formatGhanaPhone } from '@/lib/phone';
 import { requireVendor } from '@/lib/vendor-auth';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,16 @@ const NEXT_LABEL: Partial<Record<OrderStatus, string>> = {
   completed: 'Mark completed',
   cancelled: 'Cancel order',
 };
+
+function nextLabel(status: OrderStatus, fulfilment: string): string {
+  if (fulfilment === 'appointment') {
+    if (status === 'confirmed') return 'Confirm booking';
+    if (status === 'completed') return 'Mark done';
+    if (status === 'cancelled') return 'Cancel booking';
+    return status;
+  }
+  return NEXT_LABEL[status] ?? status;
+}
 
 function when(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', {
@@ -140,7 +150,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {nextStatuses(order.status)
+        {nextStatusesFor(order.status, order.fulfilment)
           .filter((status) => status !== 'cancelled')
           .map((status) => (
             <form key={status} action={updateOrderStatusAction}>
@@ -150,7 +160,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
                 type="submit"
                 className="h-9 rounded-pill bg-ink px-3 text-[12px] font-medium text-white"
               >
-                {NEXT_LABEL[status] ?? status}
+                {nextLabel(status, order.fulfilment)}
               </button>
             </form>
           ))}
@@ -164,7 +174,7 @@ function OrderCard({ order }: { order: OrderRecord }) {
         <CopyLink value={`https://${site.domain}/o/${order.code}`} label="Copy tracking link" />
       </div>
 
-      {nextStatuses(order.status).includes('cancelled') ? (
+      {nextStatusesFor(order.status, order.fulfilment).includes('cancelled') ? (
         <form
           action={updateOrderStatusAction}
           className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3"
@@ -240,6 +250,7 @@ export default async function DashboardPage({
 
   const vendor = vendors[0];
   if (!vendor) notFound();
+  const isService = vendor.type === 'services' || vendor.type === 'both';
 
   const pageUrl = `${site.domain}/${vendor.handle}`;
   const shareMessage = `Shop with me on sikatree: ${site.domain}/${vendor.handle}`;
@@ -350,7 +361,9 @@ export default async function DashboardPage({
               <div>
                 <h2 className="text-h2 text-ink">Items</h2>
                 <p className="mt-1 text-small text-ink-muted">
-                  Edit a price, add stock or hide something. Changes show on your page immediately.
+                  {isService
+                    ? 'Edit a price, mark something unavailable or hide it. Changes show on your page immediately.'
+                    : 'Edit a price, add stock or hide something. Changes show on your page immediately.'}
                 </p>
               </div>
               <Link
@@ -388,10 +401,14 @@ export default async function DashboardPage({
                             {hidden
                               ? 'Hidden'
                               : soldOut
-                                ? 'Sold out'
-                                : item.stock === null
-                                  ? 'Unlimited'
-                                  : `${item.stock} in stock`}
+                                ? isService
+                                  ? 'Unavailable'
+                                  : 'Sold out'
+                                : isService
+                                  ? 'Open for bookings'
+                                  : item.stock === null
+                                    ? 'Unlimited'
+                                    : `${item.stock} in stock`}
                           </p>
                         </div>
                       </div>
@@ -437,7 +454,7 @@ export default async function DashboardPage({
                               type="submit"
                               className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
                             >
-                              Sold out
+                              {isService ? 'Unavailable' : 'Sold out'}
                             </button>
                           </form>
                         ) : item.status !== 'active' ? (

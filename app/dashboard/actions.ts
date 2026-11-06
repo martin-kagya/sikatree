@@ -3,6 +3,8 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { saveAvailability } from '@/lib/availability';
+import { WEEKDAY_NAMES, isDateOnly, timeToMinute } from '@/lib/availability-shared';
 import { moveItem, saveCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import { updateLowStockThreshold } from '@/lib/inventory';
@@ -141,6 +143,53 @@ export async function saveCategoriesAction(
   const names = raw.split('\n');
 
   const result = await saveCategories(vendorId, names);
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath('/dashboard/settings');
+  const rows = await query<{ handle: string }>('select handle from vendors where id = $1', [
+    vendorId,
+  ]);
+  if (rows[0]) revalidatePath(`/${rows[0].handle}`);
+  return { saved: true };
+}
+
+export type AvailabilitySettingsState = { error?: string; saved?: boolean };
+
+export async function saveAvailabilityAction(
+  _previous: AvailabilitySettingsState,
+  formData: FormData,
+): Promise<AvailabilitySettingsState> {
+  const vendorId = await requireVendor();
+
+  const windows: { weekday: number; startMinute: number; endMinute: number }[] = [];
+  for (let weekday = 0; weekday <= 6; weekday += 1) {
+    if (formData.get(`enabled-${weekday}`) !== 'on') continue;
+    const start = timeToMinute(String(formData.get(`start-${weekday}`) ?? ''));
+    const end = timeToMinute(String(formData.get(`end-${weekday}`) ?? ''));
+    if (start === null || end === null) {
+      return { error: `Add both start and end times for ${WEEKDAY_NAMES[weekday]}.` };
+    }
+    if (end <= start) {
+      return { error: `${WEEKDAY_NAMES[weekday]}: end time must be after the start time.` };
+    }
+    windows.push({ weekday, startMinute: start, endMinute: end });
+  }
+
+  const blockedDates = formData
+    .getAll('blockedDate')
+    .map((value) => String(value))
+    .filter((value) => isDateOnly(value));
+
+  const slotMinutes = Number(String(formData.get('slotMinutes') ?? '60'));
+  if (!Number.isInteger(slotMinutes)) return { error: 'Pick a valid slot length.' };
+
+  const capRaw = String(formData.get('weeklyCap') ?? '').trim();
+  const weeklyCap = capRaw === '' ? null : Number(capRaw);
+  if (weeklyCap !== null && !Number.isInteger(weeklyCap)) {
+    return { error: 'Enter a whole number for the weekly cap, or leave it off.' };
+  }
+
+  const result = await saveAvailability(vendorId, { windows, blockedDates, slotMinutes, weeklyCap });
   if (!result.ok) return { error: result.error };
 
   revalidatePath('/dashboard/settings');

@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronLeft } from '@/components/icons';
+import { readAvailability } from '@/lib/availability';
 import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import type { DeliveryFeeMode } from '@/lib/shop';
 import { requireVendor } from '@/lib/vendor-auth';
 import { logoutAction } from '../actions';
+import { AvailabilitySettings } from '../availability-settings';
 import { CategoriesSettings } from '../categories-settings';
 import { DeliverySettings } from '../delivery-settings';
 import { EtaSettings } from '../eta-settings';
@@ -21,6 +23,7 @@ export const dynamic = 'force-dynamic';
 
 type VendorSettings = {
   name: string;
+  type: string;
   delivery_fee_mode: string;
   delivery_fee_pesewas: number;
   delivery_fee_outside_pesewas: number;
@@ -33,7 +36,7 @@ type VendorSettings = {
 export default async function SettingsPage() {
   const vendorId = await requireVendor();
   const vendors = await query<VendorSettings>(
-    `select name, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas,
+    `select name, type, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas,
             eta_delivery_within_text, eta_delivery_outside_text, eta_pickup_text,
             low_stock_threshold
        from vendors where id = $1`,
@@ -44,6 +47,9 @@ export default async function SettingsPage() {
 
   const deliveryFeeMode = vendor.delivery_fee_mode as DeliveryFeeMode;
   const categories = await listManagedCategories(vendorId);
+  const availability = await readAvailability(vendorId);
+  const pureServices = vendor.type === 'services';
+  const sellsServices = pureServices || vendor.type === 'both';
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
@@ -72,29 +78,49 @@ export default async function SettingsPage() {
             <h1 className="mt-1 text-h1 text-ink">{vendor.name}</h1>
           </div>
 
-          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
-            <h2 className="text-h2 text-ink">Delivery fee</h2>
-            <p className="mt-1 text-small text-ink-muted">
-              How customers are charged for delivery. Pickup is always free.
-            </p>
-            <DeliverySettings
-              mode={deliveryFeeMode}
-              fixedPesewas={vendor.delivery_fee_pesewas}
-              outsidePesewas={vendor.delivery_fee_outside_pesewas}
-            />
-          </section>
+          {sellsServices ? (
+            <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+              <h2 className="text-h2 text-ink">Availability</h2>
+              <p className="mt-1 text-small text-ink-muted">
+                The days and hours customers can book you, plus any dates you are fully booked.
+              </p>
+              <AvailabilitySettings
+                windows={availability.windows}
+                blockedDates={availability.blockedDates}
+                slotMinutes={availability.slotMinutes}
+                weeklyCap={availability.weeklyCap}
+              />
+            </section>
+          ) : null}
 
-          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
-            <h2 className="text-h2 text-ink">Delivery time</h2>
-            <p className="mt-1 text-small text-ink-muted">
-              What the customer sees about when their order will arrive, for their delivery zone.
-            </p>
-            <EtaSettings
-              withinText={vendor.eta_delivery_within_text}
-              outsideText={vendor.eta_delivery_outside_text}
-              pickupText={vendor.eta_pickup_text}
-            />
-          </section>
+          {!pureServices ? (
+            <>
+              <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+                <h2 className="text-h2 text-ink">Delivery fee</h2>
+                <p className="mt-1 text-small text-ink-muted">
+                  How customers are charged for delivery. Pickup is always free.
+                </p>
+                <DeliverySettings
+                  mode={deliveryFeeMode}
+                  fixedPesewas={vendor.delivery_fee_pesewas}
+                  outsidePesewas={vendor.delivery_fee_outside_pesewas}
+                />
+              </section>
+
+              <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+                <h2 className="text-h2 text-ink">Delivery time</h2>
+                <p className="mt-1 text-small text-ink-muted">
+                  What the customer sees about when their order will arrive, for their delivery
+                  zone.
+                </p>
+                <EtaSettings
+                  withinText={vendor.eta_delivery_within_text}
+                  outsideText={vendor.eta_delivery_outside_text}
+                  pickupText={vendor.eta_pickup_text}
+                />
+              </section>
+            </>
+          ) : null}
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
             <h2 className="text-h2 text-ink">Categories</h2>
@@ -104,13 +130,15 @@ export default async function SettingsPage() {
             <CategoriesSettings categories={categories} />
           </section>
 
-          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
-            <h2 className="text-h2 text-ink">Low-stock alerts</h2>
-            <p className="mt-1 text-small text-ink-muted">
-              Get a WhatsApp alert when an ordered item runs low.
-            </p>
-            <LowStockSettings threshold={vendor.low_stock_threshold} />
-          </section>
+          {!pureServices ? (
+            <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+              <h2 className="text-h2 text-ink">Low-stock alerts</h2>
+              <p className="mt-1 text-small text-ink-muted">
+                Get a WhatsApp alert when an ordered item runs low.
+              </p>
+              <LowStockSettings threshold={vendor.low_stock_threshold} />
+            </section>
+          ) : null}
         </main>
       </div>
     </div>

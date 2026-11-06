@@ -229,7 +229,7 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | CAT-08 | Bulk import from CSV and from a WhatsApp Business catalogue export (if feasible). | P2 |
 | CAT-09 | Drag-and-drop ordering and "featured" flag. | P1 |
 
-**Implementation (2026-11-05, updated 2026-11-06):** `/dashboard/items/new` and `/dashboard/items/[id]` create and edit an item with up to five photos, name, description, price, compare-at price, category, stock, visibility, badge and numeric position. Photos upload to the `items` bucket (JPG, PNG, WebP or AVIF, up to 10MB each); the first is the cover and customers open a photo lightbox (tap/click the cover) that browses every photo. Manual sold out is a status, independent of the stock count. The storefront reflects price, stock, hidden and sold-out changes immediately.
+**Implementation (2026-11-05, updated 2026-11-06):** `/dashboard/items/new` and `/dashboard/items/[id]` create and edit an item with up to five photos, name, description, price, compare-at price, category, stock, visibility, badge and numeric position. Photos upload to the `items` bucket (JPG, PNG, WebP or AVIF, up to 10MB each); the first is the cover and customers open a photo lightbox (tap/click the cover) that browses every photo. Manual sold out is a status, independent of the stock count. For service vendors the stock field is hidden and the status reads **Unavailable** instead of Sold out. The storefront reflects price, stock, hidden and availability changes immediately.
 
 Still deferred: variants, the featured flag, true drag-and-drop (reorder is up/down buttons), image compression and responsive sizes, and bulk import. Category management (CAT-03) is a managed, ordered list in `/dashboard/settings`.
 
@@ -268,6 +268,10 @@ Still deferred: the 15-minute payment-time hold (INV-03).
 | BK-12 | Vendor calendar view (day/week) in the PWA. | P0 |
 | BK-13 | No-show marking and optional deposit forfeiture rules. | P1 |
 | BK-14 | Capacity greater than 1 (group sessions, classes) and multi-staff scheduling. | P2 |
+
+**Implementation (2026-11-06, partial):** service vendors get an **Availability** section in `/dashboard/settings`: open days and hours (multiple windows per day, stored in `vendor_availability`), blocked dates (`vendor_blocked_date`) and an optional weekly booking cap. `booking_slot_minutes` on the vendor sets the slot length (default 60). `GET /api/availability?handle=…&date=…` returns only open, unbooked slots; the storefront's appointment time dropdown is driven by it, and `placeOrder` re-checks the slot, the blocked day and the cap server-side. Services never track stock and never say "sold out": the item form hides stock, the status reads **Unavailable**, and appointment tracking is a three-step flow (requested → confirmed → done) that skips delivery.
+
+Still deferred: buffers (BK-01), minimum notice and advance windows (BK-03), deposits (BK-07), reminders (BK-10), rescheduling (BK-11), the calendar view (BK-12), no-show marking (BK-13), capacity and multi-staff scheduling (BK-14), and a database-level double-booking guard (BK-05 — the pre-placement slot re-check is the current guard).
 | BK-15 | Calendar sync (Google Calendar `.ics` export first, two-way sync later). | P2 |
 
 ### 6.7 Orders (ORD)
@@ -305,7 +309,7 @@ The following behaviours remain deferred or partial and must not be described as
 | Requirement | Deferred behaviour | Target |
 |---|---|---|
 | ORD-03 | Delivery fee is vendor-configurable: free, fixed with separate within-region and outside-region rates, or confirm-after. Clients can pay the delivery fee in cash on arrival, which excludes it from the order total. Confirm-after orders show "fee to confirm" and the vendor sets the fee on the order | Done (2026-11-05) |
-| ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
+| ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. Appointments skip `ready` and use `pending → confirmed → completed` with a three-step tracker (requested → confirmed → done). The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
 | ORD-06 | The vendor receives a WhatsApp text with the order details and a dashboard link. Interactive Confirm/Decline buttons and approved templates are deferred | Phase 2 |
 | ORD-07 | `/o/{code}` tracking is implemented with the code as the capability. Sensitive customer details are not shown; phone verification and live ETA are deferred | Phase 2/3 |
 | ORD-10 | Cancel is available with an optional reason shown on the tracking page; the client WhatsApp notification (needs approved templates) and refunds are deferred | Phase 2/3 |
@@ -315,7 +319,7 @@ Additional scope notes:
 
 - **Email capture.** Checkout collects and stores `customer_email` for order updates. No email is sent yet. Email is an optional P2 channel in NOT-02; sending depends on that notification work. The UI says the email is saved, not that a message was sent.
 - **Payment.** Online payments are not connected. Orders are pay on delivery, at pickup, or at the appointment. Nothing in the UI may claim a payment was received until PAY-01/PAY-02 exist.
-- **Services.** A service order is an appointment request with date and time only. Availability rules, slots and deposits remain Phase 4 work.
+- **Services.** A service order is an appointment request. The vendor publishes weekly availability (multiple windows per day), blocked dates and an optional weekly cap; the storefront offers only open, unbooked slots and the server rejects closed, taken or capped slots. Services never track stock. Buffers, minimum notice, advance windows and deposits remain Phase 4.
 - **Inventory.** Tracked stock decrements atomically at placement and restores on cancellation. Payment-time holds, movement history and low-stock alerts are still deferred; see 6.5.
 - **Cart storage.** The cart lives in the browser (`localStorage`) per store and is not a server-side cart. Clearing browser storage clears it.
 
@@ -481,9 +485,9 @@ Channels: **WhatsApp** (primary), **PWA push** (secondary), **SMS** (fallback, P
 | **category** | Vendor, name, position |
 | **stock_movement** | Item/variant, delta, reason, source, time |
 | **service_config** | Item, duration, buffer, deposit rule, location type, confirmation mode, notice/advance rules |
-| **availability_rule** | Vendor/service, weekday, start/end times |
-| **availability_exception** | Vendor/service, date range, blocked or special hours |
-| **booking** | Code, vendor, service, client, time range, status, payment status, notes |
+| **vendor_availability** | Vendor, weekday, start/end minutes (weekly windows) |
+| **vendor_blocked_date** | Vendor, blocked date (fully booked or away) |
+| **booking** | Stored in `orders` with `fulfilment = 'appointment'`: code, vendor, client, date/time, status, notes |
 | **order** | Code, vendor, client, status, delivery method/address, totals, payment status |
 | **order_item** | Order, item/variant, quantity, unit price snapshot |
 | **client** | Name, WhatsApp number (guest; deduplicated per vendor) |

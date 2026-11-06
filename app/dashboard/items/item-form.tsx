@@ -15,9 +15,11 @@ const label = 'mb-1.5 block text-[13px] font-medium text-ink';
 export function ItemForm({
   item,
   categories,
+  isService = false,
 }: {
   item: EditableItem | null;
   categories: string[];
+  isService?: boolean;
 }) {
   const [state, action, pending] = useActionState(saveItemAction, initial);
   const [preview, setPreview] = useState(item?.imageUrl ?? null);
@@ -174,28 +176,30 @@ export function ItemForm({
               ))}
             </datalist>
           </div>
-          <div>
-            <label htmlFor="stock" className={label}>
-              Stock
-            </label>
-            <input
-              id="stock"
-              name="stock"
-              inputMode="numeric"
-              defaultValue={item?.stock ?? ''}
-              placeholder="Blank means unlimited"
-              className={field}
-            />
-            {item ? (
+          {!isService ? (
+            <div>
+              <label htmlFor="stock" className={label}>
+                Stock
+              </label>
               <input
-                name="stockReason"
-                maxLength={120}
-                defaultValue=""
-                placeholder="Why stock changed (optional)"
-                className={`${field} mt-1.5`}
+                id="stock"
+                name="stock"
+                inputMode="numeric"
+                defaultValue={item?.stock ?? ''}
+                placeholder="Blank means unlimited"
+                className={field}
               />
-            ) : null}
-          </div>
+              {item ? (
+                <input
+                  name="stockReason"
+                  maxLength={120}
+                  defaultValue=""
+                  placeholder="Why stock changed (optional)"
+                  className={`${field} mt-1.5`}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -211,7 +215,7 @@ export function ItemForm({
               size="lg"
               options={[
                 { value: 'active', label: 'Active' },
-                { value: 'sold_out', label: 'Sold out' },
+                { value: 'sold_out', label: isService ? 'Unavailable' : 'Sold out' },
                 { value: 'hidden', label: 'Hidden' },
               ]}
             />

@@ -284,3 +284,13 @@ export async function saveCategories(vendorId: string, names: string[]): Promise
     client.release();
   }
 }
+
+// Service vendors book appointments instead of selling stock.
+export async function vendorIsService(vendorId: string): Promise<boolean> {
+  const rows = await db().query<{ type: string | null }>(
+    'select type from vendors where id = $1',
+    [vendorId],
+  );
+  const type = rows.rows[0]?.type;
+  return type === 'services' || type === 'both';
+}

@@ -33,28 +33,34 @@ const STATUS_STYLE: Record<OrderRecord['status'], string> = {
 };
 
 function stepsFor(order: OrderRecord) {
+  // A booking is a visit, not a shipment: requested, confirmed, done.
+  if (order.fulfilment === 'appointment') {
+    return [
+      { key: 'pending', label: 'Requested' },
+      { key: 'confirmed', label: 'Confirmed' },
+      { key: 'completed', label: 'Done' },
+    ];
+  }
   return [
     { key: 'pending', label: 'Placed' },
     { key: 'confirmed', label: 'Confirmed' },
     {
       key: 'ready',
-      label:
-        order.fulfilment === 'delivery'
-          ? 'Out for delivery'
-          : order.fulfilment === 'pickup'
-            ? 'Ready for pickup'
-            : 'Ready',
+      label: order.fulfilment === 'delivery' ? 'Out for delivery' : 'Ready for pickup',
     },
     {
       key: 'completed',
-      label:
-        order.fulfilment === 'delivery'
-          ? 'Delivered'
-          : order.fulfilment === 'pickup'
-            ? 'Picked up'
-            : 'Completed',
+      label: order.fulfilment === 'delivery' ? 'Delivered' : 'Picked up',
     },
   ];
+}
+
+function statusLabel(order: OrderRecord): string {
+  if (order.fulfilment !== 'appointment') return STATUS_LABEL[order.status];
+  if (order.status === 'pending') return 'Requested';
+  if (order.status === 'confirmed' || order.status === 'ready') return 'Confirmed';
+  if (order.status === 'completed') return 'Done';
+  return 'Cancelled';
 }
 
 function paymentNote(order: OrderRecord): string {
@@ -103,7 +109,10 @@ export default async function TrackOrderPage({
   if (!order) notFound();
 
   const steps = stepsFor(order);
-  const activeIndex = order.status === 'cancelled' ? -1 : steps.findIndex((step) => step.key === order.status);
+  const activeIndex =
+    order.status === 'cancelled' ? -1 : steps.findIndex((step) => step.key === order.status);
+  const trackInset = 100 / (steps.length * 2);
+  const trackWidth = 100 - 2 * trackInset;
   const vendorHref = `https://wa.me/${order.vendorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
     `Hi ${order.vendorName}, I'm asking about order ${order.code}.`,
   )}`;
@@ -130,7 +139,9 @@ export default async function TrackOrderPage({
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[12px] uppercase tracking-wide text-ink-muted">Order tracking</p>
+                <p className="text-[12px] uppercase tracking-wide text-ink-muted">
+                  {order.fulfilment === 'appointment' ? 'Booking' : 'Order tracking'}
+                </p>
                 <h1 className="mt-1 text-h1 text-ink">{order.code}</h1>
               </div>
               <span
@@ -139,7 +150,7 @@ export default async function TrackOrderPage({
                   STATUS_STYLE[order.status],
                 )}
               >
-                {STATUS_LABEL[order.status]}
+                {statusLabel(order)}
               </span>
             </div>
 
@@ -151,12 +162,23 @@ export default async function TrackOrderPage({
               </p>
             ) : (
               <div className="relative mt-8">
-                <div className="absolute left-[12.5%] right-[12.5%] top-3.5 h-0.5 bg-hairline" />
                 <div
-                  className="absolute left-[12.5%] top-3.5 h-0.5 bg-green-main transition-[width] duration-200"
-                  style={{ width: `${(activeIndex / (steps.length - 1)) * 75}%` }}
+                  className="absolute top-3.5 h-0.5 bg-hairline"
+                  style={{ left: `${trackInset}%`, right: `${trackInset}%` }}
                 />
-                <ol className="relative grid grid-cols-4">
+                <div
+                  className="absolute top-3.5 h-0.5 bg-green-main transition-[width] duration-200"
+                  style={{
+                    left: `${trackInset}%`,
+                    width: `${(Math.max(activeIndex, 0) / (steps.length - 1)) * trackWidth}%`,
+                  }}
+                />
+                <ol
+                  className={cn(
+                    'relative grid',
+                    steps.length === 3 ? 'grid-cols-3' : 'grid-cols-4',
+                  )}
+                >
                   {steps.map((step, index) => {
                     const done = index <= activeIndex;
                     const current = index === activeIndex;
@@ -198,13 +220,15 @@ export default async function TrackOrderPage({
 
             <p className="mt-6 rounded-inner bg-page p-3 text-[12px] text-ink-muted">
               {order.eta ? `${order.eta}. ` : ''}
-              {paymentNote(order)} This page updates when {order.vendorName} moves the order
-              forward.
+              {paymentNote(order)} This page updates when {order.vendorName} moves{' '}
+              {order.fulfilment === 'appointment' ? 'your booking' : 'the order'} forward.
             </p>
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
-            <h2 className="text-h2 text-ink">Your order</h2>
+            <h2 className="text-h2 text-ink">
+              {order.fulfilment === 'appointment' ? 'Your booking' : 'Your order'}
+            </h2>
             <ul className="mt-4 divide-y divide-hairline">
               {order.lines.map((line) => (
                 <li key={line.name} className="flex justify-between gap-3 py-3 text-[14px] text-ink">
@@ -221,10 +245,12 @@ export default async function TrackOrderPage({
                 <dt className="text-ink-muted">Item total</dt>
                 <dd className="text-ink">{formatCedis(order.subtotalPesewas)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-ink-muted">Delivery</dt>
-                <dd className="text-ink">{deliveryLabel(order)}</dd>
-              </div>
+              {order.fulfilment !== 'appointment' ? (
+                <div className="flex justify-between">
+                  <dt className="text-ink-muted">Delivery</dt>
+                  <dd className="text-ink">{deliveryLabel(order)}</dd>
+                </div>
+              ) : null}
               <div className="flex justify-between text-[15px] font-medium">
                 <dt>Total</dt>
                 <dd className="tabular-nums">{formatCedis(order.totalPesewas)}</dd>
@@ -264,7 +290,8 @@ export default async function TrackOrderPage({
               Powered by Ostra
             </span>
             <span>
-              Keep this link. It updates as your order moves. {site.domain}
+              Keep this link. It updates as your{' '}
+              {order.fulfilment === 'appointment' ? 'booking' : 'order'} moves. {site.domain}
             </span>
           </footer>
         </main>

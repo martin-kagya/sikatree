@@ -91,11 +91,6 @@ function enquiryHref(phone: string, item: ShopItem): string {
   return `https://wa.me/${whatsappNumber(phone)}?text=${encodeURIComponent(message)}`;
 }
 
-const BOOKING_TIMES = Array.from({ length: 17 }, (_, index) => {
-  const minutes = 9 * 60 + index * 30;
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-});
-
 function formatOrderDate(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'medium',
@@ -123,6 +118,7 @@ function storeWhatsappHref(phone: string, name: string): string {
     tint,
     onAdd,
     onViewImages,
+    serviceMode = false,
   }: {
     item: ShopItem;
     phone: string;
@@ -130,6 +126,7 @@ function storeWhatsappHref(phone: string, name: string): string {
     tint: string;
     onAdd: (id: string) => void;
     onViewImages: (item: ShopItem) => void;
+    serviceMode?: boolean;
   }) {
     const soldOut = isSoldOut(item);
     const low = soldOut ? null : stockLabel(item.stock);
@@ -208,7 +205,7 @@ function storeWhatsappHref(phone: string, name: string): string {
 
           {soldOut ? (
             <span className="pointer-events-none absolute bottom-2 left-2 z-30 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--shop-ink)] shadow-sm">
-              Sold out
+              {serviceMode ? 'Unavailable' : 'Sold out'}
             </span>
           ) : null}
 
@@ -409,6 +406,10 @@ export function Storefront({
   );
   const [bookingDate, setBookingDate] = useState('');
   const [bookingTime, setBookingTime] = useState('09:00');
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [slots, setSlots] = useState<string[]>([]);
+  const [slotReason, setSlotReason] = useState<string | null>(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [deliveryZone, setDeliveryZone] = useState<DeliveryZone>('within');
   const [deliveryOnArrival, setDeliveryOnArrival] = useState(false);
 
@@ -530,6 +531,35 @@ export function Storefront({
   const totalPesewas = subtotalPesewas + (deferDelivery ? 0 : deliveryPesewas);
   const today = new Date().toISOString().slice(0, 10);
 
+  // Services book against the vendor's published availability, not a fixed list.
+  useEffect(() => {
+    if (!sellingServices || !checkoutOpen || !bookingDate) return;
+    let cancelled = false;
+    setSlotsLoading(true);
+    fetch(`/api/availability?handle=${encodeURIComponent(vendor.handle)}&date=${bookingDate}`)
+      .then((response) => response.json())
+      .then((data: { slots?: unknown; reason?: unknown }) => {
+        if (cancelled) return;
+        const next = Array.isArray(data.slots)
+          ? data.slots.filter((slot): slot is string => typeof slot === 'string')
+          : [];
+        setSlots(next);
+        setSlotReason(typeof data.reason === 'string' ? data.reason : null);
+        setBookingTime((current) => (next.includes(current) ? current : (next[0] ?? '')));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSlots([]);
+        setSlotReason('error');
+      })
+      .finally(() => {
+        if (!cancelled) setSlotsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sellingServices, checkoutOpen, bookingDate, vendor.handle]);
+
   const accent = accentFor(vendor.accent);
   const themeStyle = {
     '--shop-bg': 'var(--bg-page)',
@@ -613,6 +643,8 @@ export function Storefront({
     if (!cartCount) return;
     setCheckoutError(null);
     setOrder(null);
+    if (sellingServices && !bookingDate) setBookingDate(today);
+    setCheckoutOpen(true);
     const dialog = checkoutRef.current;
     if (!dialog) return;
     dialog.classList.remove('is-closing');
@@ -626,6 +658,7 @@ export function Storefront({
     window.setTimeout(() => {
       dialog.classList.remove('is-closing');
       dialog.close();
+      setCheckoutOpen(false);
     }, 170);
   }
 
@@ -985,6 +1018,7 @@ export function Storefront({
                   tint={FALLBACK_TINTS[index % FALLBACK_TINTS.length]}
                   onAdd={addToCart}
                   onViewImages={openQuickView}
+                  serviceMode={sellingServices}
                 />
               ))}
             </div>
@@ -1284,11 +1318,31 @@ export function Storefront({
                         name="bookingTime"
                         value={bookingTime}
                         onChange={setBookingTime}
-                        options={BOOKING_TIMES.map((time) => ({ value: time, label: time }))}
+                        options={
+                          slots.length
+                            ? slots.map((time) => ({ value: time, label: time }))
+                            : [
+                                {
+                                  value: '',
+                                  label: slotsLoading ? 'Loading times…' : 'No times available',
+                                },
+                              ]
+                        }
                         size="shop"
                         buttonClassName="mt-1.5"
                       />
                     </label>
+                    {!slotsLoading && slots.length === 0 ? (
+                      <p className="text-[12px] text-[var(--shop-muted)] sm:col-span-2">
+                        {slotReason === 'blocked'
+                          ? 'Fully booked on this date. Pick another day.'
+                          : slotReason === 'full'
+                            ? 'This week is fully booked. Pick another week.'
+                            : slotReason === 'closed'
+                              ? 'Not taking appointments on this day. Pick another day.'
+                              : 'No open times for this date. Pick another day.'}
+                      </p>
+                    ) : null}
                   </section>
                 ) : (
                   <section>
@@ -1494,7 +1548,7 @@ export function Storefront({
 
                   <button
                     type="submit"
-                    disabled={placing || leaving || !cartCount}
+                    disabled={placing || leaving || !cartCount || (sellingServices && !bookingTime)}
                     className="shop-press relative mt-4 flex h-12 w-full items-center justify-center rounded-[12px] bg-[var(--shop-accent)] px-5 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
                   >
                     <span>
@@ -1661,7 +1715,7 @@ export function Storefront({
                     Added to cart
                   </>
                 ) : qvSoldOut ? (
-                  'Sold out'
+                  sellingServices ? 'Unavailable' : 'Sold out'
                 ) : (
                   <>Add to cart · {formatShopPrice(qvItem.pricePesewas * qty)}</>
                 )}

@@ -92,6 +92,11 @@ describe('placeOrder', () => {
   it('books an appointment for a service vendor', async () => {
     await query("update vendors set type = 'services' where id = $1", [vendorId]);
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await query(
+      `insert into vendor_availability (vendor_id, weekday, start_minute, end_minute)
+       values ($1, $2, $3, $4)`,
+      [vendorId, new Date(`${tomorrow}T00:00:00Z`).getUTCDay(), 9 * 60, 18 * 60],
+    );
     const result = await placeOrder(
       checkoutForm({
         bookingDate: tomorrow,

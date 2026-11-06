@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { bookingAllowed } from '@/lib/availability';
 import { db } from '@/lib/db';
 import { normalizeGhanaPhone } from '@/lib/phone';
 import { hitRateLimit } from '@/lib/rate-limit';
@@ -154,6 +155,11 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     if (Number.isNaN(bookingAt.getTime()) || bookingAt.getTime() < Date.now()) {
       return { ok: false, error: 'Choose a date and time in the future.' };
     }
+
+    // Only open, still-free slots that respect the vendor's availability,
+    // blocked days and optional weekly cap can be booked.
+    const allowed = await bookingAllowed(vendor.id, bookingDate, bookingTime);
+    if (!allowed.ok) return { ok: false, error: allowed.error };
   }
 
   const ids = lines.map((line) => line.id);
@@ -350,11 +356,26 @@ const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
 };
 
+// An appointment never ships or sits on a shelf, so it skips "ready" and goes
+// straight from confirmed to done.
+const APPOINTMENT_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['completed', 'cancelled'],
+  ready: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+};
+
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
 export function nextStatuses(from: OrderStatus): OrderStatus[] {
+  return TRANSITIONS[from] ?? [];
+}
+
+export function nextStatusesFor(from: OrderStatus, fulfilment: Fulfilment): OrderStatus[] {
+  if (fulfilment === 'appointment') return APPOINTMENT_TRANSITIONS[from] ?? [];
   return TRANSITIONS[from] ?? [];
 }
 
@@ -527,8 +548,12 @@ export async function updateOrderStatus(
   const client = await db().connect();
   try {
     await client.query('begin');
-    const current = await client.query<{ status: OrderStatus; stock_reserved: boolean }>(
-      'select status, stock_reserved from orders where id = $1 and vendor_id = $2 for update',
+    const current = await client.query<{
+      status: OrderStatus;
+      stock_reserved: boolean;
+      fulfilment: Fulfilment;
+    }>(
+      'select status, stock_reserved, fulfilment from orders where id = $1 and vendor_id = $2 for update',
       [orderId, vendorId],
     );
     const row = current.rows[0];
@@ -536,7 +561,7 @@ export async function updateOrderStatus(
       await client.query('rollback');
       return { ok: false, error: 'Order not found.' };
     }
-    if (!canTransition(row.status, next)) {
+    if (!nextStatusesFor(row.status, row.fulfilment).includes(next)) {
       await client.query('rollback');
       return { ok: false, error: `Cannot move an order from ${row.status} to ${next}.` };
     }
