@@ -182,6 +182,15 @@ export function ItemForm({
               placeholder="Blank means unlimited"
               className={field}
             />
+            {item ? (
+              <input
+                name="stockReason"
+                maxLength={120}
+                defaultValue=""
+                placeholder="Why stock changed (optional)"
+                className={`${field} mt-1.5`}
+              />
+            ) : null}
           </div>
         </div>
 

@@ -23,11 +23,18 @@ const order: OrderRecord = {
   deliveryOnArrival: false,
   totalPesewas: 25500,
   status: 'pending',
+  cancellationReason: null,
   eta: 'Delivery in 45 to 60 minutes',
   createdAt: '2026-11-05T15:00:00.000Z',
   updatedAt: '2026-11-05T15:00:00.000Z',
   lines: [
-    { name: 'Vitamin C serum', quantity: 2, pricePesewas: 12000, lineTotalPesewas: 24000 },
+    {
+      itemId: 'item-1',
+      name: 'Vitamin C serum',
+      quantity: 2,
+      pricePesewas: 12000,
+      lineTotalPesewas: 24000,
+    },
   ],
 };
 

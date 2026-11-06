@@ -140,23 +140,20 @@ function OrderCard({ order }: { order: OrderRecord }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {nextStatuses(order.status).map((status) => (
-          <form key={status} action={updateOrderStatusAction}>
-            <input type="hidden" name="id" value={order.id} />
-            <input type="hidden" name="status" value={status} />
-            <button
-              type="submit"
-              className={cn(
-                'h-9 rounded-pill px-3 text-[12px] font-medium',
-                status === 'cancelled'
-                  ? 'border border-danger text-danger'
-                  : 'bg-ink text-white',
-              )}
-            >
-              {NEXT_LABEL[status] ?? status}
-            </button>
-          </form>
-        ))}
+        {nextStatuses(order.status)
+          .filter((status) => status !== 'cancelled')
+          .map((status) => (
+            <form key={status} action={updateOrderStatusAction}>
+              <input type="hidden" name="id" value={order.id} />
+              <input type="hidden" name="status" value={status} />
+              <button
+                type="submit"
+                className="h-9 rounded-pill bg-ink px-3 text-[12px] font-medium text-white"
+              >
+                {NEXT_LABEL[status] ?? status}
+              </button>
+            </form>
+          ))}
 
         <Link
           href={`/o/${order.code}`}
@@ -166,6 +163,28 @@ function OrderCard({ order }: { order: OrderRecord }) {
         </Link>
         <CopyLink value={`https://${site.domain}/o/${order.code}`} label="Copy tracking link" />
       </div>
+
+      {nextStatuses(order.status).includes('cancelled') ? (
+        <form
+          action={updateOrderStatusAction}
+          className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3"
+        >
+          <input type="hidden" name="id" value={order.id} />
+          <input type="hidden" name="status" value="cancelled" />
+          <input
+            name="reason"
+            placeholder="Reason for cancelling (optional)"
+            maxLength={200}
+            className="h-8 min-w-0 flex-1 rounded-[8px] border border-hairline bg-white px-2 text-[12px] text-ink outline-none focus:border-green-deep"
+          />
+          <button
+            type="submit"
+            className="pressable inline-flex h-8 items-center rounded-pill border border-danger px-3 text-[12px] font-medium text-danger"
+          >
+            Cancel order
+          </button>
+        </form>
+      ) : null}
 
       {order.fulfilment === 'delivery' &&
       order.deliveryFeeMode === 'confirm_after' &&
@@ -298,11 +317,19 @@ export default async function DashboardPage({
                   New orders also arrive on WhatsApp.
                 </p>
               </div>
-              {newOrders ? (
-                <span className="rounded-pill bg-mint-100 px-3 py-1 text-[12px] font-medium text-green-deep">
-                  {newOrders} new
-                </span>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {newOrders ? (
+                  <span className="rounded-pill bg-mint-100 px-3 py-1 text-[12px] font-medium text-green-deep">
+                    {newOrders} new
+                  </span>
+                ) : null}
+                <Link
+                  href="/dashboard/export"
+                  className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                >
+                  Export CSV
+                </Link>
+              </div>
             </div>
 
             {orders.length ? (

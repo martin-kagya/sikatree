@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Check, MessageCircle } from '@/components/icons';
+import { ReorderButton } from '@/components/reorder-button';
 import { OstraMark } from '@/components/ui/ostra-mark';
 import { site } from '@/lib/brand';
 import { formatCedis } from '@/lib/money';
@@ -106,6 +107,9 @@ export default async function TrackOrderPage({
   const vendorHref = `https://wa.me/${order.vendorPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
     `Hi ${order.vendorName}, I'm asking about order ${order.code}.`,
   )}`;
+  const reorderLines = order.lines.flatMap((line) =>
+    line.itemId ? [{ itemId: line.itemId, quantity: line.quantity }] : [],
+  );
 
   return (
     <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
@@ -141,7 +145,9 @@ export default async function TrackOrderPage({
 
             {order.status === 'cancelled' ? (
               <p className="mt-5 rounded-inner bg-danger-bg p-3 text-[13px] text-danger">
-                This order was cancelled. Message {order.vendorName} if you need help.
+                This order was cancelled.
+                {order.cancellationReason ? ` Reason: ${order.cancellationReason}.` : ''} Message{' '}
+                {order.vendorName} if you need help.
               </p>
             ) : (
               <div className="relative mt-8">
@@ -239,6 +245,9 @@ export default async function TrackOrderPage({
               <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="truncate">Message {order.vendorName}</span>
             </a>
+            {reorderLines.length ? (
+              <ReorderButton handle={order.vendorHandle} lines={reorderLines} />
+            ) : null}
             <Link
               href={`/${order.vendorHandle}`}
               className="pressable inline-flex h-12 w-full shrink-0 items-center justify-center rounded-pill border border-hairline bg-white px-6 text-label text-ink hover:border-ink/40 sm:w-auto"

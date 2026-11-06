@@ -244,9 +244,11 @@ Still deferred: multiple images, variants, drag-and-drop order, category managem
 | INV-05 | Manual stock adjustments are recorded with a reason and timestamp (stock movement log). | P1 |
 | INV-06 | Manual "Sold out" toggle independent of counts. | P0 |
 
-**Implementation (2026-11-05):** tracked stock is decremented inside the order transaction with a conditional update, so two buyers cannot take the same last unit. Cancellation restores it in the same transaction, but only when `orders.stock_reserved` is true, which protects orders placed before decrement shipped. Unlimited stock (`null`) is never touched. Zero stock shows Sold out and disables checkout through the existing storefront rules.
+**Implementation (2026-11-05, updated 2026-11-06):** tracked stock is decremented inside the order transaction with a conditional update, so two buyers cannot take the same last unit. Cancellation restores it in the same transaction, but only when `orders.stock_reserved` is true, which protects orders placed before decrement shipped. Unlimited stock (`null`) is never touched. Zero stock shows Sold out and disables checkout through the existing storefront rules.
 
-Still deferred: the 15-minute payment-time hold (INV-03), the stock movement log (INV-05), low-stock alerts (INV-04) and a manual Sold out toggle UI (INV-06). The `items.status = 'sold_out'` value exists, but the dashboard does not toggle it yet.
+Shipped 2026-11-06: the manual Sold out toggle (INV-06), a stock movement log (INV-05) that records manual, order and cancellation changes with a reason and timestamp, and low-stock alerts (INV-04) that message the vendor when an ordered item falls to or below a configurable threshold.
+
+Still deferred: the 15-minute payment-time hold (INV-03).
 
 ### 6.6 Services, availability and booking (BK)
 
@@ -306,8 +308,8 @@ The following behaviours remain deferred or partial and must not be described as
 | ORD-05 | `pending → confirmed → ready → completed` and cancellation are implemented from the dashboard. The `Paid` and `Refunded` states wait for online payments; WhatsApp action buttons wait for approved templates | Phase 2/3 |
 | ORD-06 | The vendor receives a WhatsApp text with the order details and a dashboard link. Interactive Confirm/Decline buttons and approved templates are deferred | Phase 2 |
 | ORD-07 | `/o/{code}` tracking is implemented with the code as the capability. Sensitive customer details are not shown; phone verification and live ETA are deferred | Phase 2/3 |
-| ORD-10 | Cancel is available, but a cancellation reason, client notification and refunds are deferred | Phase 2/3 |
-| ORD-11, ORD-12 | CSV export and reorder are deferred | P1/P2 |
+| ORD-10 | Cancel is available with an optional reason shown on the tracking page; the client WhatsApp notification (needs approved templates) and refunds are deferred | Phase 2/3 |
+| ORD-11, ORD-12 | CSV export (vendor dashboard) and the client reorder button are done | Done (2026-11-06) |
 
 Additional scope notes:
 

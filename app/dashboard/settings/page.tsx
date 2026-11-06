@@ -8,6 +8,7 @@ import { requireVendor } from '@/lib/vendor-auth';
 import { logoutAction } from '../actions';
 import { DeliverySettings } from '../delivery-settings';
 import { EtaSettings } from '../eta-settings';
+import { LowStockSettings } from '../low-stock-settings';
 
 export const metadata: Metadata = {
   title: 'Settings | sikatree',
@@ -24,13 +25,15 @@ type VendorSettings = {
   eta_delivery_within_text: string;
   eta_delivery_outside_text: string;
   eta_pickup_text: string;
+  low_stock_threshold: number | null;
 };
 
 export default async function SettingsPage() {
   const vendorId = await requireVendor();
   const vendors = await query<VendorSettings>(
     `select name, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas,
-            eta_delivery_within_text, eta_delivery_outside_text, eta_pickup_text
+            eta_delivery_within_text, eta_delivery_outside_text, eta_pickup_text,
+            low_stock_threshold
        from vendors where id = $1`,
     [vendorId],
   );
@@ -88,6 +91,14 @@ export default async function SettingsPage() {
               outsideText={vendor.eta_delivery_outside_text}
               pickupText={vendor.eta_pickup_text}
             />
+          </section>
+
+          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+            <h2 className="text-h2 text-ink">Low-stock alerts</h2>
+            <p className="mt-1 text-small text-ink-muted">
+              Get a WhatsApp alert when an ordered item runs low.
+            </p>
+            <LowStockSettings threshold={vendor.low_stock_threshold} />
           </section>
         </main>
       </div>

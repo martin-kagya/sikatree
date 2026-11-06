@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Version** | 0.2 (draft): landing page and waitlist added as Phase L, ships first |
-| **Date** | 2026-11-04 |
+| **Version** | 0.3 (draft): fee model, Pro tier, payouts and referral program decided (section 16) |
+| **Date** | 2026-11-06 |
 | **Companion docs** | `requirement.md` (requirement IDs such as `ONB-10` and `LP-12` are referenced below), `DESIGN.md` |
 | **Parent brand** | Ostra (minor design accents only; see `DESIGN.md`) |
 
@@ -39,9 +39,9 @@
 | Queue / background jobs | Postgres-based queue (`pgmq`) or a hosted queue (e.g. QStash) + scheduled jobs (`pg_cron`) | To decide | Needed for webhooks, retries, reminders, hold expiry |
 | PWA | Web App Manifest + service worker (e.g. Serwist) + Web Push | Proposed | Android-first |
 | WhatsApp | **WhatsApp Business Platform, Cloud API** (direct from Meta, or via a BSP) | To decide | Direct is cheaper; a BSP can ease approval and tooling |
-| Payments | Paystack, Hubtel or Flutterwave | **To decide in Phase 0** | See decision criteria in 3.1 |
+| Payments | **Paystack** (1.95% on cards, MoMo and bank transfer; GHS 1 per MoMo payout) | Decided, pending KYC | Keep the provider interface so a second provider can plug in; criteria in 3.1 guide the fallback |
 | LLM parsing | Claude API with structured (JSON schema) output; rules-first for simple patterns | Proposed | Cheaper model for text, vision-capable model for photos; cost and accuracy tracked |
-| Hosting | Vercel (web) + Supabase (data/functions) | Proposed | Check regional latency for Ghana users; CDN images |
+| Hosting | Cloudflare (web, about $5 per month on the current implementation) + Supabase Pro (data/functions, about $25 per month) | Decided | Check regional latency for Ghana users; CDN images; recheck Cloudflare cost as traffic grows |
 | Observability | Sentry (errors), PostHog or similar (analytics), uptime monitor | Proposed | |
 | Testing | Vitest/Jest (unit), Playwright (e2e), WhatsApp payload fixtures | Proposed | |
 | CI/CD | GitHub Actions, preview deployments per PR | Proposed | |
@@ -142,6 +142,7 @@ A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, b
   12. `waitlist_invite` (invites a vendor to start onboarding, with a "Start now" button)
 - Quick-reply buttons on order and booking templates re-open the window when tapped, which lets follow-up interaction be free-form.
 - Verify current template categories, pricing and messaging limits with Meta's documentation before finalizing, since these change.
+- **Cost note (checked 2026-11-06):** from 1 Oct 2026 Meta charges replies inside the 24-hour window (service messages) at the utility rate after 1,000 free per business phone number a month, and also charges in-window utility templates. Ghana is in the Rest of Africa band: about $0.004 per utility, service or authentication message and $0.0225 per marketing message. Bot traffic is therefore a real cost line (section 16).
 
 ### 6.4 Authentication
 - Vendor identity = verified WhatsApp number (they messaged us from it).
@@ -152,8 +153,9 @@ A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, b
 ### 6.5 Payments
 - `PaymentProvider` interface: `createCollection`, `verifyCollection`, `refund`, `createPayout`, `lookupAccountName`, `parseWebhook`.
 - Checkout creates a pending `payment`; the confirmation path is **webhook plus server-side verification**, never the browser redirect.
-- Fee calculation in one module with unit tests; fee configuration stored in the database.
-- Payout job: aggregates vendor balance (net of fees and holds), applies minimum payout, calls provider, records status, notifies the vendor.
+- Fee calculation in one module with unit tests; fee configuration stored in the database. Decided model (section 16): 1.5% platform fee charged to the buyer plus 1.5% charged to the vendor; the buyer total is `(price + buyer fee) / (1 - 0.0195)` so Paystack's 1.95% is covered by the buyer.
+- Payout job: runs as a **weekly batch** by default and aggregates vendor balance (net of fees and holds), applies minimum payout, calls provider, records status, notifies the vendor. **Instant payout** is available on request for an extra fee (planned GHS 3, configurable).
+- Referral accruals (section 16.5) are ledger entries, paid as wallet credit or fee discount after the refund window closes.
 - Reconciliation job: compare ledger to provider reports daily, alert on mismatches.
 
 ### 6.6 Booking engine
@@ -277,7 +279,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Interview 10 to 15 vendors from one niche (how they take orders, collect payments, handle bookings; what annoys them)
 - [ ] Shortlist 5 to 10 "design partner" vendors from your inbound website requests
 - [ ] Collect 50+ real vendor messages (photo captions, price formats, availability phrasing) as the first parser test set
-- [ ] Decide the launch niche and the fee model for the pilot
+- [ ] Decide the launch niche. Fee model decided on 2026-11-06 (section 16); confirm the buyer-facing 1.5% with a checkout test in the pilot
 
 **Engineering setup**
 - [ ] Repo, CI, environments (dev, staging, prod), error tracking
@@ -328,7 +330,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
 - [x] Order codes and lifecycle (ORD-04, ORD-05); client tracking page (ORD-07) (offline lifecycle; the Paid state waits for payments)
 - [ ] Payment provider adapter: MoMo and card collection, webhook verification (PAY-01, PAY-02, PAY-09)
-- [ ] Ledger and fee calculation (PAY-03, PAY-04)
+- [ ] Ledger and fee calculation: 1.5% buyer fee + 1.5% vendor fee, buyer total grossed up for Paystack's 1.95% (PAY-03, PAY-04)
 - [ ] Pay-offline / pay-on-delivery mode (ORD-08)
 - [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06) (partial: atomic decrement and Sold out shipped; payment-time holds and the toggle UI are deferred)
 - [x] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04) (text alert with a dashboard link; action buttons wait for approved templates)
@@ -351,14 +353,14 @@ Backend detail, environment variables and the operational runbook live in
 | Area | What ships now | Deferred | Requirement | Target |
 |---|---|---|---|---|
 | Online payments | Pay on delivery, pickup or appointment | MoMo/card collection, signed webhooks, retries | PAY-01, PAY-02, PAY-09 | Phase 2, after aggregator KYC |
-| Ledger and fees | None | Double-entry ledger, platform fee, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
+| Ledger and fees | None | Double-entry ledger, platform fee split (1.5% buyer, 1.5% vendor), grossed-up buyer total, referral accruals, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
 | Delivery fee | Vendor-configurable free / fixed (with within-region and outside-region rates) / confirm-after, set from the dashboard; clients can pay the delivery fee in cash on arrival, and confirm-after orders let the vendor set the fee on the order | None | ORD-03 | Done (2026-11-05) |
-| Order lifecycle | `pending → confirmed → ready → completed` or `cancelled` from the dashboard; the tracking page follows it | Paid and Refunded states, cancellation reason, refunds, WhatsApp action buttons | ORD-05, ORD-10 | Phase 2/3 |
+| Order lifecycle | `pending → confirmed → ready → completed` or `cancelled` from the dashboard, with an optional cancellation reason shown on the tracking page | Paid and Refunded states, refunds, client WhatsApp notification, WhatsApp action buttons | ORD-05, ORD-10 | Phase 2/3 |
 | Vendor notification | WhatsApp text with the code, items, total, customer, delivery details and a dashboard login link | Interactive Confirm/Decline/Mark ready buttons, approved templates, delivery fallback | ORD-06, ONB-24, NOT-01, NOT-04 | Phase 2 |
-| Client tracking | `/o/{code}` shows status, items, total and ETA; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA, reorder | ORD-07, ORD-12 | Phase 2/3 |
+| Client tracking | `/o/{code}` shows status, items, total and ETA, plus a reorder button; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA | ORD-07, ORD-12 | Phase 2/3 |
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
-| Order tools | None | CSV export, reorder | ORD-11, ORD-12 | P1/P2 |
-| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out from the dashboard | Payment-time 15-minute holds, stock movement log, low-stock alerts | INV-01 to INV-06 | Phase 2/3 |
+| Order tools | Vendor CSV export of orders | None | ORD-11, ORD-12 | Done (2026-11-06) |
+| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out, a stock movement log and low-stock alerts | Payment-time 15-minute holds | INV-01 to INV-06 | Phase 2/3 |
 | Catalogue tools | Create and edit items with one photo, price, compare-at, description, category, stock, visibility, badge and position; hide and manual sold out | Multiple images, variants, drag reorder, category management, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
 | Services | Appointment request with date and time | Availability rules, slots, deposits, rescheduling | BK-04, BK-05 | Phase 4 |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
@@ -378,7 +380,7 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Image upload from camera, drag reorder, hide and show items
 - [ ] Inventory screens and sold-out toggles (DASH-06)
 - [ ] Payments screen: balance, transactions, fees, payout settings (DASH-08)
-- [ ] **Payouts:** MoMo account verification (name lookup), payout job, status notifications (PAY-05, ONB-08)
+- [ ] **Payouts:** MoMo account verification (name lookup), weekly batch payout job, instant payout for a fee, status notifications (PAY-05, ONB-08)
 - [ ] Web Push opt-in and delivery; notification center (NOT-06, DASH-14)
 - [ ] Notification routing with fallback logic (NOT-03 to NOT-05)
 - [ ] Refunds and cancellations (ORD-10, PAY-06)
@@ -428,7 +430,8 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Terms, Privacy Policy and Refund Policy published; Data Protection registration complete
 - [ ] Support playbook: common issues, response times, escalation, and the takeover freeze drill (6.9)
 - [ ] Cost review per vendor (messaging, AI parsing, storage) and fee adjustments
-- [ ] Referral links and "Founding Vendor" configuration (BIL-04)
+- [ ] Referral links and "Founding Vendor" configuration (BIL-04): 20% fee share for 6 months plus one free Pro month on activation (section 16.5)
+- [ ] Leakage monitoring per vendor: share of pay-on-delivery orders, cancellations and unpaid orders, compared to similar vendors (section 16.4)
 - [ ] Share cards and QR codes (PG-06)
 - [ ] Final pass on performance and accessibility
 
@@ -449,7 +452,7 @@ Backend detail, environment variables and the operational runbook live in
 4. Analytics dashboard (DASH-11)
 5. Voice-note item creation (ONB-13)
 6. Weekly WhatsApp summary (NOT-09)
-7. Paid plan and subscription billing (BIL-02)
+7. Pro plan and subscription billing (BIL-02): GHS 60 per month, conversational bot with a daily cap, voice notes, sales analytics (section 16.2); build after the pilot shows vendors with real order volume
 8. Offline sync improvements (DASH-12)
 9. Identity verification badges (TRU-01)
 10. Delivery partner integration
@@ -493,9 +496,9 @@ Backend detail, environment variables and the operational runbook live in
 | Phase 0 | Interview vendors; convert 5 to 10 inbound website requests into design partners; collect real message samples |
 | Phase 1 | Onboard design partners live over WhatsApp; fix every point of friction within a day |
 | Phase 2 | Design partners share links with their customers; capture first testimonials and screenshots |
-| Phase 3 | Referral program for design partners; start an in-person onboarding routine at a campus or market cluster |
+| Phase 3 | Referral program for design partners (20% fee share for 6 months plus one free Pro month on activation, section 16.5); start an in-person onboarding routine at a campus or market cluster |
 | Phase 4 | Recruit service providers in the launch niche; showcase deposit and reminder benefits against no-shows |
-| Phase 5 | Founding Vendor program (e.g. reduced fees for the first months); campus or market ambassadors; influencer partnerships |
+| Phase 5 | Founding Vendor program (e.g. a reduced vendor share of the fee for the first months); campus or market ambassadors; influencer partnerships |
 
 **Positioning line for vendors:** "Send us your photos on WhatsApp and get your own shop link in 10 minutes, with MoMo payments and order codes built in."
 
@@ -511,13 +514,16 @@ Backend detail, environment variables and the operational runbook live in
 | Aggregator KYC takes longer than expected | Medium | High | Apply to two providers; keep the adapter interface clean; pilot with pay-offline mode if blocked |
 | LLM parsing is too error-prone on real messages | Medium | Medium | Rules-first; mandatory confirmation; correction-rate tracking; iterate on prompts using the evaluation set |
 | Waitlist signups don't turn into active vendors (curiosity, not intent) | Medium | Medium | Capture business type and handle at signup; invite in small batches; track waitlist-to-live-page rate; follow up personally with the first 20 |
-| Landing page claims ("free", GH₵4,000 comparison) challenged or misleading | Low to Medium | Medium | Base figures on real quotes; state the fee on online payments clearly in the FAQ; avoid fake counters and testimonials |
+| Landing page claims ("free", GH₵4,000 comparison) challenged or misleading | Low to Medium | Medium | Base figures on real quotes; state the fees clearly in the FAQ (buyers pay 1.5% plus the Paystack fee, vendors pay 1.5%); avoid fake counters and testimonials |
 | Scope creep (booking, escrow, variants) delays pilot | High | Medium | Hold the P0 line; ship products-and-orders first, bookings second |
 | WhatsApp per-message costs higher than modeled | Medium | Medium | Measure cost per vendor from the first pilot; reduce template use; encourage in-window interaction |
 | Low vendor retention after setup | Medium | High | Order alerts, chat shortcuts, weekly summaries; talk to churned vendors immediately |
 | Solo-developer capacity and parallel commitments | High | High | Fixed weekly build blocks; strict phase exits; reuse existing Next.js/Supabase patterns and components; descope before extending dates |
 | Security or fraud incident | Low | High | RLS tests, signature verification, new-vendor payout holds, audit logs, incident runbook |
 | Regulatory surprises (data protection, payments) | Low to Medium | High | Early legal consult; use licensed aggregator settlement; avoid fund-holding until advised |
+| Off-platform payments (buyer and vendor agree to pay the vendor directly) | High | High | Make paying on-platform worth the extra cost (tracking, refund and dispute cover, verified-paid reviews); tie Pro analytics to tracked orders; monitor leakage per vendor; lean on Pro and instant payout revenue, which cannot be bypassed; plan at 30% to 40% leakage |
+| Pro conversation cost exceeds the GHS 60 price | Medium | Medium | Daily cap of 25 turns; track cost per Pro vendor; price a real speech-to-text service before building voice notes |
+| Buyers resist the 1.5% fee at checkout (interview interest does not equal behavior) | Medium | Medium | Test in the pilot; show the protection line at checkout; fall back to a lower buyer share if conversion drops |
 
 ---
 
@@ -557,3 +563,74 @@ Backend detail, environment variables and the operational runbook live in
 - **Weekly:** review the funnel (starts, drop-off by step, time to live), error rates, and vendor feedback; adjust next week's scope.
 - **End of each phase:** demo to design partners; check exit criteria; decide go or hold.
 - **Day 60 to 90 after pilot launch:** formal review against the success metrics; decide to scale, adjust pricing and positioning, or pivot.
+
+---
+
+## 16. Business model and unit economics (decided 2026-11-06)
+
+Companion file: `sikatree_cost_model.xlsx` (live model; change the blue cells on its Inputs sheet).
+
+### 16.1 Decisions
+
+| Area | Decision |
+|---|---|
+| Platform fee | 3% of online order value, split 1.5% charged to the buyer and 1.5% charged to the vendor |
+| Paystack fee (1.95%) | Passed to the buyer through a grossed-up checkout total |
+| Pay-on-delivery | Allowed, earns no fee |
+| Payouts | Weekly batch; instant payout available for an extra fee (planned GHS 3) |
+| Pro plan | GHS 60 per month net to us; the vendor also pays Paystack's 1.95% (charge GHS 61.19) |
+| Pro conversation cap | 25 conversational turns per day per Pro vendor |
+| Buyer protection | Order tracking, refunds and dispute handling, reviews only for verified paid orders |
+| Referral program | 20% of the referred vendor's platform fee for 6 months, plus one free Pro month on activation (16.5) |
+| Hosting | Cloudflare (about $5 per month) and Supabase Pro (about $25 per month) |
+
+Scope check: the backlog lists escrow-lite and a dispute flow as post-MVP (PAY-08, TRU-03). Whatever is promised to buyers at checkout must match what exists at launch.
+
+### 16.2 Free and Pro tiers
+
+| | Free | Pro (GHS 60 per month) |
+|---|---|---|
+| Bot | Buttons and lists; photo and text parsing stays AI-assisted | Conversational ("what sold this week?", "raise cream to 100 and mark serum sold out"), voice notes |
+| Data | Counts: orders and revenue this week | Sales by item and day, repeat customers, peak hours, stock alerts, CSV export |
+
+The 25 turn daily cap keeps the worst case (a vendor who hits it every day) at about GHS 52 of cost against GHS 60 of price. Above about 28 turns a day the worst case loses money. Typical use (about 10 turns a day) costs about GHS 21 a month.
+
+### 16.3 Unit economics (GHS per month)
+
+Assumptions to replace with pilot data: 20 orders per vendor per month, average order GHS 120, 50% paid online, 10% of vendors on Pro, 10% monthly vendor growth with 30% of new vendors referred, GHS 11.2 per USD. Voice-note transcription is a GHS 0.10 per note placeholder (not priced yet).
+
+| | 25 vendors | 100 vendors | 500 vendors |
+|---|---|---|---|
+| Total cost | 690 | 1,843 | 8,442 |
+| Total revenue (fee, Pro, instant payout) | 1,065 | 4,260 | 21,300 |
+| **Profit** | **375** | **2,417** | **12,858** |
+| **Margin** | **35%** | **57%** | **60%** |
+| Profit at 30% off-platform leakage | 115 | 1,378 | 7,662 |
+| Margin at 30% leakage | 14% | 43% | 48% |
+
+Break-even is about 12 vendors with no leakage and about 19 with 30% leakage. The 500 vendor column includes a rough GHS 450 infrastructure buffer.
+
+### 16.4 Leakage controls
+
+- Make on-platform payment worth the extra cost: order tracking, refund and dispute cover shown at checkout, reviews only for verified paid orders.
+- Tie Pro analytics, repeat customers and stock alerts to tracked orders, so off-platform sales cost the vendor their own insight.
+- Do not rely on the fee alone: Pro subscriptions and instant payout fees cannot be bypassed. Pro adoption matters most while vendor numbers are small.
+- Monitor per vendor: share of pay-on-delivery orders, cancellations, unpaid orders, and gaps against similar vendors.
+- Fee tiers by volume or lower vendor share for Founding Vendors who route most orders through the platform.
+
+### 16.5 Referral program
+
+- **Reward:** the referrer receives 20% of the referred vendor's platform fee for 6 months, plus one free Pro month when the referred vendor activates. At the assumptions above, one referred vendor earns us about GHS 216 in fees over the window and the total reward costs about GHS 67 (31%).
+- **Activation** means verified paid orders, not signup or waitlist entry.
+- **Fraud controls:** block self-referral by matching phone number, MoMo number and device; treat vendors sharing a payout number as one person; hold rewards until the refund window closes; claw back on refunded orders; cap rewards per referrer; one level only.
+- **Pay rewards** as wallet credit or fee discount, not cash.
+- **Measure:** share of vendors who refer, activation rate of referred vendors, cost per activated vendor, payback months, 60-day retention of referred vs organic vendors.
+- **Rollout:** run with the 5 to 10 design partners first (Phase 3), then open to all vendors with the Founding Vendor program (Phase 5).
+
+### 16.6 Open items
+
+- Confirm with real checkout tests that buyers accept 1.5% plus the Paystack fee.
+- Price a speech-to-text service for Pro voice notes.
+- Replace the order volume, order value, online share and Pro usage assumptions with pilot data.
+- Recheck Meta's WhatsApp rates and Cloudflare cost each quarter.
+- Confirm the instant payout fee and what the vendor sees on payout statements.

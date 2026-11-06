@@ -14,6 +14,7 @@ import {
   type ItemStatus,
 } from '@/lib/catalogue';
 import { query } from '@/lib/db';
+import { recordStockMovement } from '@/lib/inventory';
 import { parsePesewas } from '@/lib/money';
 import { requireVendor } from '@/lib/vendor-auth';
 import { extensionFor, uploadItemImage } from '@/lib/whatsapp/media';
@@ -115,6 +116,12 @@ export async function saveItemAction(
     ? await updateItem(vendorId, id, input)
     : await createItem(vendorId, input);
   if (!result.ok) return { error: result.error };
+
+  // Manual stock adjustments are recorded with a reason (INV-05).
+  if (id && existing && existing.stock !== input.stock) {
+    const delta = (input.stock ?? 0) - (existing.stock ?? 0);
+    await recordStockMovement(id, delta, 'manual', text(formData, 'stockReason') || null);
+  }
 
   await revalidateStore(vendorId);
   redirect('/dashboard?item=saved');

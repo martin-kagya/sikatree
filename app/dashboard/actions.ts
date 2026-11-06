@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { query } from '@/lib/db';
+import { updateLowStockThreshold } from '@/lib/inventory';
 import { parsePesewas } from '@/lib/money';
 import {
   ORDER_STATUSES,
@@ -26,10 +27,11 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
   const vendorId = await requireVendor();
   const id = String(formData.get('id') ?? '');
   const status = String(formData.get('status') ?? '') as OrderStatus;
+  const reason = String(formData.get('reason') ?? '').trim() || null;
 
   if (!id || !ORDER_STATUSES.includes(status)) return;
 
-  await updateOrderStatus(id, vendorId, status);
+  await updateOrderStatus(id, vendorId, status, reason);
   revalidatePath('/dashboard');
 }
 
@@ -92,6 +94,25 @@ export async function updateEtaSettingsAction(
   const pickupText = String(formData.get('etaPickup') ?? '');
 
   const result = await updateEtaSettings(vendorId, withinText, outsideText, pickupText);
+  if (!result.ok) return { error: result.error };
+
+  return { saved: true };
+}
+
+export type LowStockState = { error?: string; saved?: boolean };
+
+export async function updateLowStockThresholdAction(
+  _previous: LowStockState,
+  formData: FormData,
+): Promise<LowStockState> {
+  const vendorId = await requireVendor();
+  const raw = String(formData.get('threshold') ?? '').trim();
+  const threshold = raw === '' ? null : Number(raw);
+  if (threshold !== null && !Number.isInteger(threshold)) {
+    return { error: 'Enter a whole number, or leave blank to turn alerts off.' };
+  }
+
+  const result = await updateLowStockThreshold(vendorId, threshold);
   if (!result.ok) return { error: result.error };
 
   return { saved: true };

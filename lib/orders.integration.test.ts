@@ -228,7 +228,13 @@ describe('placeOrder', () => {
     expect(placed).not.toBeNull();
     expect(placed?.status).toBe('pending');
     expect(placed?.lines).toEqual([
-      { name: 'Vitamin C serum', quantity: 2, pricePesewas: 12000, lineTotalPesewas: 24000 },
+      {
+        itemId: itemId,
+        name: 'Vitamin C serum',
+        quantity: 2,
+        pricePesewas: 12000,
+        lineTotalPesewas: 24000,
+      },
     ]);
 
     const confirmed = await updateOrderStatus(placed!.id, vendorId, 'confirmed');
@@ -260,6 +266,21 @@ describe('placeOrder', () => {
     const order = await getOrderByCode(result.order.code);
     const attempt = await updateOrderStatus(order!.id, other[0].id, 'confirmed');
     expect(attempt).toMatchObject({ ok: false });
+  });
+
+  it('records a cancellation reason', async () => {
+    const result = await placeOrder(checkoutForm());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const order = await getOrderByCode(result.order.code);
+    expect(await updateOrderStatus(order!.id, vendorId, 'cancelled', 'Out of stock')).toEqual({
+      ok: true,
+      status: 'cancelled',
+    });
+
+    const after = await getOrderByCode(result.order.code);
+    expect(after?.cancellationReason).toBe('Out of stock');
   });
 
   it('decrements stock on placement and restores it on cancel', async () => {

@@ -280,6 +280,14 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
           );
           if (!stock.rowCount) throw new StockError(item.name);
 
+          // Record the decrement only for tracked stock (unlimited stays null).
+          if (stock.rows[0].stock !== null) {
+            await client.query(
+              `insert into stock_movement (item_id, delta, source) values ($1, $2, 'order')`,
+              [item.id, -item.quantity],
+            );
+          }
+
           await client.query(
             `insert into order_items (order_id, item_id, name, price_pesewas, quantity, line_total_pesewas)
              values ($1,$2,$3,$4,$5,$6)`,
@@ -351,6 +359,7 @@ export function nextStatuses(from: OrderStatus): OrderStatus[] {
 }
 
 export type OrderLine = {
+  itemId: string | null;
   name: string;
   quantity: number;
   pricePesewas: number;
@@ -378,6 +387,7 @@ export type OrderRecord = {
   deliveryOnArrival: boolean;
   totalPesewas: number;
   status: OrderStatus;
+  cancellationReason: string | null;
   eta: string | null;
   createdAt: string;
   updatedAt: string;
@@ -406,6 +416,7 @@ type OrderRow = {
   total_pesewas: number;
   status: OrderStatus;
   eta_text: string | null;
+  cancellation_reason: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -415,7 +426,7 @@ const ORDER_SELECT = `
          v.phone as vendor_phone, o.customer_name, o.customer_phone, o.customer_email,
          o.fulfilment, o.address, o.notes, o.booking_at, o.subtotal_pesewas,
          o.delivery_pesewas, o.delivery_fee_mode, o.delivery_zone, o.delivery_on_arrival,
-         o.total_pesewas, o.status, o.eta_text, o.created_at, o.updated_at
+         o.total_pesewas, o.status, o.eta_text, o.cancellation_reason, o.created_at, o.updated_at
     from orders o
     join vendors v on v.id = o.vendor_id
 `;
@@ -426,12 +437,13 @@ async function loadLines(orderIds: string[]): Promise<Map<string, OrderLine[]>> 
 
   const rows = await db().query<{
     order_id: string;
+    item_id: string | null;
     name: string;
     quantity: number;
     price_pesewas: number;
     line_total_pesewas: number;
   }>(
-    `select order_id, name, quantity, price_pesewas, line_total_pesewas
+    `select order_id, item_id, name, quantity, price_pesewas, line_total_pesewas
        from order_items where order_id = any($1::uuid[]) order by id`,
     [orderIds],
   );
@@ -439,6 +451,7 @@ async function loadLines(orderIds: string[]): Promise<Map<string, OrderLine[]>> 
   for (const row of rows.rows) {
     const list = grouped.get(row.order_id) ?? [];
     list.push({
+      itemId: row.item_id,
       name: row.name,
       quantity: row.quantity,
       pricePesewas: row.price_pesewas,
@@ -471,6 +484,7 @@ function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
     deliveryOnArrival: row.delivery_on_arrival,
     totalPesewas: row.total_pesewas,
     status: row.status,
+    cancellationReason: row.cancellation_reason,
     eta: row.eta_text,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
@@ -506,6 +520,7 @@ export async function updateOrderStatus(
   orderId: string,
   vendorId: string,
   next: OrderStatus,
+  reason?: string | null,
 ): Promise<StatusUpdate> {
   if (!ORDER_STATUSES.includes(next)) return { ok: false, error: 'Unknown status.' };
 
@@ -530,9 +545,10 @@ export async function updateOrderStatus(
       `update orders
           set status = $2,
               updated_at = now(),
+              cancellation_reason = case when $2 = 'cancelled' then $3 else cancellation_reason end,
               stock_reserved = case when $2 = 'cancelled' then false else stock_reserved end
         where id = $1`,
-      [orderId, next],
+      [orderId, next, reason ?? null],
     );
 
     if (next === 'cancelled' && row.stock_reserved) {
@@ -544,6 +560,16 @@ export async function updateOrderStatus(
             set stock = i.stock + oi.quantity
            from order_items oi
           where oi.order_id = $1 and oi.item_id = i.id and i.stock is not null`,
+        [orderId],
+      );
+
+      // Mirror the restore in the movement log (tracked items only).
+      await client.query(
+        `insert into stock_movement (item_id, delta, source)
+         select oi.item_id, oi.quantity, 'cancellation'
+           from order_items oi
+           join items i on i.id = oi.item_id
+          where oi.order_id = $1 and oi.item_id is not null and i.stock is not null`,
         [orderId],
       );
     }

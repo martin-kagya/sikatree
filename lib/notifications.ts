@@ -1,3 +1,5 @@
+import { db } from '@/lib/db';
+import { listLowStockItems } from '@/lib/inventory';
 import { createLoginLink } from '@/lib/login-links';
 import { formatCedis } from '@/lib/money';
 import { getOrderByCode, type OrderRecord } from '@/lib/orders';
@@ -64,4 +66,32 @@ export async function notifyVendorOfOrder(code: string): Promise<void> {
   const link = await createLoginLink(order.vendorId);
   const message = vendorOrderMessage(order, link.url);
   await getMessenger().send(order.vendorPhone, text(message));
+}
+
+// Low-stock alert (INV-04): after an order, warn the vendor about ordered items
+// that have fallen to or below their configured threshold.
+export async function notifyVendorOfLowStock(code: string): Promise<void> {
+  const order = await getOrderByCode(code);
+  if (!order) return;
+
+  const vendors = await db().query<{ phone: string; low_stock_threshold: number | null }>(
+    'select phone, low_stock_threshold from vendors where id = $1',
+    [order.vendorId],
+  );
+  const vendor = vendors.rows[0];
+  if (!vendor || vendor.low_stock_threshold === null) return;
+
+  const ordered = new Set(order.lines.map((line) => line.itemId).filter(Boolean) as string[]);
+  if (!ordered.size) return;
+
+  const items = (await listLowStockItems(order.vendorId, vendor.low_stock_threshold)).filter(
+    (item) => ordered.has(item.id),
+  );
+  if (!items.length) return;
+
+  const message = [
+    'Low stock alert:',
+    ...items.map((item) => `• ${item.name}: ${item.stock} left`),
+  ].join('\n');
+  await getMessenger().send(vendor.phone, text(message));
 }
