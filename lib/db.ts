@@ -94,6 +94,16 @@ async function workerClient(): Promise<Client> {
       connectionTimeoutMillis: 10_000,
     });
   }
+  // In a real Worker, a direct DATABASE_URL connection is not routed by
+  // Cloudflare (there is no Hyperdrive hop), so it fails with the misleading
+  // "Connection terminated unexpectedly" on every query. Fail loudly instead.
+  // Local dev and tests keep the DATABASE_URL fallback so the simulator path
+  // and the worker integration test still run without a binding.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[db] HYPERDRIVE binding missing: attach a Hyperdrive binding named HYPERDRIVE to the Worker.',
+    );
+  }
   return new Client(poolOptions());
 }
 
@@ -189,6 +199,26 @@ export async function query<T extends Record<string, unknown>>(
 ): Promise<T[]> {
   const result = await db().query<T>(text, params);
   return result.rows as T[];
+}
+
+// Deploy check: reports which connection path the Worker will use and whether
+// a round-trip to the database succeeds. Hit /api/health after every deploy.
+export async function dbHealth(): Promise<{
+  ok: boolean;
+  source: 'HYPERDRIVE' | 'DATABASE_URL' | 'local';
+}> {
+  if (!isCloudflareWorker()) return { ok: true, source: 'local' };
+
+  const hyperdrive = await hyperdriveConnectionString();
+  const source = hyperdrive ? 'HYPERDRIVE' : 'DATABASE_URL';
+  if (!hyperdrive) return { ok: false, source };
+
+  try {
+    await query('select 1');
+    return { ok: true, source };
+  } catch {
+    return { ok: false, source };
+  }
 }
 
 export const reservationDays = () => {

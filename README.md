@@ -84,9 +84,18 @@ ends. A global pool leaves dead sockets behind between Workers requests.
 For the connection, create a **Hyperdrive** configuration for the Supabase database and bind it
 to the Worker as `HYPERDRIVE`. Keep `DATABASE_URL` for local development and `pnpm db:migrate`.
 At runtime the Worker reads `env.HYPERDRIVE.connectionString` from `cloudflare:workers`; without
-that binding it falls back to `DATABASE_URL`, which usually ends in
-`Connection terminated unexpectedly` on Workers.
+that binding it fails loudly with `[db] HYPERDRIVE binding missing` instead of the misleading
+`Connection terminated unexpectedly`.
 
 The Worker runtime needs Node compatibility. Create the Hyperdrive config against the Supabase
 pooler host on port 5432, add the binding in the Cloudflare dashboard, and redeploy after any
 binding change.
+
+**Verify after every deploy** — hit `GET /api/health`:
+
+- `{"ok":true,"source":"HYPERDRIVE"}` → the database hop is wired correctly.
+- `{"ok":false,"source":"DATABASE_URL"}` (or 503) → the binding is missing; re-attach it.
+
+The binding is dashboard-only (there is no `wrangler.toml`), so recreating the Worker or
+switching deploy methods can silently drop it. `/api/health` catches that in seconds rather than
+waiting for `Connection terminated unexpectedly` in the logs.
