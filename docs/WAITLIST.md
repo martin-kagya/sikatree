@@ -17,7 +17,7 @@ repo and covered by `pnpm test`.
 | LP-20 funnel events, UTM and referral capture | Capture done, no dashboard | `components/analytics.tsx`, `app/api/e` |
 | LP-21 admin list, search, filters, CSV, status, notes | Done | `app/admin` |
 | LP-23 unsubscribe frees the handle | Server side done, STOP handling waits on the bot | `setStatus` in `lib/waitlist.ts` |
-| LP-25 privacy notice and terms | Draft published, needs legal review | `app/privacy`, `app/terms` |
+| LP-25 privacy notice and terms | Covers the waitlist, vendor pages, guest orders and bookings, WhatsApp messaging, the processors (Meta, Supabase, Cloudflare), cookies/local storage and the no-online-payments stance; still needs legal review | `app/privacy`, `app/terms` |
 
 ## Running it
 
