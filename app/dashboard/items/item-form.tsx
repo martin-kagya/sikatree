@@ -41,12 +41,13 @@ export function ItemForm({
 
         <div>
           <label htmlFor="image" className={label}>
-            {item?.imageUrl ? 'Replace photo' : 'Photo'}
+            {item?.imageUrl ? 'Replace photos' : 'Photos'}
           </label>
           <input
             id="image"
             name="image"
             type="file"
+            multiple
             accept="image/jpeg,image/png,image/webp,image/avif"
             onChange={(event) => {
               const file = event.target.files?.[0];
@@ -61,7 +62,10 @@ export function ItemForm({
             }}
             className="block w-full text-[12px] text-ink-muted file:mr-3 file:rounded-pill file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[12px] file:text-white"
           />
-          <p className="mt-1.5 text-[11px] text-ink-muted">JPG, PNG, WebP or AVIF, up to 10MB.</p>
+          <p className="mt-1.5 text-[11px] text-ink-muted">
+            Up to 5 photos (JPG, PNG, WebP or AVIF, up to 10MB each). The first is the cover.
+            Re-uploading replaces all photos.
+          </p>
         </div>
 
         {item?.imageUrl && !newFile ? (
@@ -76,7 +80,7 @@ export function ItemForm({
               }}
               className="h-4 w-4 rounded border-hairline"
             />
-            Remove current photo
+            Remove all photos
           </label>
         ) : null}
 

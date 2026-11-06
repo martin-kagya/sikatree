@@ -7,6 +7,7 @@ import {
   getVendorItem,
   itemError,
   ITEM_STATUSES,
+  replaceItemImages,
   setItemStatus,
   updateItem,
   type ItemBadge,
@@ -43,26 +44,32 @@ export async function saveItemAction(
   if (id && !existing) return { error: 'Item not found.' };
 
   let imageUrl = existing?.imageUrl ?? null;
-  const file = formData.get('image');
-  if (file instanceof File && file.size > 0) {
-    const mime = file.type.split(';')[0].trim().toLowerCase();
-    if (!extensionFor(mime)) {
-      return { error: 'Use a JPG, PNG, WebP or AVIF image.' };
+  const files = formData
+    .getAll('image')
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
+  if (files.length) {
+    const additional: string[] = [];
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      const mime = file.type.split(';')[0].trim().toLowerCase();
+      if (!extensionFor(mime)) return { error: 'Use JPG, PNG, WebP or AVIF images.' };
+      if (file.size > 10 * 1024 * 1024) return { error: 'Images must be 10MB or smaller.' };
+      const uploaded = await uploadItemImage({
+        vendorId,
+        bytes: Buffer.from(await file.arrayBuffer()),
+        mime,
+      });
+      if (!uploaded) {
+        return { error: 'Could not upload an image. Check storage settings and try again.' };
+      }
+      if (index === 0) imageUrl = uploaded;
+      else additional.push(uploaded);
     }
-    if (file.size > 10 * 1024 * 1024) {
-      return { error: 'Images must be 10MB or smaller.' };
-    }
-    const uploaded = await uploadItemImage({
-      vendorId,
-      bytes: Buffer.from(await file.arrayBuffer()),
-      mime,
-    });
-    if (!uploaded) {
-      return { error: 'Could not upload the image. Check storage settings and try again.' };
-    }
-    imageUrl = uploaded;
+    if (id) await replaceItemImages(id, additional);
   } else if (formData.get('removeImage') === 'on') {
     imageUrl = null;
+    if (id) await replaceItemImages(id, []);
   }
 
   const priceRaw = text(formData, 'price');

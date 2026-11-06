@@ -176,3 +176,24 @@ export async function listCategories(vendorId: string): Promise<string[]> {
   );
   return rows.rows.map((row) => row.category);
 }
+
+// Additional item photos live in item_images; the primary photo stays on
+// items.image_url. Ordered by position.
+export async function listItemImages(itemId: string): Promise<string[]> {
+  const rows = await db().query<{ url: string }>(
+    `select url from item_images where item_id = $1 order by position, id`,
+    [itemId],
+  );
+  return rows.rows.map((row) => row.url);
+}
+
+export async function replaceItemImages(itemId: string, urls: string[]): Promise<void> {
+  await db().query('delete from item_images where item_id = $1', [itemId]);
+  for (let index = 0; index < urls.length; index += 1) {
+    await db().query('insert into item_images (item_id, url, position) values ($1, $2, $3)', [
+      itemId,
+      urls[index],
+      index,
+    ]);
+  }
+}

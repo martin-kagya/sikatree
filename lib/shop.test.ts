@@ -25,6 +25,7 @@ function item(overrides: Partial<ShopItem> = {}): ShopItem {
     badge: null,
     imageUrl: '/x.jpg',
     imageUrlAlt: null,
+    images: ['/x.jpg'],
     focalX: null,
     focalY: null,
     createdAt: '2026-01-01T00:00:00.000Z',

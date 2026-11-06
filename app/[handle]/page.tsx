@@ -66,6 +66,19 @@ async function loadVendor(
     [handle],
   );
 
+  const itemIds = rows.map((row) => row.id);
+  const extraImages = await query<{ item_id: string; url: string }>(
+    `select item_id, url from item_images
+      where item_id = any($1::uuid[]) order by item_id, position, id`,
+    [itemIds],
+  );
+  const extraByItem = new Map<string, string[]>();
+  for (const image of extraImages) {
+    const list = extraByItem.get(image.item_id) ?? [];
+    list.push(image.url);
+    extraByItem.set(image.item_id, list);
+  }
+
   const items: ShopItem[] = rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -78,6 +91,9 @@ async function loadVendor(
     badge: row.badge,
     imageUrl: row.image_url,
     imageUrlAlt: row.image_url_alt,
+    images: [row.image_url, row.image_url_alt, ...(extraByItem.get(row.id) ?? [])].filter(
+      (url): url is string => Boolean(url),
+    ),
     focalX: row.focal_x === null ? null : Number(row.focal_x),
     focalY: row.focal_y === null ? null : Number(row.focal_y),
     createdAt: row.created_at.toISOString(),

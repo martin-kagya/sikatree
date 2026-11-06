@@ -14,6 +14,7 @@ import {
 import {
   ArrowRight,
   Check,
+  ChevronLeft,
   ChevronRight,
   Copy,
   MessageCircle,
@@ -135,31 +136,36 @@ function storeWhatsappHref(phone: string, name: string): string {
     const focal = `${(item.focalX ?? 0.5) * 100}% ${(item.focalY ?? 0.5) * 100}%`;
     const href = enquiryHref(phone, item);
     const price = formatShopPrice(item.pricePesewas);
+    const [active, setActive] = useState(0);
+    const images = item.images.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
+    const multiple = images.length > 1;
 
     return (
       <article
         className="shop-card group relative flex flex-col rounded-[20px] border border-[var(--shop-hair)] bg-[var(--shop-card)] p-2 shadow-[0_1px_2px_rgba(16,17,31,0.04)] sm:p-2.5"
       >
         <div
-          className={cn(
-            'shop-media relative w-full overflow-hidden rounded-[14px]',
-            item.imageUrlAlt && 'shop-has-alt',
-          )}
+          className="shop-media relative w-full overflow-hidden rounded-[14px]"
           style={{ aspectRatio: 'var(--card-image-ratio)' }}
+          onClick={multiple ? () => setActive((active + 1) % images.length) : undefined}
         >
-          {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt={item.name}
-              sizes="(min-width:1280px) 256px, (min-width:768px) 33vw, 50vw"
-              loading={priority ? 'eager' : 'lazy'}
-              fetchPriority={priority ? 'high' : 'auto'}
-              className={cn(
-                'shop-img absolute inset-0 h-full w-full object-cover',
-                soldOut && 'grayscale-[0.6]',
-              )}
-              style={{ objectPosition: focal }}
-            />
+          {images.length ? (
+            images.map((url, index) => (
+              <img
+                key={url}
+                src={url}
+                alt={index === 0 ? item.name : ''}
+                sizes="(min-width:1280px) 256px, (min-width:768px) 33vw, 50vw"
+                loading={index === 0 && priority ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 && priority ? 'high' : 'auto'}
+                className={cn(
+                  'shop-img absolute inset-0 h-full w-full object-cover transition-opacity duration-200',
+                  index === active ? 'opacity-100' : 'opacity-0',
+                  soldOut && 'grayscale-[0.6]',
+                )}
+                style={{ objectPosition: focal }}
+              />
+            ))
           ) : (
             <div
               className="flex h-full w-full items-center justify-center"
@@ -171,19 +177,18 @@ function storeWhatsappHref(phone: string, name: string): string {
             </div>
           )}
 
-          {item.imageUrlAlt ? (
-            <img
-              src={item.imageUrlAlt}
-              alt=""
-              aria-hidden="true"
-              sizes="(min-width:1280px) 256px, (min-width:768px) 33vw, 50vw"
-              loading="lazy"
-              className={cn(
-                'shop-img-alt absolute inset-0 h-full w-full object-cover',
-                soldOut && 'grayscale-[0.6]',
-              )}
-              style={{ objectPosition: focal }}
-            />
+          {multiple ? (
+            <div className="pointer-events-none absolute bottom-2 right-2 z-30 flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 backdrop-blur">
+              {images.map((url, index) => (
+                <span
+                  key={url}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all duration-200',
+                    index === active ? 'w-4 bg-white' : 'w-1.5 bg-white/50',
+                  )}
+                />
+              ))}
+            </div>
           ) : null}
 
           {badge ? (

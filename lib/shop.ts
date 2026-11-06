@@ -14,6 +14,7 @@ export type ShopItem = {
   badge: 'discount' | 'popular' | 'new' | null;
   imageUrl: string | null;
   imageUrlAlt: string | null;
+  images: string[];
   focalX: number | null;
   focalY: number | null;
   createdAt: string;
