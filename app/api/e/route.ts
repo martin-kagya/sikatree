@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { clientIp } from '@/lib/admin-auth';
 import { query } from '@/lib/db';
-import { hitRateLimit } from '@/lib/rate-limit';
 
 // First-party funnel events. Small allow-list: anything else is dropped so the
 // table cannot be used as a general-purpose log sink.
@@ -34,10 +32,10 @@ const payload = z.object({
 });
 
 export async function POST(request: Request) {
-  const ip = clientIp(request.headers);
-  const limit = await hitRateLimit(`analytics:ip:${ip}`, 240, 60).catch(() => null);
-  if (limit && !limit.allowed) return new NextResponse(null, { status: 429 });
-
+  // No database-backed rate limit: on the free Workers plan every extra
+  // Hyperdrive round-trip doubles the CPU and pushes this endpoint over its
+  // 10ms budget. The event allow-list below bounds what can be written, and
+  // per-IP throttling belongs at the edge (Cloudflare WAF), not in the Worker.
   let json: unknown;
   try {
     json = await request.json();
