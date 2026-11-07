@@ -9,6 +9,12 @@
     // Allow the global fetch() to reach Supabase Storage and the WhatsApp API.
     "global_fetch_strictly_public"
   ],
+  // Lift the per-request CPU ceiling (10ms free / 30ms paid default) so DB-heavy
+  // routes — the analytics ingest, the 5,000-row CSV export, the WhatsApp bot —
+  // don't trip "exceededCpu". Billed only for CPU actually used, not the cap.
+  "limits": {
+    "cpu_ms": 3000
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
