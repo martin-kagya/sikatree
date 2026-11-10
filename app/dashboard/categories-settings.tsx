@@ -16,7 +16,7 @@ export function CategoriesSettings({ categories }: { categories: string[] }) {
         </p>
       ) : null}
       {state.saved ? (
-        <p className="mb-4 rounded-[12px] bg-mint-100 p-3 text-[13px] text-green-deep">
+        <p className="feedback-rise mb-4 rounded-[12px] bg-mint-100 p-3 text-[13px] text-green-deep">
           Categories saved.
         </p>
       ) : null}

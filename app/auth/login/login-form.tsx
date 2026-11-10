@@ -34,7 +34,7 @@ export function LoginForm() {
         ) : null}
 
         {state.status === 'sent' ? (
-          <p className="rounded-inner bg-mint-100 p-3 text-small text-green-deep">
+          <p className="feedback-rise rounded-inner bg-mint-100 p-3 text-small text-green-deep">
             If that email has a shop, a sign-in link is on its way. It works once and expires in 15
             minutes.
           </p>

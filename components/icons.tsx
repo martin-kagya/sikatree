@@ -167,3 +167,22 @@ export function Settings(props: IconProps) {
     </Icon>
   );
 }
+
+export function AlertCircle(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </Icon>
+  );
+}
+
+export function RefreshCw(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </Icon>
+  );
+}

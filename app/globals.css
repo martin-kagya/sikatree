@@ -185,6 +185,26 @@ a[class*='rounded-pill']:active {
   animation: route-fade-in 220ms var(--ease-standard) both;
 }
 
+@keyframes feedback-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.feedback-rise {
+  animation: feedback-rise 240ms var(--ease-standard) both;
+}
+
+/* Every inline error enters instead of snapping into place. */
+[role='alert'] {
+  animation: feedback-rise 200ms var(--ease-standard) both;
+}
+
 @keyframes section-rise {
   from {
     opacity: 0;
@@ -288,6 +308,7 @@ a[class*='rounded-pill']:active {
   }
 
   .route-fade,
+  .feedback-rise,
   .stagger > * {
     animation: none;
   }

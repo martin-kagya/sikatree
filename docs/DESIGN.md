@@ -1,13 +1,15 @@
 # DESIGN.md: sikatree Design Language
 
-Status: Binding. Version 0.5 (draft)
-Date: 2026-11-05
+Status: Binding. Version 0.6 (draft)
+Date: 2026-11-10
 Applies to: the sikatree landing page and waitlist (Sections 1 to 13), the public storefront and checkout (Section 14), the vendor PWA and admin (Section 15), and WhatsApp message design (Section 16).
 Companion docs: `requirement.md`, `PLAN.md`
 Parent brand: Ostra. Minor accents only (Section 1 and Section 7).
 Reference: Dribbble shot "Capture Photography Portfolio Website Design" by Tanvir for Yscale Studio (https://dribbble.com/shots/27649892-Capture-Photography-Portfolio-Website-Design), three screenshots. It sets the landing page direction. The earlier order timeline, order success card and product grid references still drive Sections 5 and 14. The earlier tilted floating-tile hero reference is superseded. Section 9 overrides every reference.
 
 Version 0.5 records the shipped storefront cart, checkout and success patterns, compact control radii, and a stricter motion system: nothing appears or moves abruptly.
+
+Version 0.6 adds the feedback contract (Section 5.13.1) and its motion (Section 8.6): no user is ever left stranded, every async state speaks, connection loss is announced, and every failure and success has a visible next step.
 
 ---
 
@@ -54,6 +56,7 @@ Do not copy the Ostra hero layout, cream colorwash, Plus Jakarta Sans, mint grad
 6. **Trust through clarity.** Prices in GH₵, visible order codes, obvious payment status, plain words.
 7. **Local, not generic.** MoMo, GH₵, Ghanaian places and products in every example. No `$`, no Apple Pay.
 8. **Nothing pops.** Motion is quiet and continuous. Elements fade and move a few pixels into place, exits finish before removal, and space is reserved so the layout never jumps. Section 8 is binding.
+9. **Never stranded.** Every wait, success, failure and connection drop is visible, named in plain words, and gives the user a next step. Silence, a dead-end error or a control that resets without explanation is a bug. Section 5.13.1 is binding on every surface.
 
 ---
 
@@ -376,6 +379,97 @@ A horizontal date strip (7 days, swipeable), then a grid of time pills (3 column
 - **Empty state:** centered, 56px `--surface-soft` circle with a Lucide icon, H3, one sentence, one Primary button. Example: "No orders yet. Share your link to get your first one."
 - **Empty image:** neutral `--tile` with a soft camera icon and "Add a photo". Never a broken image.
 
+#### 5.13.1 The feedback contract (signature: never stranded)
+
+sikatree should feel like a calm shop assistant, not a machine that sometimes goes blank. The signature is
+**never stranded**: whatever happens, the interface says what it is doing, what it means, and what the user
+can do next.
+
+**Every asynchronous action has four states, and none of them may be silent:**
+
+| State | What the user sees |
+| --- | --- |
+| **Idle** | The control is ready: normal label, no spinner, no disabled state. |
+| **Working** | A label change within 100ms ("Saving…", "Starting payment…") plus a small spinner or progress bar. The button keeps its width. If it passes 8 seconds, add a second line: "Still working. Check your connection." |
+| **Success** | A confirmation in context, with a next step. Inline note for local actions, toast for background actions, state transition for workflows. |
+| **Failure** | What failed, what it means for the user, and one clear next action. Never only "Something went wrong". |
+
+**Failure classes.** Pick the surface by consequence. Do not use a full error page for a field mistake, and
+do not use a toast for something the user must resolve before continuing.
+
+| Failure | Surface | Copy shape | Next action |
+| --- | --- | --- | --- |
+| Field validation | Inline, under the field | What is wrong and the expected format: "Enter a Ghana number, like 024 123 4567." | Fix the field; focus it |
+| Offline or connection lost | Persistent `ConnectionBanner`, plus inline retry where the action failed | "You're offline. Changes won't save until you reconnect." | Reconnect; retry the action |
+| Slow request (over 8s) | The pending control plus a note | "This is taking longer than usual. Check your connection." | Wait or retry; never a dead spinner |
+| Unexpected server error | `ErrorState` at the route, or an inline error for a small action | "That didn't save. Nothing was lost. Try again." | Try again, then back or support |
+| Not found | `NotFoundState` | "This link doesn't exist. The shop or item may have moved." | Back to the shop or home |
+| Sign-in expired | The sign-in page with a note | "Your sign-in expired. Request a new link." | Email a new link |
+| Rate limited | Inline near the control | "Too many attempts. Try again in a few minutes." | Wait; show the cooldown |
+| Upload failure | Inline near the upload field | Which file and why: "That photo didn't upload. Use a JPG, PNG or WebP under 10MB." | Retry, remove, or save without it |
+| Payment failure | The tracking page or checkout, not a toast | "The payment didn't go through. No money left your account." | Retry, or switch to pay on delivery |
+| Empty state (not a failure) | `EmptyState` | What will appear here and how to create it | One primary action |
+
+**Success classes.**
+
+- **Inline note** for an action on the current screen: item saved, settings saved, link copied. It stays long
+  enough to read (at least 3 seconds) and does not move the layout.
+- **Toast** for an action whose result is not visible where the user is looking. Auto-dismiss after 4
+  seconds (6 for errors), pause on hover, maximum three at once.
+- **State transition** for workflows: an order moving from Pending to Confirmed, a booking confirmed, a
+  payment marked paid. Animate the change, do not replace the card.
+- **Always add the next step.** "Item saved" is followed by "View on your page" or the page link. "Order
+  confirmed" is followed by the next status action.
+
+**Copy rules.** Subject, cause, next step, in that order. Plain words, no blame, no jargon, no raw error
+codes in the main sentence. The support reference (`error.digest`) may appear as a small monospace line.
+Never use "Oops", "Uh oh", "Something went wrong" alone, or a stack trace.
+
+| Bad | Good |
+| --- | --- |
+| "Error 500" | "That didn't save. Nothing was lost. Try again." |
+| "Invalid input" | "Enter a Ghana mobile number, like 024 123 4567." |
+| "Network error" | "You're offline. Changes won't save until you reconnect." |
+| "Payment failed" | "The payment didn't go through. No money left your account. Try again or pay on delivery." |
+
+**Connection contract.**
+
+- Listen to the browser `online` and `offline` events. On `offline`, show `ConnectionBanner` immediately: a
+  dark pill, bottom centre, above sticky bars, with an amber dot and plain words. It persists until the
+  connection returns.
+- On reconnect, swap the same pill to a mint dot and "Back online." for 3 seconds, then fade it out. Do
+  not reload the page, and do not discard anything the user typed.
+- If an action fails while offline, the inline error says so and offers retry. The banner alone is not
+  enough.
+- Never disable the whole app because the connection dropped. Reading, scrolling and typing stay available.
+
+**Component anatomy.**
+
+- `ConnectionBanner`: fixed bottom pill, 44px minimum height, 13px text, one dot, `role="status"`,
+  `aria-live="polite"`. Entry and exit fade plus 8px rise, 200ms. No action button; it is a status, not a
+  task.
+- `ErrorState`: one centered card, maximum 480px. 56px warn circle with an alert icon, eyebrow "Something
+  interrupted", H2 in plain words, one sentence of consequence, optional support reference, primary "Try
+  again", secondary "Back to dashboard" or "Back to sikatree". Enters with a 12px rise, 240ms. Never a
+  shake.
+- `InlineAlert`: the Section 5.13 alert anatomy. Errors stay until fixed or dismissed; do not auto-hide an
+  error the user must act on.
+- `PendingButton`: the label crossfades to the working label, the width is reserved, and the spinner is
+  600ms linear. Never leave a button looking idle while a request is in flight.
+- `SuccessNote`: mint background, check icon, one line, optional link. Fades in with a 4px rise over 200ms.
+- `Toast`: Section 5.13 anatomy, bottom centre, above the connection banner when both are present.
+
+**Rules that are always binding.**
+
+- No async action without a working state, and no working state without an outcome.
+- No failure without a next action. "Contact support" is a valid action, but only after "Try again".
+- Never lose user input because a request failed. Keep the form values and let the user retry.
+- Never reload or redirect away from a failure without telling the user why.
+- Never auto-dismiss an error the user must resolve.
+- Never show a raw exception, HTTP status, stack trace or database message in the interface.
+- Never let a success flash by too fast to read, or move the layout when it appears.
+- Never change a page or a panel state in a single frame. Section 8.6 governs the motion.
+
 ### 5.14 FAQ accordion
 
 - Section header: eyebrow "FAQ" (5.16) left, H2 "Frequently asked *questions*" with an accent word, and a Secondary pill "Ask on WhatsApp" at the right.
@@ -578,6 +672,11 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 | Dialog close | panel fades and scales to 0.98 over 180ms; backdrop fades 180ms |
 | Checkout success | form fades and slides left 28px over 200ms; success fades in from 26px right over 340ms |
 | Toast or inline notice | fade and 8px slide, 200ms |
+| Connection banner | fade and 8px rise in 200ms; stays until the state clears; reconnect copy holds 3s, then fades out over 200ms |
+| Error state | opacity and 12px rise, 240ms; retry button uses the shared press spring; never a shake |
+| Success note | opacity and 4px rise, 200ms; check icon draws over 340ms |
+| Pending label | crossfade to the working label over 150ms; spinner 600ms linear; width reserved |
+| Skeleton to content | crossfade 200ms; never a flash of empty layout |
 | Stepper | 200ms transform and opacity |
 
 ### 8.4 Never
@@ -594,6 +693,25 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 ### 8.5 Reduced motion
 
 `prefers-reduced-motion: reduce` or `Save-Data`: all entries become instant opacity changes with no transform, no spring, no stagger, no press scale and no zoom. Dialogs open and close instantly. Success swaps instantly. Focus rings and status changes remain. Spinners stay.
+
+### 8.6 Feedback motion (binding)
+
+Feedback is the part of the interface that must never feel dead. It moves with the same quiet ease as the
+rest of the app, and it never appears or leaves in a single frame.
+
+- **Working:** the label crossfades within 100ms. Do not swap the button for a spinner; swap the label and
+  add the spinner inside the same button so the width does not jump.
+- **Success:** the note or toast fades in with a 4px rise over 200ms. A check icon may draw over 340ms. Do not
+  bounce, confetti or flash the screen.
+- **Failure:** the error card or alert fades in with an 8 to 12px rise over 240ms. No shake, no red flash, no
+  alarm sound.
+- **Offline:** the banner enters with a fade and 8px rise over 200ms. It does not auto-dismiss. On reconnect,
+  the same pill crossfades its dot and copy to the success state, holds 3 seconds, then fades out. The page
+  underneath never reloads.
+- **State swaps:** when a control changes state (idle to working, working to success, pending to confirmed),
+  crossfade the content over 150 to 200ms. Reserve the space before the change. A one-frame swap is a bug.
+- **Reduced motion:** all of the above become opacity only, with no transform, and the banner still holds
+  long enough to read.
 
 ## 9. Content and copy rules (these override the reference)
 
@@ -752,7 +870,8 @@ Replace the first column with verified figures before launch.
 
 - **Stack:** Next.js (App Router), TypeScript, Tailwind CSS, `next/font` for Inter Tight and Playfair Display (italic 400), Lucide icons. The landing page is statically generated at route `/` and served from the CDN.
 - Put all Section 3 tokens in `tailwind.config` (`colors`, `borderRadius`, `boxShadow`, `fontFamily`, `backgroundImage`) and as CSS variables in `globals.css`. Components MUST reference tokens, never raw hex.
-- **Component names (one file each):** `NavPill`, `Button`, `Chip`, `Badge`, `Field`, `Eyebrow`, `Accent` (the italic serif span), `Statement`, `IndexList`, `BentoCard`, `StatCard`, `GlassCard`, `PhoneFrame`, `ProductTile`, `GalleryTile`, `VendorHeader`, `LinkButton`, `Stepper`, `SuccessCard`, `SlotPicker`, `Alert`, `Toast`, `EmptyState`, `Skeleton`, `Faq`, `Footer`, `WaitlistForm`, `ComparisonTable`, `TestimonialCard`, plus the Section 15 components.
+- **Component names (one file each):** `NavPill`, `Button`, `Chip`, `Badge`, `Field`, `Eyebrow`, `Accent` (the italic serif span), `Statement`, `IndexList`, `BentoCard`, `StatCard`, `GlassCard`, `PhoneFrame`, `ProductTile`, `GalleryTile`, `VendorHeader`, `LinkButton`, `Stepper`, `SuccessCard`, `SlotPicker`, `Alert`, `Toast`, `EmptyState`, `Skeleton`, `ConnectionBanner`, `ErrorState`, `NotFoundState`, `PendingButton`, `SuccessNote`, `Faq`, `Footer`, `WaitlistForm`, `ComparisonTable`, `TestimonialCard`, plus the Section 15 components.
+- **Feedback plumbing:** `app/error.tsx`, `app/global-error.tsx` and `app/not-found.tsx` render the shared `ErrorState` and `NotFoundState`. `ConnectionBanner` sits once in the root layout and listens to `online` and `offline`. Server actions return a typed state (`{ error }` or success) that the form renders inline; unexpected throws are caught at the action boundary and at the route boundary. Never let a server action reject with a raw message that only the console sees.
 - Headings pass accent words through the `Accent` component, so the serif and its size bump live in one place.
 - No UI libraries that impose their own styling. Headless Radix primitives are allowed for Dialog, Tabs, Accordion and Popover (proposed).
 - **Waitlist:** a server action or API route writes to a `waitlist_signup` table (insert-only access, rate-limited, duplicate-phone aware, invisible bot protection).
@@ -796,6 +915,13 @@ Replace the first column with verified figures before launch.
 - [ ] Zero fabricated stats, testimonials, avatar stacks, logos or vendors (Section 9 audit passed). Comparison figures verified.
 - [ ] Contrast, focus, keyboard and reduced-motion checks pass.
 - [ ] Layout verified at 360, 768, 1024 and 1440px with no horizontal scroll.
+- [ ] Every async action shows working, success and failure states (5.13.1).
+- [ ] The offline banner appears when the connection drops and confirms reconnection without reloading.
+- [ ] Every route has an error boundary with a retry and a way back; no raw exception is visible.
+- [ ] Missing routes and hidden items show a friendly 404 with a way back.
+- [ ] Failures keep the user's input, offer retry and never dead-end.
+- [ ] Success is visible in context with a next step, and never flashes by.
+- [ ] State changes crossfade; no control, notice or panel swaps in a single frame.
 - [ ] No emoji and no em-dashes anywhere in copy or docs.
 
 ---

@@ -16,7 +16,7 @@ export function StartForm() {
 
   if (state.status === 'ok') {
     return (
-      <div className="rounded-panel bg-white p-8 shadow-card">
+      <div className="feedback-rise rounded-panel bg-white p-8 shadow-card">
         <p className="text-[12px] uppercase tracking-wide text-ink-muted">Shop created</p>
         <h1 className="mt-2 text-h2 text-ink">You are live.</h1>
         <p className="mt-3 text-small text-ink-muted">

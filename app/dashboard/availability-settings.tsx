@@ -46,7 +46,7 @@ export function AvailabilitySettings({
         </p>
       ) : null}
       {state.saved ? (
-        <p className="rounded-[12px] bg-mint-100 p-3 text-[13px] text-green-deep">
+        <p className="feedback-rise rounded-[12px] bg-mint-100 p-3 text-[13px] text-green-deep">
           Availability saved. Customers see these hours now.
         </p>
       ) : null}

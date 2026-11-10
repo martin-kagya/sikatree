@@ -69,7 +69,7 @@ export default async function DashboardPage({
   return (
     <main className="mt-6 space-y-5 stagger">
           {params.item ? (
-            <p className="rounded-card bg-mint-100 p-4 text-small text-green-deep">
+            <p className="feedback-rise rounded-card bg-mint-100 p-4 text-small text-green-deep">
               Item saved. Your page is up to date.
             </p>
           ) : null}

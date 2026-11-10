@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Inter_Tight, Playfair_Display } from 'next/font/google';
 import { site } from '@/lib/brand';
 import { Analytics } from '@/components/analytics';
+import { ConnectionBanner } from '@/components/system/connection-banner';
 import './globals.css';
 
 const interTight = Inter_Tight({
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${interTight.variable} ${playfair.variable}`}>
       <body className="font-sans">
         {children}
+        <ConnectionBanner />
         <Analytics />
       </body>
     </html>
