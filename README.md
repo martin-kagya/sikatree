@@ -12,6 +12,7 @@ web signup with email sign-in, and the Paystack payment adapter (test mode).
 - WhatsApp bot: [`docs/WHATSAPP.md`](docs/WHATSAPP.md)
 - Payments (Paystack): [`docs/PAYMENTS.md`](docs/PAYMENTS.md)
 - Web signup and email sign-in: [`docs/EMAIL.md`](docs/EMAIL.md)
+- Vendor guide (share with shop owners): [`docs/VENDOR-GUIDE.md`](docs/VENDOR-GUIDE.md)
 
 ## Stack
 
