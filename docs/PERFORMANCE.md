@@ -8,16 +8,20 @@ and fails the build when a threshold breaks.
 
 | Metric | Budget | Latest measurement |
 |---|---|---|
-| LCP | 2500 ms | 708 ms |
-| JS transfer | 130 kB gzip | 126.6 kB |
-| CSS transfer | 40 kB | 13.4 kB |
+| LCP | 2500 ms | 832 ms |
+| JS transfer | 130 kB gzip | 128.8 kB |
+| CSS transfer | 40 kB | 16.9 kB |
 | Images, full page | 900 kB | 69.2 kB |
 | Fonts | reported, not capped | 153.9 kB |
 
 Measured at 390x844, DPR 2, 4x CPU throttle, Fast 3G (1.6 Mbps, 150 ms RTT).
 The harness warms the server, then reports the median of three runs (LCP runs
-for the latest build: 672, 708 and 856 ms). A single sample is noisy, which is
+for the latest build: 820, 832 and 992 ms). A single sample is noisy, which is
 why the median is the gate.
+
+The JS line is the tight one after the feedback layer landed. The connection status is inline script, the
+below-the-fold waitlist form loads when approached, and the public error boundary stays self-contained.
+Keep new client components out of the root layout; the budget headroom is only a few kilobytes.
 
 Adjust thresholds with `BUDGET_LCP_MS`, `BUDGET_JS_KB`, `BUDGET_CSS_KB` and
 `BUDGET_IMAGE_KB`. Run against a deployed preview with

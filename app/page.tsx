@@ -1,6 +1,6 @@
 import { NavPill } from '@/components/nav-pill';
 import { Hero } from '@/components/Hero';
-import { WaitlistForm } from '@/components/WaitlistForm';
+import { WaitlistSection } from '@/components/waitlist-section';
 import {
   ProblemGallery,
   SampleStores,
@@ -27,12 +27,7 @@ export default function Page() {
       <Faq />
       <StatementStrip />
 
-      <section
-        id="waitlist"
-        className="scroll-mt-24 bg-dark px-3 pb-16 pt-6 sm:px-5 sm:pb-24 sm:pt-8"
-      >
-        <WaitlistForm />
-      </section>
+      <WaitlistSection />
 
       <Footer />
     </main>

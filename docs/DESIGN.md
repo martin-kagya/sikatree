@@ -400,7 +400,7 @@ do not use a toast for something the user must resolve before continuing.
 | Failure | Surface | Copy shape | Next action |
 | --- | --- | --- | --- |
 | Field validation | Inline, under the field | What is wrong and the expected format: "Enter a Ghana number, like 024 123 4567." | Fix the field; focus it |
-| Offline or connection lost | Persistent `ConnectionBanner`, plus inline retry where the action failed | "You're offline. Changes won't save until you reconnect." | Reconnect; retry the action |
+| Offline or connection lost | Persistent `ConnectionStatus`, plus inline retry where the action failed | "You're offline. Changes won't save until you reconnect." | Reconnect; retry the action |
 | Slow request (over 8s) | The pending control plus a note | "This is taking longer than usual. Check your connection." | Wait or retry; never a dead spinner |
 | Unexpected server error | `ErrorState` at the route, or an inline error for a small action | "That didn't save. Nothing was lost. Try again." | Try again, then back or support |
 | Not found | `NotFoundState` | "This link doesn't exist. The shop or item may have moved." | Back to the shop or home |
@@ -434,7 +434,7 @@ Never use "Oops", "Uh oh", "Something went wrong" alone, or a stack trace.
 
 **Connection contract.**
 
-- Listen to the browser `online` and `offline` events. On `offline`, show `ConnectionBanner` immediately: a
+- Listen to the browser `online` and `offline` events. On `offline`, show `ConnectionStatus` immediately: a
   dark pill, bottom centre, above sticky bars, with an amber dot and plain words. It persists until the
   connection returns.
 - On reconnect, swap the same pill to a mint dot and "Back online." for 3 seconds, then fade it out. Do
@@ -445,9 +445,10 @@ Never use "Oops", "Uh oh", "Something went wrong" alone, or a stack trace.
 
 **Component anatomy.**
 
-- `ConnectionBanner`: fixed bottom pill, 44px minimum height, 13px text, one dot, `role="status"`,
+- `ConnectionStatus`: fixed bottom pill, 44px minimum height, 13px text, one dot, `role="status"`,
   `aria-live="polite"`. Entry and exit fade plus 8px rise, 200ms. No action button; it is a status, not a
-  task.
+  task. It is server-rendered markup plus a tiny inline event script, so it costs no React chunk on the
+  landing page.
 - `ErrorState`: one centered card, maximum 480px. 56px warn circle with an alert icon, eyebrow "Something
   interrupted", H2 in plain words, one sentence of consequence, optional support reference, primary "Try
   again", secondary "Back to dashboard" or "Back to sikatree". Enters with a 12px rise, 240ms. Never a
@@ -870,8 +871,8 @@ Replace the first column with verified figures before launch.
 
 - **Stack:** Next.js (App Router), TypeScript, Tailwind CSS, `next/font` for Inter Tight and Playfair Display (italic 400), Lucide icons. The landing page is statically generated at route `/` and served from the CDN.
 - Put all Section 3 tokens in `tailwind.config` (`colors`, `borderRadius`, `boxShadow`, `fontFamily`, `backgroundImage`) and as CSS variables in `globals.css`. Components MUST reference tokens, never raw hex.
-- **Component names (one file each):** `NavPill`, `Button`, `Chip`, `Badge`, `Field`, `Eyebrow`, `Accent` (the italic serif span), `Statement`, `IndexList`, `BentoCard`, `StatCard`, `GlassCard`, `PhoneFrame`, `ProductTile`, `GalleryTile`, `VendorHeader`, `LinkButton`, `Stepper`, `SuccessCard`, `SlotPicker`, `Alert`, `Toast`, `EmptyState`, `Skeleton`, `ConnectionBanner`, `ErrorState`, `NotFoundState`, `PendingButton`, `SuccessNote`, `Faq`, `Footer`, `WaitlistForm`, `ComparisonTable`, `TestimonialCard`, plus the Section 15 components.
-- **Feedback plumbing:** `app/error.tsx`, `app/global-error.tsx` and `app/not-found.tsx` render the shared `ErrorState` and `NotFoundState`. `ConnectionBanner` sits once in the root layout and listens to `online` and `offline`. Server actions return a typed state (`{ error }` or success) that the form renders inline; unexpected throws are caught at the action boundary and at the route boundary. Never let a server action reject with a raw message that only the console sees.
+- **Component names (one file each):** `NavPill`, `Button`, `Chip`, `Badge`, `Field`, `Eyebrow`, `Accent` (the italic serif span), `Statement`, `IndexList`, `BentoCard`, `StatCard`, `GlassCard`, `PhoneFrame`, `ProductTile`, `GalleryTile`, `VendorHeader`, `LinkButton`, `Stepper`, `SuccessCard`, `SlotPicker`, `Alert`, `Toast`, `EmptyState`, `Skeleton`, `ConnectionStatus`, `ErrorState`, `NotFoundState`, `PendingButton`, `SuccessNote`, `Faq`, `Footer`, `WaitlistForm`, `ComparisonTable`, `TestimonialCard`, plus the Section 15 components.
+- **Feedback plumbing:** `app/error.tsx` is a deliberately lean, self-contained boundary so the landing page keeps its JS budget; `app/dashboard/error.tsx` uses the shared `ErrorState`, and `app/not-found.tsx` renders server-side. `ConnectionStatus` sits once in the root layout as server markup plus a tiny inline script that listens to `online` and `offline`. Server actions return a typed state (`{ error }` or success) that the form renders inline; unexpected throws are caught at the action boundary and at the route boundary. Never let a server action reject with a raw message that only the console sees.
 - Headings pass accent words through the `Accent` component, so the serif and its size bump live in one place.
 - No UI libraries that impose their own styling. Headless Radix primitives are allowed for Dialog, Tabs, Accordion and Popover (proposed).
 - **Waitlist:** a server action or API route writes to a `waitlist_signup` table (insert-only access, rate-limited, duplicate-phone aware, invisible bot protection).
