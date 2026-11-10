@@ -69,10 +69,12 @@ export default async function VerifyPage({
           </>
         ) : (
           <>
-            <h1 className="mt-4 text-h2 text-ink">This link has expired</h1>
+            <h1 className="mt-4 text-h2 text-ink">
+              {peek.reason === 'used' ? 'This link has already been used' : 'This link has expired'}
+            </h1>
             <p className="mt-2 text-small text-ink-muted">
               {peek.reason === 'used'
-                ? 'This link has already been used.'
+                ? 'Each sign-in link works once.'
                 : 'This link is invalid or has expired.'}{' '}
               Request a new one, or reply to the bot with <strong>dashboard</strong>.
             </p>
