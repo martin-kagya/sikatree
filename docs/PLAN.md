@@ -361,11 +361,13 @@ Backend detail, environment variables and the operational runbook live in
 
 **Goal:** Clients can buy products and pay with MoMo; vendors get orders on WhatsApp.
 
-**Customization:** brand fields, logo, links, accent and card ratio are specified in
-[`STOREFRONT-CUSTOMIZATION.md`](STOREFRONT-CUSTOMIZATION.md), with themes, draft and publish, and custom domains in
-later phases.
+**Customization:** Phase 1 covers brand fields, cover, logo, links, accent, card ratio, a single-save editor, preview
+and reset, and a generated page OG card, specified in
+[`STOREFRONT-CUSTOMIZATION.md`](STOREFRONT-CUSTOMIZATION.md). Themes, draft and publish, QR codes and custom domains
+follow.
 
 **Build**
+- [ ] QR codes and item share cards (PG-06), after the generated page card.
 - [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06) (partial: accent themes, categories, product/service tabs, quick view, vendor-page OG tags, share links and per-item pages with their own OG image (`/{handle}/i/{item}`, PG-05) ship; link buttons (PG-03) are missing, and it is one accent per vendor, not the three themes in PG-04)
 - [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04) (partial: static assets are prepared by `scripts/optimize-images.mjs` and served from the CDN; uploaded item photos are stored at full size with no compression or responsive variants)
 - [x] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
@@ -486,7 +488,6 @@ table below is the deferred register.
 - [ ] Cost review per vendor (messaging, AI parsing, storage) and fee adjustments
 - [ ] Referral links and "Founding Vendor" configuration (BIL-04): 20% fee share for 6 months plus one free Pro month on activation (section 16.5) (partial: referral codes, referral bumps and the configurable Founding Vendor block ship; the fee share and free Pro month need billing, which does not exist)
 - [ ] Leakage monitoring per vendor: share of pay-on-delivery orders, cancellations and unpaid orders, compared to similar vendors (section 16.4)
-- [ ] Share cards and QR codes (PG-06) (partial: vendor pages get an OG image; no QR code and no per-item share card)
 - [ ] Final pass on performance and accessibility
 
 **Pilot launch**
