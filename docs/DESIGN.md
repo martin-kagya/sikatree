@@ -111,11 +111,11 @@ Usage rules:
 - Dark surfaces are limited to the nav pill, the "Made for" panel (6.4) and the footer panel (5.15).
 - Removed from v0.2: `--success`, `--info`, the old `--warning` and the old `--danger` (`#D64545`).
 
-**Vendor accent (optional).** Vendors may pick one accent from a fixed set of 8 to 10 muted colors (sand, sage, clay, ink blue, rose, charcoal and similar) defined in config. The set is pre-checked so the button label (`--ink` or white) reaches 4.5:1. The accent colors only: the primary button fill, link highlights and small badges on that vendor's page. Never panels or backgrounds. Status colors are never overridden.
+**Vendor accent (optional).** Vendors may pick one accent from a fixed set of 8 to 10 muted colors (sand, sage, clay, ink blue, rose, charcoal and similar) defined in config. The set is pre-checked so the button label (`--ink` or white) reaches 4.5:1. The accent paints the primary button fill, link highlights and small badges. It also derives `--shop-tint`, the accent at about 8% over white, used only for the storefront cover gradient fallback and for pill or badge backgrounds. It is the only new storefront token. Text on the tint must reach 4.5:1. The tint is not a vendor input and no semantic tokens are renamed. Status colors are never overridden.
 
 ### 3.2 Gradients and masks
 
-No gradients on surfaces. Two exceptions: the blurred LQIP placeholder, and the hero scrim that keeps white text readable on a photo.
+No gradients on surfaces. Three exceptions: the blurred LQIP placeholder, the hero scrim that keeps white text readable on a photo, and the storefront cover fallback built from `--shop-tint`. The cover fallback carries no text.
 
 ```css
 --hero-scrim: linear-gradient(180deg, rgba(10, 10, 10, 0.25) 0%, rgba(10, 10, 10, 0.55) 100%);
@@ -327,16 +327,20 @@ The product tile without the action pill. Tap opens a full-screen swipeable ligh
 
 Compact white card, radius 28px mobile and 32px desktop, 1px `--hairline`, padding 20px mobile and 28px desktop. Maximum height 200px on desktop and 260px on mobile.
 
-- Row: 56px initials avatar (`--mint-100` fill, `--green-deep` text), store name in `clamp(28px, 4vw, 44px)`, weight 500, letter-spacing -0.03em, tagline in `--ink-muted` clamped to 2 lines, location and category line at 14px `--ink-muted`.
+- Cover: optional 16:9 banner at the top of the card, `object-cover`, cropped to fit. No text sits on it, so there is no scrim. No cover uses a soft accent gradient built from `--shop-tint`.
+- Logo: 56px white circle, 8px inner padding, `object-contain`, overlapping the cover's bottom edge. No logo uses the initials avatar (`--mint-100` fill, `--green-deep` text).
+- The white content area sits below the cover: store name in `clamp(28px, 4vw, 44px)`, weight 500, letter-spacing -0.03em; tagline in `--ink-muted` clamped to 2 lines; location and category line at 14px `--ink-muted`. The name never sits on the photo.
 - Address chip `sikatree.africa/{handle}` in a soft pill with a copy button. Copy writes the full https URL, shows Copied for 1.5s and announces through `aria-live="polite"`.
-- CTA "Chat on WhatsApp" uses the Primary style, right aligned at 768px and above and full width below. The prefilled message is "Hi {store}, I found you on sikatree." 
+- CTA "Chat on WhatsApp" uses the Primary style, right aligned at 768px and above and full width below. The prefilled message is "Hi {store}, I found you on sikatree."
 - No standalone sikatree wordmark and no Powered by line in the header. Those belong in the footer.
 - The 44px cart control sits in the full header beside the store name, so a small catalogue always has a visible route to checkout. It fades and scales in on the first add, in a slot that is reserved so the name does not jump. The WhatsApp CTA follows it on desktop.
-- After the header leaves the viewport, a 56px sticky bar shows a 32px initials logo and the store name on the left, and the cart alone on the right. The WhatsApp CTA stays in the full header; it is removed from the sticky bar so the bar does not feel crowded. Motion follows Section 8.
+- After the header leaves the viewport, a 56px sticky bar shows a 32px logo or initials, the store name and the cart. The IntersectionObserver toggles it; the CSS opacity transition is disabled under `prefers-reduced-motion`. The WhatsApp CTA stays in the full header and is removed from the sticky bar.
 
 ### 5.9 Link button
 
-Full-width pill, 52px, 1px `--hairline` border, icon left, label centered, trailing chevron (internal) or up-right arrow (external). Used for "View catalogue", "Book a session" and external links.
+Full-width pill, 52px, 1px `--hairline` border, icon left, label centered, trailing chevron (internal) or up-right arrow (external). Used for a single primary link, "View catalogue", "Book a session" and external links.
+
+Compact variant: 44px high, auto width, same border and icon and label anatomy, used for the storefront link row. The full-width 52px button stays for a single primary link. The row adds 16px above and 16px below.
 
 ### 5.10 Status stepper
 
@@ -662,6 +666,7 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 | Add to cart | 36px white circle with plus; appears with the card overlay; press spring at 180ms |
 | Cart appears | opacity and `scale(0.92)` to 1 with a 4px rise, 240ms standard; the slot is reserved before mount |
 | Cart badge | pops from 0.75 to 1.18 to 1, 260ms spring; only when the count changes |
+| Sticky bar | IntersectionObserver toggles when the header leaves the viewport; opacity 0 to 1 with a CSS transition, 200ms; disabled under reduced motion |
 | Choice chip | colour 200ms; selected is ink fill with white text; no size change |
 | Segmented control | black thumb slides 280ms spring; labels fade colour 200ms |
 | Compact press | scale 0.96 with 180ms spring on release; hover lifts 1px |
@@ -937,17 +942,17 @@ Inherits Sections 1 to 13. Section 14 wins where they conflict. The vendor accen
 
 ### 14.1 Structure and container
 
-- One container for the header, toolbar and grid: maximum 1120px, centred, 16px side padding on mobile and 24px from tablet up. No second max-width.
-- Vertical rhythm: header, 24px, toolbar, 16px, grid, 64px footer.
+- One container for the header, link row, toolbar and grid: maximum 1120px, centred, 16px side padding on mobile and 24px from tablet up. No second max-width.
+- Vertical rhythm: header, 16px, link row, 16px, toolbar, 16px, grid, 64px footer. Omit the link row when it is empty.
 - Grid: 2 columns under 640px, 3 from 640px, 4 from 1280px when the store has at least 8 products. Gaps are 12px, 16px and 20px.
 - Cards are equal height in a row. No horizontal scroll at 360px.
 - Footer: a quiet row. Left: the sikatree wordmark, the Ostra mark and "Powered by Ostra". Right: "Get your own free store". Centred on mobile. No duplicate "Powered by sikatree".
 
 ### 14.2 Vendor header
 
-Defined in 5.8. A compact white card, 56px initials avatar, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. After scroll, a sticky bar keeps the 32px initials logo, the name and the cart. The WhatsApp CTA is intentionally left in the header only.
+Defined in 5.8. A compact white card with an optional 16:9 cover banner, a 56px white logo circle overlapping the cover's bottom edge, name, tagline, location line, copyable address and WhatsApp CTA. Maximum 200px desktop and 260px mobile. After scroll, a sticky bar keeps the 32px logo or initials, the name and the cart. The WhatsApp CTA is intentionally left in the header only.
 
-The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badges, the Sold out chip, Enquire, Add and the stock label must never paint over it. The bar keeps a solid white background and a hairline; no card content may show through.
+The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badges, the Sold out chip, Enquire, Add and the stock label must never paint over it. The bar keeps a solid white background and a hairline; no card content may show through. It is toggled by the IntersectionObserver and uses a CSS opacity transition, disabled under `prefers-reduced-motion`.
 
 ### 14.3 Toolbar and cart
 
