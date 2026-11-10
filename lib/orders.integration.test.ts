@@ -249,6 +249,9 @@ describe('placeOrder', () => {
     const confirmed = await updateOrderStatus(placed!.id, vendorId, 'confirmed');
     expect(confirmed).toEqual({ ok: true, status: 'confirmed' });
 
+    const repeated = await updateOrderStatus(placed!.id, vendorId, 'confirmed');
+    expect(repeated).toEqual({ ok: true, status: 'confirmed' });
+
     const skipped = await updateOrderStatus(placed!.id, vendorId, 'completed');
     expect(skipped.ok).toBe(false);
 

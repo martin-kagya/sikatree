@@ -617,6 +617,12 @@ export async function updateOrderStatus(
       await client.query('rollback');
       return { ok: false, error: 'Order not found.' };
     }
+    // A double tap on a slow connection can resend the status that just landed.
+    // Treat an identical status as a successful no-op instead of a transition error.
+    if (row.status === next) {
+      await client.query('commit');
+      return { ok: true, status: next };
+    }
     if (!nextStatusesFor(row.status, row.fulfilment).includes(next)) {
       await client.query('rollback');
       return { ok: false, error: `Cannot move an order from ${row.status} to ${next}.` };

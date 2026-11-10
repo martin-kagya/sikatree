@@ -57,6 +57,8 @@ export async function updateOrderStatusState(
   try {
     const result = await updateOrderStatus(id, vendorId, status, reason);
     if (!result.ok) return { error: result.error };
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/orders');
     const message =
       status === 'cancelled'
         ? 'Order cancelled.'

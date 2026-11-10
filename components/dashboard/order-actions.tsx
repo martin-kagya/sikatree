@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   setOrderDeliveryFeeState,
@@ -14,53 +14,6 @@ import { useToast } from '@/components/system/toast';
 const initialStatus: OrderStatusState = {};
 const initialFee: OrderFeeState = {};
 
-function StatusButton({
-  orderId,
-  status,
-  label,
-}: {
-  orderId: string;
-  status: string;
-  label: string;
-}) {
-  const [state, action, pending] = useActionState(updateOrderStatusState, initialStatus);
-  const toast = useToast();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!state.ok) return;
-    if (state.message) toast.success(state.message);
-    router.refresh();
-  }, [state, toast, router]);
-
-  return (
-    <form action={action} className="flex flex-col gap-1">
-      <input type="hidden" name="id" value={orderId} />
-      <input type="hidden" name="status" value={status} />
-      <button
-        type="submit"
-        disabled={pending}
-        aria-busy={pending}
-        className="inline-flex h-9 items-center justify-center gap-1.5 rounded-pill bg-ink px-3 text-[12px] font-medium text-white disabled:opacity-60"
-      >
-        {pending ? (
-          <>
-            <Spinner />
-            Saving…
-          </>
-        ) : (
-          label
-        )}
-      </button>
-      {state.error ? (
-        <span role="alert" className="max-w-[180px] text-[11px] leading-snug text-danger">
-          {state.error}
-        </span>
-      ) : null}
-    </form>
-  );
-}
-
 export function OrderStatusButtons({
   orderId,
   actions,
@@ -68,17 +21,54 @@ export function OrderStatusButtons({
   orderId: string;
   actions: { status: string; label: string }[];
 }) {
+  const [state, action, pending] = useActionState(updateOrderStatusState, initialStatus);
+  const [saved, setSaved] = useState(false);
+  const toast = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!state.ok) return;
+    setSaved(true);
+    if (state.message) toast.success(state.message);
+    router.refresh();
+  }, [state, toast, router]);
+
+  // The refreshed server props replace the action list; allow the next action.
+  useEffect(() => {
+    setSaved(false);
+  }, [actions]);
+
   return (
-    <>
-      {actions.map((action) => (
-        <StatusButton
-          key={action.status}
-          orderId={orderId}
-          status={action.status}
-          label={action.label}
-        />
+    <div className="flex flex-wrap items-center gap-2">
+      {actions.map((item) => (
+        <form key={item.status} action={action}>
+          <input type="hidden" name="id" value={orderId} />
+          <input type="hidden" name="status" value={item.status} />
+          <button
+            type="submit"
+            disabled={pending || saved}
+            aria-busy={pending || saved}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-pill bg-ink px-3 text-[12px] font-medium text-white disabled:opacity-60"
+          >
+            {pending ? (
+              <>
+                <Spinner />
+                Saving…
+              </>
+            ) : saved ? (
+              'Saved'
+            ) : (
+              item.label
+            )}
+          </button>
+        </form>
       ))}
-    </>
+      {state.error ? (
+        <span role="alert" className="max-w-[180px] text-[11px] leading-snug text-danger">
+          {state.error}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
