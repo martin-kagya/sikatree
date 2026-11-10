@@ -28,6 +28,7 @@ export function ItemForm({
   const [preview, setPreview] = useState(item?.imageUrl ?? null);
   const [newFile, setNewFile] = useState(false);
   const [remove, setRemove] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   return (
     <form action={action} encType="multipart/form-data" className="mt-5 grid gap-6 md:grid-cols-[260px_1fr]">
@@ -55,6 +56,13 @@ export function ItemForm({
             multiple
             accept="image/jpeg,image/png,image/webp,image/avif"
             onChange={(event) => {
+              const files = Array.from(event.target.files ?? []);
+              const total = files.reduce((sum, file) => sum + file.size, 0);
+              setSizeError(
+                total > 30 * 1024 * 1024
+                  ? 'Those photos are too large together (30MB total). Use fewer or smaller photos.'
+                  : null,
+              );
               const file = event.target.files?.[0];
               if (file) {
                 setPreview(URL.createObjectURL(file));
@@ -68,9 +76,14 @@ export function ItemForm({
             className="block w-full text-[12px] text-ink-muted file:mr-3 file:rounded-pill file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[12px] file:text-white"
           />
           <p className="mt-1.5 text-[11px] text-ink-muted">
-            Up to 5 photos (JPG, PNG, WebP or AVIF, up to 10MB each). The first is the cover.
-            Re-uploading replaces all photos.
+            Up to 5 photos (JPG, PNG, WebP or AVIF, up to 10MB each, 30MB total). The first is the
+            cover. Re-uploading replaces all photos.
           </p>
+          {sizeError ? (
+            <p role="alert" className="mt-1.5 text-[11px] text-danger">
+              {sizeError}
+            </p>
+          ) : null}
         </div>
 
         {item?.imageUrl && !newFile ? (
@@ -288,7 +301,7 @@ export function ItemForm({
         <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-4">
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || Boolean(sizeError)}
             className="inline-flex h-11 items-center rounded-pill bg-green-main px-6 text-label text-ink transition-[transform,background-color] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:bg-green-main/90 active:scale-[0.98] disabled:opacity-50"
           >
             {pending ? 'Saving…' : item ? 'Save changes' : 'Add item'}

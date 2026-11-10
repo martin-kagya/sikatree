@@ -8,6 +8,12 @@ const nextConfig = {
   // connection string without the driver being rewritten by the bundler.
   serverExternalPackages: ['pg'],
   experimental: {
+    // Item photos upload through a server action. The browser and the form
+    // allow up to 5 photos of 10MB each (capped at 30MB total by the action),
+    // so the default 1MB body limit rejects almost every phone photo.
+    serverActions: {
+      bodySizeLimit: '32mb',
+    },
     // Static generation has intermittently lost a client reference in CI when
     // page workers run in parallel. One worker keeps the client manifest and
     // the prerender pass in sync; the build is still comfortably fast.

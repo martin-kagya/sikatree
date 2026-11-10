@@ -40,6 +40,29 @@ export async function saveItemAction(
   formData: FormData,
 ): Promise<ItemFormState> {
   const vendorId = await requireVendor();
+
+  let state: ItemFormState;
+  try {
+    state = await saveItemForVendor(vendorId, formData);
+  } catch (error) {
+    // Never surface Next's generic "Application error" for a failed save; the
+    // form can show something the vendor can act on.
+    console.error('[items] save failed', error instanceof Error ? error.message : error);
+    return {
+      error: 'Could not save the item. Try again, or add it without photos if the upload keeps failing.',
+    };
+  }
+
+  if (state.error) return state;
+  // Redirect outside the try block: redirect() works by throwing, and catching
+  // it here would turn a successful save into an error message.
+  redirect('/dashboard?item=saved');
+}
+
+async function saveItemForVendor(
+  vendorId: string,
+  formData: FormData,
+): Promise<ItemFormState> {
   const id = text(formData, 'id');
   const existing = id ? await getVendorItem(vendorId, id) : null;
   if (id && !existing) return { error: 'Item not found.' };
@@ -49,8 +72,14 @@ export async function saveItemAction(
     .getAll('image')
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
+  const MAX_TOTAL_BYTES = 30 * 1024 * 1024;
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    return { error: 'Those photos are too large together (30MB total). Use fewer or smaller photos.' };
+  }
+
+  const additionalPhotos: string[] = [];
   if (files.length) {
-    const additional: string[] = [];
     for (let index = 0; index < files.length; index += 1) {
       const file = files[index];
       const mime = file.type.split(';')[0].trim().toLowerCase();
@@ -65,9 +94,9 @@ export async function saveItemAction(
         return { error: 'Could not upload an image. Check storage settings and try again.' };
       }
       if (index === 0) imageUrl = uploaded;
-      else additional.push(uploaded);
+      else additionalPhotos.push(uploaded);
     }
-    if (id) await replaceItemImages(id, additional);
+    if (id) await replaceItemImages(id, additionalPhotos);
   } else if (formData.get('removeImage') === 'on') {
     imageUrl = null;
     if (id) await replaceItemImages(id, []);
@@ -130,6 +159,12 @@ export async function saveItemAction(
     : await createItem(vendorId, input);
   if (!result.ok) return { error: result.error };
 
+  // A new item only writes its cover through `image_url`; the extra photos in
+  // the same upload belong in item_images, exactly as they do when editing.
+  if (!id && additionalPhotos.length) {
+    await replaceItemImages(result.id, additionalPhotos);
+  }
+
   // Manual stock adjustments are recorded with a reason (INV-05).
   if (id && existing && existing.stock !== input.stock) {
     const delta = (input.stock ?? 0) - (existing.stock ?? 0);
@@ -137,7 +172,7 @@ export async function saveItemAction(
   }
 
   await revalidateStore(vendorId);
-  redirect('/dashboard?item=saved');
+  return {};
 }
 
 export async function setItemStatusAction(formData: FormData): Promise<void> {
