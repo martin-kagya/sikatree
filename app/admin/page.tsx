@@ -6,6 +6,7 @@ import { formatGhanaPhone } from '@/lib/phone';
 import { requireAdmin } from '@/lib/admin-auth';
 import { listForAdmin, orderBandLabel, statusCounts, type AdminEntry } from '@/lib/waitlist';
 import { logoutAction, setNotesAction, setStatusAction } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 export const metadata: Metadata = {
   title: 'Waitlist | sikatree',
@@ -101,9 +102,12 @@ function Row({ row }: { row: AdminEntry }) {
               label: status.charAt(0).toUpperCase() + status.slice(1),
             }))}
           />
-          <button type="submit" className="h-8 rounded-pill border border-hairline px-2.5 text-[11px] text-ink hover:border-ink/40">
+          <PendingButton
+            pendingLabel="Saving…"
+            className="h-8 rounded-pill border border-hairline px-2.5 text-[11px] text-ink hover:border-ink/40"
+          >
             Save
-          </button>
+          </PendingButton>
         </form>
       </td>
       <td className="whitespace-nowrap px-2 py-3 text-[12px] text-ink-muted">
@@ -121,9 +125,12 @@ function Row({ row }: { row: AdminEntry }) {
               placeholder="Called, interested in Friday, etc."
               className="w-56 rounded-inner border border-hairline bg-white p-2 text-[12px] text-ink"
             />
-            <button type="submit" className="mt-1 h-7 rounded-pill bg-ink px-3 text-[11px] text-white">
+            <PendingButton
+              pendingLabel="Saving…"
+              className="mt-1 h-7 rounded-pill bg-ink px-3 text-[11px] text-white"
+            >
               Save note
-            </button>
+            </PendingButton>
           </form>
         </details>
       </td>

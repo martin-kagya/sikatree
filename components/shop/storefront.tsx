@@ -24,6 +24,8 @@ import {
   X,
 } from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
+import { useToast } from '@/components/system/toast';
+import { Spinner } from '@/components/system/spinner';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { OstraMark } from '@/components/ui/ostra-mark';
 import { Dropdown } from '@/components/ui/dropdown';
@@ -390,6 +392,7 @@ export function Storefront({
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
   const [sharedItemId, setSharedItemId] = useState<string | null>(null);
+  const toast = useToast();
   const shareTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(shareTimer.current), []);
 
@@ -668,8 +671,9 @@ export function Storefront({
       try {
         await navigator.share({ title: text, text, url });
         return;
-      } catch {
-        /* cancelled or unsupported; fall back to copying the link */
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        /* unsupported; fall back to copying the link */
       }
     }
 
@@ -679,7 +683,7 @@ export function Storefront({
       window.clearTimeout(shareTimer.current);
       shareTimer.current = window.setTimeout(() => setSharedItemId(null), 2000);
     } catch {
-      /* clipboard unavailable */
+      toast.error("Couldn't copy the link. Try again.");
     }
   }
 
@@ -814,7 +818,11 @@ export function Storefront({
         setCheckoutError(result.error);
       }
     } catch {
-      setCheckoutError('Could not place the order. Try again.');
+      setCheckoutError(
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? "You're offline. Reconnect and try again."
+          : 'Could not place the order. Try again.',
+      );
     } finally {
       setPlacing(false);
     }
@@ -1729,8 +1737,12 @@ export function Storefront({
                   <button
                     type="submit"
                     disabled={placing || leaving || !cartCount || (sellingServices && !bookingTime)}
-                    className="shop-press relative mt-4 flex h-12 w-full items-center justify-center rounded-[12px] bg-[var(--shop-accent)] px-5 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
+                    aria-busy={placing}
+                    className="shop-press relative mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--shop-accent)] px-5 text-[15px] font-medium text-[var(--shop-accent-label)] disabled:opacity-50"
                   >
+                    {placing ? (
+                      <Spinner className="text-[var(--shop-accent-label)]" />
+                    ) : null}
                     <span>
                       {placing
                         ? paymentMethod === 'online' && onlinePayments

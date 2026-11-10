@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import type { DeliveryFeeMode } from '@/lib/shop';
 import { cn } from '@/lib/utils';
 import { updateDeliverySettingsAction, type DeliverySettingsState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: DeliverySettingsState = {};
 
@@ -27,7 +28,7 @@ export function DeliverySettings({
   fixedPesewas: number;
   outsidePesewas: number;
 }) {
-  const [state, action, pending] = useActionState(updateDeliverySettingsAction, initial);
+  const [state, action] = useActionState(updateDeliverySettingsAction, initial);
   const [selected, setSelected] = useState<DeliveryFeeMode>(mode);
 
   return (
@@ -114,13 +115,12 @@ export function DeliverySettings({
         </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Saving…"
         className="mt-4 inline-flex h-10 items-center rounded-pill bg-ink px-5 text-small text-white hover:bg-ink/90 disabled:opacity-50"
       >
-        {pending ? 'Saving…' : 'Save delivery settings'}
-      </button>
+        Save delivery settings
+      </PendingButton>
     </form>
   );
 }

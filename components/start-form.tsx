@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 import { startVendorAction, type StartState } from '@/app/start/actions';
 import { site } from '@/lib/brand';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: StartState = { status: 'idle' };
 
@@ -12,7 +13,7 @@ const field =
 const label = 'block text-label font-medium text-ink';
 
 export function StartForm() {
-  const [state, action, pending] = useActionState(startVendorAction, initial);
+  const [state, action] = useActionState(startVendorAction, initial);
 
   if (state.status === 'ok') {
     return (
@@ -148,13 +149,12 @@ export function StartForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Creating your shop…"
         className="h-12 w-full rounded-pill bg-green-main px-6 text-label text-ink disabled:opacity-50"
       >
-        {pending ? 'Creating your shop…' : 'Create my shop'}
-      </button>
+        Create my shop
+      </PendingButton>
 
       <p className="text-center text-[12px] text-ink-muted">
         Already have a shop?{' '}

@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { Copy } from '@/components/icons';
+import { useToast } from '@/components/system/toast';
 
 export function CopyLink({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   const copy = async () => {
     try {
@@ -12,7 +14,7 @@ export function CopyLink({ value, label }: { value: string; label: string }) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable */
+      toast.error("Couldn't copy automatically. Long-press the link to copy it.");
     }
   };
 

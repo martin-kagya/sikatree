@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { requestLoginAction, type LoginState } from '@/app/auth/login/actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: LoginState = { status: 'idle' };
 
@@ -9,7 +10,7 @@ const field =
   'mt-1.5 h-12 w-full rounded-inner border border-hairline bg-white px-4 text-[16px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep';
 
 export function LoginForm() {
-  const [state, action, pending] = useActionState(requestLoginAction, initial);
+  const [state, action] = useActionState(requestLoginAction, initial);
 
   return (
     <div>
@@ -40,13 +41,12 @@ export function LoginForm() {
           </p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={pending}
+        <PendingButton
+          pendingLabel="Sending…"
           className="h-12 w-full rounded-pill bg-green-main px-6 text-label text-ink disabled:opacity-50"
         >
-          {pending ? 'Sending…' : 'Email me a sign-in link'}
-        </button>
+          Email me a sign-in link
+        </PendingButton>
       </form>
 
       <p className="mt-4 text-[12px] leading-relaxed text-ink-muted">

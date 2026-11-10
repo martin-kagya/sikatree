@@ -38,6 +38,64 @@ export async function updateOrderStatusAction(formData: FormData): Promise<void>
   revalidatePath('/dashboard');
 }
 
+export type OrderStatusState = { ok?: boolean; message?: string; error?: string };
+
+// State-returning variant for client forms: the toast needs the outcome.
+export async function updateOrderStatusState(
+  _previous: OrderStatusState,
+  formData: FormData,
+): Promise<OrderStatusState> {
+  const vendorId = await requireVendor();
+  const id = String(formData.get('id') ?? '');
+  const status = String(formData.get('status') ?? '') as OrderStatus;
+  const reason = String(formData.get('reason') ?? '').trim() || null;
+
+  if (!id || !ORDER_STATUSES.includes(status)) {
+    return { error: 'That order update is not valid.' };
+  }
+
+  try {
+    const result = await updateOrderStatus(id, vendorId, status, reason);
+    if (!result.ok) return { error: result.error };
+    const message =
+      status === 'cancelled'
+        ? 'Order cancelled.'
+        : status === 'confirmed'
+          ? 'Order confirmed.'
+          : status === 'ready'
+            ? 'Order marked ready.'
+            : 'Order completed.';
+    return { ok: true, message };
+  } catch (error) {
+    console.error('[orders] status update failed', error);
+    return { error: 'That update did not save. Try again.' };
+  }
+}
+
+export type OrderFeeState = { ok?: boolean; message?: string; error?: string };
+
+export async function setOrderDeliveryFeeState(
+  _previous: OrderFeeState,
+  formData: FormData,
+): Promise<OrderFeeState> {
+  const vendorId = await requireVendor();
+  const id = String(formData.get('id') ?? '');
+  const feeRaw = String(formData.get('fee') ?? '').trim();
+  if (!id || feeRaw === '') return { error: 'Enter the delivery fee.' };
+
+  const fee = parsePesewas(feeRaw);
+  if (fee === null) return { error: 'Enter a valid delivery fee.' };
+
+  try {
+    const result = await setOrderDeliveryFee(id, vendorId, fee);
+    if (!result.ok) return { error: result.error };
+    return { ok: true, message: 'Delivery fee set.' };
+  } catch (error) {
+    console.error('[orders] delivery fee failed', error);
+    return { error: 'That fee did not save. Try again.' };
+  }
+}
+
 export async function moveItemAction(formData: FormData): Promise<void> {
   const vendorId = await requireVendor();
   const id = String(formData.get('id') ?? '');

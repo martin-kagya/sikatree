@@ -9,6 +9,7 @@ import {
   minuteToTime,
 } from '@/lib/availability-shared';
 import { saveAvailabilityAction, type AvailabilitySettingsState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: AvailabilitySettingsState = {};
 
@@ -32,7 +33,7 @@ export function AvailabilitySettings({
   slotMinutes: number;
   weeklyCap: number | null;
 }) {
-  const [state, action, pending] = useActionState(saveAvailabilityAction, initial);
+  const [state, action] = useActionState(saveAvailabilityAction, initial);
   const [blocked, setBlocked] = useState(blockedDates);
   const [draftDate, setDraftDate] = useState('');
 
@@ -175,13 +176,12 @@ export function AvailabilitySettings({
       </div>
 
       <div className="border-t border-hairline pt-4">
-        <button
-          type="submit"
-          disabled={pending}
+        <PendingButton
+          pendingLabel="Saving…"
           className="inline-flex h-11 items-center rounded-pill bg-green-main px-6 text-label text-ink transition-[transform,background-color] duration-200 hover:bg-green-main/90 active:scale-[0.98] disabled:opacity-50"
         >
-          {pending ? 'Saving…' : 'Save availability'}
-        </button>
+          Save availability
+        </PendingButton>
       </div>
     </form>
   );

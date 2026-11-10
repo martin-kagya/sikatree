@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/admin-auth';
 import { formatGhanaPhone } from '@/lib/phone';
 import { getSupportTicket, listSupportMessages } from '@/lib/support';
 import { replySupportAction, supportStatusAction } from '../../actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 export const metadata: Metadata = {
   title: 'Support ticket | sikatree',
@@ -26,12 +27,12 @@ export default async function SupportTicketPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; sent?: string; saved?: string }>;
 }) {
   await requireAdmin();
 
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, sent, saved } = await searchParams;
   const ticket = await getSupportTicket(id);
   if (!ticket) notFound();
 
@@ -58,6 +59,12 @@ export default async function SupportTicketPage({
             {ticket.status}
           </span>
         </header>
+
+        {sent || saved ? (
+          <p className="feedback-rise mt-4 rounded-inner bg-mint-100 p-3 text-[13px] text-green-deep">
+            {sent ? 'Reply sent.' : 'Ticket status updated.'}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="mt-4 rounded-inner bg-danger-bg p-3 text-[13px] text-danger">{error}</p>
@@ -150,12 +157,12 @@ export default async function SupportTicketPage({
                 className="mt-2 w-full rounded-[12px] border border-hairline bg-white p-3 text-[13px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep"
               />
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button
-                  type="submit"
+                <PendingButton
+                  pendingLabel="Sending…"
                   className="inline-flex h-10 items-center rounded-pill bg-green-main px-4 text-small text-ink"
                 >
                   Send reply
-                </button>
+                </PendingButton>
                 <span className="text-[11px] text-ink-muted">
                   Free-form replies work inside the WhatsApp 24-hour window.
                 </span>
@@ -172,12 +179,12 @@ export default async function SupportTicketPage({
               name="status"
               value={ticket.status === 'open' ? 'closed' : 'open'}
             />
-            <button
-              type="submit"
+            <PendingButton
+              pendingLabel="Updating…"
               className="inline-flex h-9 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
             >
               {ticket.status === 'open' ? 'Mark resolved' : 'Reopen ticket'}
-            </button>
+            </PendingButton>
           </form>
         </section>
       </div>

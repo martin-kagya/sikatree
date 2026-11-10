@@ -85,7 +85,7 @@ export async function replySupportAction(formData: FormData): Promise<void> {
 
   revalidatePath(`/admin/support/${id}`);
   revalidatePath('/admin/support');
-  redirect(`/admin/support/${id}`);
+  redirect(`/admin/support/${id}?sent=1`);
 }
 
 export async function supportStatusAction(formData: FormData): Promise<void> {
@@ -98,5 +98,5 @@ export async function supportStatusAction(formData: FormData): Promise<void> {
   await setSupportStatus(id, status);
   revalidatePath(`/admin/support/${id}`);
   revalidatePath('/admin/support');
-  redirect(`/admin/support/${id}`);
+  redirect(`/admin/support/${id}?saved=1`);
 }

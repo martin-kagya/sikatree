@@ -4,7 +4,7 @@ import { formatCedis } from '@/lib/money';
 import { nextStatusesFor, type OrderRecord, type OrderStatus } from '@/lib/orders';
 import { formatGhanaPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
-import { setOrderDeliveryFeeAction, updateOrderStatusAction } from './actions';
+import { CancelOrderForm, DeliveryFeeForm, OrderStatusButtons } from '@/components/dashboard/order-actions';
 import { CopyLink } from './copy-link';
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
@@ -132,20 +132,15 @@ export function OrderCard({ order }: { order: OrderRecord }) {
             Waiting for online payment
           </p>
         ) : (
-          nextStatusesFor(order.status, order.fulfilment)
-            .filter((status) => status !== 'cancelled')
-            .map((status) => (
-              <form key={status} action={updateOrderStatusAction}>
-                <input type="hidden" name="id" value={order.id} />
-                <input type="hidden" name="status" value={status} />
-                <button
-                  type="submit"
-                  className="h-9 rounded-pill bg-ink px-3 text-[12px] font-medium text-white"
-                >
-                  {nextLabel(status, order.fulfilment)}
-                </button>
-              </form>
-            ))
+          <OrderStatusButtons
+            orderId={order.id}
+            actions={nextStatusesFor(order.status, order.fulfilment)
+              .filter((status) => status !== 'cancelled')
+              .map((status) => ({
+                status,
+                label: nextLabel(status, order.fulfilment),
+              }))}
+          />
         )}
 
         <Link
@@ -158,53 +153,13 @@ export function OrderCard({ order }: { order: OrderRecord }) {
       </div>
 
       {nextStatusesFor(order.status, order.fulfilment).includes('cancelled') ? (
-        <form
-          action={updateOrderStatusAction}
-          className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3"
-        >
-          <input type="hidden" name="id" value={order.id} />
-          <input type="hidden" name="status" value="cancelled" />
-          <input
-            name="reason"
-            placeholder="Reason for cancelling (optional)"
-            maxLength={200}
-            className="h-8 min-w-0 flex-1 rounded-[8px] border border-hairline bg-white px-2 text-[12px] text-ink outline-none focus:border-green-deep"
-          />
-          <button
-            type="submit"
-            className="pressable inline-flex h-8 items-center rounded-pill border border-danger px-3 text-[12px] font-medium text-danger"
-          >
-            Cancel order
-          </button>
-        </form>
+        <CancelOrderForm orderId={order.id} />
       ) : null}
 
       {order.fulfilment === 'delivery' &&
       order.deliveryFeeMode === 'confirm_after' &&
       order.status === 'pending' ? (
-        <form
-          action={setOrderDeliveryFeeAction}
-          className="mt-3 flex flex-wrap items-center gap-2 border-t border-hairline pt-3"
-        >
-          <input type="hidden" name="id" value={order.id} />
-          <label className="flex items-center gap-2 text-[12px] text-ink-muted">
-            Delivery fee (GH₵)
-            <input
-              name="fee"
-              inputMode="decimal"
-              required
-              min="0"
-              placeholder="15"
-              className="h-8 w-24 rounded-[8px] border border-hairline bg-white px-2 text-[12px] text-ink outline-none focus:border-green-deep"
-            />
-          </label>
-          <button
-            type="submit"
-            className="pressable inline-flex h-8 items-center rounded-pill bg-ink px-3 text-[12px] font-medium text-white hover:bg-ink/90"
-          >
-            {order.deliveryPesewas ? 'Update fee' : 'Set fee'}
-          </button>
-        </form>
+        <DeliveryFeeForm orderId={order.id} hasFee={order.deliveryPesewas > 0} />
       ) : null}
     </article>
   );

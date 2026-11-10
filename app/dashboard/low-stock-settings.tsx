@@ -2,11 +2,12 @@
 
 import { useActionState } from 'react';
 import { updateLowStockThresholdAction, type LowStockState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: LowStockState = {};
 
 export function LowStockSettings({ threshold }: { threshold: number | null }) {
-  const [state, action, pending] = useActionState(updateLowStockThresholdAction, initial);
+  const [state, action] = useActionState(updateLowStockThresholdAction, initial);
 
   return (
     <form action={action} className="mt-4">
@@ -38,13 +39,12 @@ export function LowStockSettings({ threshold }: { threshold: number | null }) {
         turn alerts off.
       </p>
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Saving…"
         className="mt-4 inline-flex h-10 items-center rounded-pill bg-ink px-5 text-small text-white hover:bg-ink/90 disabled:opacity-50"
       >
-        {pending ? 'Saving…' : 'Save low-stock alert'}
-      </button>
+        Save low-stock alert
+      </PendingButton>
     </form>
   );
 }

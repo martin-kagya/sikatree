@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { updateEtaSettingsAction, type EtaSettingsState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: EtaSettingsState = {};
 
@@ -17,7 +18,7 @@ export function EtaSettings({
   outsideText: string;
   pickupText: string;
 }) {
-  const [state, action, pending] = useActionState(updateEtaSettingsAction, initial);
+  const [state, action] = useActionState(updateEtaSettingsAction, initial);
 
   return (
     <form action={action} className="mt-4">
@@ -76,13 +77,12 @@ export function EtaSettings({
         chosen date and time.
       </p>
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Saving…"
         className="mt-4 inline-flex h-10 items-center rounded-pill bg-ink px-5 text-small text-white hover:bg-ink/90 disabled:opacity-50"
       >
-        {pending ? 'Saving…' : 'Save delivery time'}
-      </button>
+        Save delivery time
+      </PendingButton>
     </form>
   );
 }

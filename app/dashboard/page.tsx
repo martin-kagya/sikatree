@@ -7,7 +7,7 @@ import { formatCedis } from '@/lib/money';
 import { ACTIVE_ORDER_STATUSES, listVendorOrders } from '@/lib/orders';
 import { requireVendor } from '@/lib/vendor-auth';
 import { moveItemAction } from './actions';
-import { setItemStatusAction } from './items/actions';
+import { ItemStatusButton } from '@/components/dashboard/item-status-button';
 import { CopyLink } from './copy-link';
 import { OrderCard } from './order-card';
 
@@ -237,27 +237,19 @@ export default async function DashboardPage({
                           label="Item link"
                         />
                         {item.status === 'active' && !soldOut ? (
-                          <form action={setItemStatusAction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <input type="hidden" name="status" value="sold_out" />
-                            <button
-                              type="submit"
-                              className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
-                            >
-                              {itemIsService ? 'Unavailable' : 'Sold out'}
-                            </button>
-                          </form>
+                          <ItemStatusButton
+                            itemId={item.id}
+                            status="sold_out"
+                            label={itemIsService ? 'Unavailable' : 'Sold out'}
+                            className="pressable h-8 rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                          />
                         ) : item.status !== 'active' ? (
-                          <form action={setItemStatusAction}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <input type="hidden" name="status" value="active" />
-                            <button
-                              type="submit"
-                              className="pressable inline-flex h-8 items-center rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
-                            >
-                              Show
-                            </button>
-                          </form>
+                          <ItemStatusButton
+                            itemId={item.id}
+                            status="active"
+                            label="Show"
+                            className="pressable h-8 rounded-pill border border-hairline px-3 text-[12px] text-ink hover:border-ink/40"
+                          />
                         ) : null}
                       </div>
                     </li>

@@ -2,11 +2,12 @@
 
 import { useActionState } from 'react';
 import { loginAction, type LoginState } from '@/app/admin/actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: LoginState = {};
 
 export function LoginForm() {
-  const [state, action, pending] = useActionState(loginAction, initial);
+  const [state, action] = useActionState(loginAction, initial);
 
   return (
     <form action={action} className="space-y-4">
@@ -31,13 +32,12 @@ export function LoginForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Checking…"
         className="h-12 w-full rounded-pill bg-green-main px-6 text-label text-ink disabled:opacity-50"
       >
-        {pending ? 'Checking…' : 'Sign in'}
-      </button>
+        Sign in
+      </PendingButton>
     </form>
   );
 }

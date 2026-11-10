@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { Dropdown } from '@/components/ui/dropdown';
 import type { EditableItem, ItemKind } from '@/lib/catalogue';
 import { saveItemAction, type ItemFormState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: ItemFormState = {};
 
@@ -21,7 +22,7 @@ export function ItemForm({
   categories: string[];
   vendorType?: 'products' | 'services' | 'both';
 }) {
-  const [state, action, pending] = useActionState(saveItemAction, initial);
+  const [state, action] = useActionState(saveItemAction, initial);
   const [kind, setKind] = useState<ItemKind>(
     item?.kind ?? (vendorType === 'services' ? 'service' : 'product'),
   );
@@ -299,13 +300,13 @@ export function ItemForm({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-hairline pt-4">
-          <button
-            type="submit"
-            disabled={pending || Boolean(sizeError)}
+          <PendingButton
+            pendingLabel="Saving…"
+            disabled={Boolean(sizeError)}
             className="inline-flex h-11 items-center rounded-pill bg-green-main px-6 text-label text-ink transition-[transform,background-color] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:bg-green-main/90 active:scale-[0.98] disabled:opacity-50"
           >
-            {pending ? 'Saving…' : item ? 'Save changes' : 'Add item'}
-          </button>
+            {item ? 'Save changes' : 'Add item'}
+          </PendingButton>
           <Link
             href="/dashboard"
             className="text-[13px] text-ink-muted transition-colors duration-150 hover:text-ink"

@@ -2,11 +2,12 @@
 
 import { useActionState } from 'react';
 import { saveCategoriesAction, type CategoriesState } from './actions';
+import { PendingButton } from '@/components/system/pending-button';
 
 const initial: CategoriesState = {};
 
 export function CategoriesSettings({ categories }: { categories: string[] }) {
-  const [state, action, pending] = useActionState(saveCategoriesAction, initial);
+  const [state, action] = useActionState(saveCategoriesAction, initial);
 
   return (
     <form action={action} className="mt-4">
@@ -38,13 +39,12 @@ export function CategoriesSettings({ categories }: { categories: string[] }) {
         category not listed here is appended alphabetically.
       </p>
 
-      <button
-        type="submit"
-        disabled={pending}
+      <PendingButton
+        pendingLabel="Saving…"
         className="mt-4 inline-flex h-10 items-center rounded-pill bg-ink px-5 text-small text-white hover:bg-ink/90 disabled:opacity-50"
       >
-        {pending ? 'Saving…' : 'Save categories'}
-      </button>
+        Save categories
+      </PendingButton>
     </form>
   );
 }

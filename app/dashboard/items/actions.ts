@@ -175,6 +175,34 @@ async function saveItemForVendor(
   return {};
 }
 
+export type ItemStatusState = { ok?: boolean; message?: string; error?: string };
+
+export async function setItemStatusState(
+  _previous: ItemStatusState,
+  formData: FormData,
+): Promise<ItemStatusState> {
+  const vendorId = await requireVendor();
+  const id = String(formData.get('id') ?? '');
+  const status = String(formData.get('status') ?? '') as ItemStatus;
+  if (!id || !ITEM_STATUSES.includes(status)) {
+    return { error: 'Choose a valid visibility.' };
+  }
+
+  try {
+    await setItemStatus(vendorId, id, status);
+    const message =
+      status === 'sold_out'
+        ? 'Item marked sold out.'
+        : status === 'hidden'
+          ? 'Item hidden from your page.'
+          : 'Item is showing again.';
+    return { ok: true, message };
+  } catch (error) {
+    console.error('[items] status update failed', error);
+    return { error: 'That change did not save. Try again.' };
+  }
+}
+
 export async function setItemStatusAction(formData: FormData): Promise<void> {
   const vendorId = await requireVendor();
   const id = String(formData.get('id') ?? '');

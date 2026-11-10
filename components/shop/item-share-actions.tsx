@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { Copy, MessageCircle, Share2 } from '@/components/icons';
+import { useToast } from '@/components/system/toast';
 
 export function ItemShareActions({ url, text }: { url: string; text: string }) {
   const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   async function copy() {
     try {
@@ -12,7 +14,7 @@ export function ItemShareActions({ url, text }: { url: string; text: string }) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard unavailable */
+      toast.error("Couldn't copy the link. Try again or long-press it.");
     }
   }
 
@@ -21,8 +23,9 @@ export function ItemShareActions({ url, text }: { url: string; text: string }) {
       try {
         await navigator.share({ title: text, text, url });
         return;
-      } catch {
-        /* cancelled or unsupported; fall through to copy */
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        /* unsupported; fall through to copy */
       }
     }
     await copy();
