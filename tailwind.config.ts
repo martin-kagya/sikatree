@@ -34,6 +34,7 @@ const config: Config = {
         danger: {
           DEFAULT: 'var(--danger)',
           bg: 'var(--danger-bg)',
+          strong: 'var(--danger-bg-strong)',
         },
         hairline: 'var(--hairline)',
         'hairline-dark': 'var(--hairline-dark)',

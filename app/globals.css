@@ -30,6 +30,7 @@
   --warn-text: #b8700e;
   --danger: #b3261e;
   --danger-bg: #fdecec;
+  --danger-bg-strong: #fbe1e1;
 
   /* Lines and overlays */
   --hairline: #e2e2df;
@@ -38,6 +39,10 @@
   --glass-border: rgba(255, 255, 255, 0.22);
   --scrim: rgba(16, 17, 31, 0.4);
   --hero-scrim: linear-gradient(180deg, rgba(10, 10, 10, 0.25) 0%, rgba(10, 10, 10, 0.55) 100%);
+
+  /* Sticky header height used by the root toast viewport. The dashboard
+     header is measured at runtime; 56px is the storefront sticky bar. */
+  --app-header-height: 56px;
 
   /* Motion tokens (DESIGN.md 8.1) */
   --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  type Variants,
-} from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
 import {
   createContext,
   useCallback,
@@ -17,6 +12,7 @@ import {
   type FocusEvent,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, Check, X } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
@@ -35,77 +31,20 @@ type ToastApi = {
 
 const noop: ToastApi = { success: () => undefined, error: () => undefined };
 
-const EASE_OUT: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
-const EASE_IN: [number, number, number, number] = [0.4, 0, 1, 1];
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 10, scale: 0.96, filter: 'blur(6px)' },
+const motionVariants: Variants = {
+  hidden: { opacity: 0, y: -8 },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    filter: 'blur(0px)',
-    transition: {
-      opacity: { duration: 0.22, ease: 'easeOut' },
-      y: { type: 'spring' as const, stiffness: 320, damping: 26 },
-      scale: { type: 'spring' as const, stiffness: 320, damping: 26 },
-      filter: { duration: 0.3, ease: 'easeOut' },
-      staggerChildren: 0.05,
-      delayChildren: 0.06,
-    },
+    transition: { duration: 0.15, ease: 'easeOut' },
   },
-  exit: {
-    opacity: 0,
-    y: 6,
-    scale: 0.97,
-    filter: 'blur(4px)',
-    transition: { duration: 0.18, ease: EASE_IN },
-  },
+  exit: { opacity: 0, transition: { duration: 0.1, ease: 'easeIn' } },
 };
 
-const childVariants: Variants = {
-  hidden: { opacity: 0, y: 4, filter: 'blur(3px)' },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: { duration: 0.28, ease: EASE_OUT },
-  },
-  exit: {
-    opacity: 0,
-    transition: { duration: 0.12, ease: 'easeIn' },
-  },
-};
-
-const iconVariants: Variants = {
-  hidden: { scale: 0.5, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: {
-      type: 'spring' as const,
-      stiffness: 340,
-      damping: 22,
-      delay: 0.06,
-    },
-  },
-  exit: {
-    scale: 0.6,
-    opacity: 0,
-    transition: { duration: 0.12, ease: 'easeIn' },
-  },
-};
-
-const reducedContainerVariants: Variants = {
+const reducedVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.01 } },
-  exit: { opacity: 0, transition: { duration: 0.01 } },
-};
-
-const reducedChildVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.01 } },
-  exit: { opacity: 0, transition: { duration: 0.01 } },
+  visible: { opacity: 1, transition: { duration: 0 } },
+  exit: { opacity: 0, transition: { duration: 0 } },
 };
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -118,8 +57,6 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
   const [paused, setPaused] = useState(false);
   const [documentHidden, setDocumentHidden] = useState(false);
   const reduceMotion = useReducedMotion();
-  const child = reduceMotion ? reducedChildVariants : childVariants;
-  const icon = reduceMotion ? reducedChildVariants : iconVariants;
 
   useEffect(() => {
     const onVisibilityChange = () => setDocumentHidden(document.hidden);
@@ -130,7 +67,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
 
   useEffect(() => {
     if (paused || documentHidden) return;
-    const duration = item.variant === 'error' ? 6000 : 4000;
+    const duration = item.variant === 'error' ? 6000 : 3000;
     const timer = window.setTimeout(onDismiss, duration);
     return () => window.clearTimeout(timer);
   }, [documentHidden, item.variant, onDismiss, paused]);
@@ -147,51 +84,76 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
       aria-atomic="true"
       aria-live={item.variant === 'error' ? 'assertive' : 'polite'}
       className={cn(
-        'pointer-events-auto flex w-full max-w-[420px] items-start gap-2.5 rounded-[16px] border px-4 py-3 shadow-card',
+        'pointer-events-auto flex w-full items-start gap-2.5 rounded-[14px] border px-4 py-3 shadow-card',
         item.variant === 'error'
-          ? 'border-danger/20 bg-danger-bg text-danger'
-          : 'border-green-main/30 bg-mint-100 text-green-deep',
+          ? 'border-danger/40 bg-danger-strong text-danger'
+          : 'border-green-deep/30 bg-mint-100 text-green-deep',
       )}
       exit="exit"
       initial="hidden"
       onBlurCapture={handleBlur}
       onFocusCapture={() => setPaused(true)}
+      onPointerCancel={() => setPaused(false)}
+      onPointerDown={() => setPaused(true)}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
+      onPointerUp={() => setPaused(false)}
       role={item.variant === 'error' ? 'alert' : 'status'}
-      variants={reduceMotion ? reducedContainerVariants : containerVariants}
+      variants={reduceMotion ? reducedVariants : motionVariants}
     >
-      <motion.span className="mt-0.5 shrink-0" variants={icon}>
+      <span className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
         {item.variant === 'error' ? (
-          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+          <AlertCircle className="h-4 w-4" />
         ) : (
-          <Check className="h-4 w-4" aria-hidden="true" />
+          <Check className="h-4 w-4" />
         )}
-      </motion.span>
-      <motion.p className="min-w-0 flex-1 text-[13px] leading-snug" variants={child}>
-        {item.message}
-      </motion.p>
-      <motion.button
+      </span>
+      <p className="line-clamp-2 min-w-0 flex-1 text-[13px] leading-snug">{item.message}</p>
+      <button
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="mt-0.5 shrink-0 rounded-full p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-deep"
-        variants={child}
+        className="-my-2 -mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-deep"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
-      </motion.button>
+      </button>
     </motion.div>
   );
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
+  const [item, setItem] = useState<ToastItem | null>(null);
+  const [target, setTarget] = useState<HTMLElement | null>(null);
   const nextId = useRef(0);
+
+  useEffect(() => {
+    const viewport = document.getElementById('toast-viewport');
+    if (!viewport) return;
+    setTarget(viewport);
+
+    const anchor = document.querySelector<HTMLElement>('[data-toast-anchor]');
+    if (!anchor || anchor.offsetHeight === 0) return;
+
+    const update = () => {
+      const bottom = anchor.getBoundingClientRect().bottom;
+      viewport.style.top = `${Math.max(8, Math.round(bottom + 8))}px`;
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(anchor);
+    window.addEventListener('resize', update);
+
+    return () => {
+      viewport.style.top = '';
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   const push = useCallback((message: string, variant: Variant) => {
     nextId.current += 1;
-    const id = nextId.current;
-    setItems((current) => [...current.slice(-2), { id, message, variant }]);
+    setItem({ id: nextId.current, message, variant });
   }, []);
 
   const api = useMemo<ToastApi>(
@@ -205,20 +167,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div
-        aria-label="Notifications"
-        className="pointer-events-none fixed inset-x-0 bottom-40 z-[95] flex flex-col items-center gap-2 px-4 sm:bottom-20"
-      >
-        <AnimatePresence initial={false}>
-          {items.map((item) => (
-            <ToastCard
-              key={item.id}
-              item={item}
-              onDismiss={() => setItems((current) => current.filter((next) => next.id !== item.id))}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
+      {target
+        ? createPortal(
+            <AnimatePresence initial={false} mode="wait">
+              {item ? (
+                <ToastCard
+                  key={item.id}
+                  item={item}
+                  onDismiss={() =>
+                    setItem((current) => (current?.id === item.id ? null : current))
+                  }
+                />
+              ) : null}
+            </AnimatePresence>,
+            target,
+          )
+        : null}
     </ToastContext.Provider>
   );
 }

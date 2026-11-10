@@ -54,6 +54,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${interTight.variable} ${playfair.variable}`}>
       <body className="font-sans">
         {children}
+        <div
+          id="toast-viewport"
+          className="pointer-events-none fixed inset-x-3 top-[calc(env(safe-area-inset-top)+var(--app-header-height)+8px)] z-[200] flex flex-col items-stretch min-[480px]:left-1/2 min-[480px]:right-auto min-[480px]:w-[420px] min-[480px]:-translate-x-1/2"
+        />
         <ConnectionStatus />
         <Analytics />
       </body>

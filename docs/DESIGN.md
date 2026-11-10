@@ -92,6 +92,7 @@ Do not copy the Ostra hero layout, cream colorwash, Plus Jakarta Sans, mint grad
   --warn-text: #b8700e; /* never for text under 18px; use --ink instead */
   --danger: #b3261e;
   --danger-bg: #fdecec;
+  --danger-bg-strong: #fbe1e1; /* stronger error toast fill */
 
   /* Lines and overlays */
   --hairline: #e2e2df;
@@ -380,7 +381,8 @@ A horizontal date strip (7 days, swipeable), then a grid of time pills (3 column
 | Warning | --warn-bg        | --warn-edge   | --ink        |
 | Error   | --danger-bg      | --danger      | --danger     |
 
-- **Toast:** alert anatomy plus `--shadow-card`. Bottom center, above any sticky bar. Auto-dismiss 4s (6s for errors). `aria-live="polite"`, errors `assertive`.
+- **Toast:** alert anatomy plus `--shadow-card`. Fixed at the top, below the sticky header: safe-area top plus `--app-header-height` plus 8px. The dashboard header is measured at runtime. 12px side margins on mobile; centered, 420px maximum, from 480px. Above sticky bars, dropdowns and sheets. One at a time. Auto-dismiss 3s (6s for errors), pause while pressed or focused. `aria-live="polite"`, errors `assertive`.
+- **Copy failure:** inline on the button. Label "Copy failed" for 2s, then reveal a read-only selected input with the value. Never a toast.
 - **Skeleton:** `--surface-soft` or `--tile` blocks matching the final radius and size, 1.5s opacity pulse, static under reduced motion. No full-page spinners.
 - **Empty state:** centered, 56px `--surface-soft` circle with a Lucide icon, H3, one sentence, one Primary button. Example: "No orders yet. Share your link to get your first one."
 - **Empty image:** neutral `--tile` with a soft camera icon and "Add a photo". Never a broken image.
@@ -420,8 +422,8 @@ do not use a toast for something the user must resolve before continuing.
 
 - **Inline note** for an action on the current screen: item saved, settings saved, link copied. It stays long
   enough to read (at least 3 seconds) and does not move the layout.
-- **Toast** for an action whose result is not visible where the user is looking. Auto-dismiss after 4
-  seconds (6 for errors), pause on hover, maximum three at once.
+- **Toast** for an action whose result is not visible where the user is looking. Auto-dismiss after 3
+  seconds (6 for errors), pause while pressed or focused, one at a time.
 - **State transition** for workflows: an order moving from Pending to Confirmed, a booking confirmed, a
   payment marked paid. Animate the change, do not replace the card.
 - **Always add the next step.** "Item saved" is followed by "View on your page" or the page link. "Order
@@ -464,7 +466,7 @@ Never use "Oops", "Uh oh", "Something went wrong" alone, or a stack trace.
 - `PendingButton`: the label crossfades to the working label, the width is reserved, and the spinner is
   600ms linear. Never leave a button looking idle while a request is in flight.
 - `SuccessNote`: mint background, check icon, one line, optional link. Fades in with a 4px rise over 200ms.
-- `Toast`: Section 5.13 anatomy, bottom centre, above the connection banner when both are present.
+- `Toast`: Section 5.13 anatomy, top below the sticky header, above the connection banner when both are present.
 
 **Rules that are always binding.**
 
@@ -679,7 +681,7 @@ Animate only `transform`, `opacity` and colour. Never animate layout properties 
 | Dialog open | panel opacity 0, 16px rise and `scale(0.97)`, 280ms standard; backdrop fades 200ms |
 | Dialog close | panel fades and scales to 0.98 over 180ms; backdrop fades 180ms |
 | Checkout success | form fades and slides left 28px over 200ms; success fades in from 26px right over 340ms |
-| Toast or inline notice | fade and 8px slide, 200ms |
+| Toast | slide down 8px and fade in, 150ms; exit fade 100ms. Opacity only under reduced motion |
 | Connection banner | fade and 8px rise in 200ms; stays until the state clears; reconnect copy holds 3s, then fades out over 200ms |
 | Error state | opacity and 12px rise, 240ms; retry button uses the shared press spring; never a shake |
 | Success note | opacity and 4px rise, 200ms; check icon draws over 340ms |

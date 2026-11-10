@@ -24,7 +24,6 @@ import {
   X,
 } from '@/components/icons';
 import { submitOrder } from '@/lib/checkout-actions';
-import { useToast } from '@/components/system/toast';
 import { Spinner } from '@/components/system/spinner';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { OstraMark } from '@/components/ui/ostra-mark';
@@ -392,7 +391,7 @@ export function Storefront({
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
   const [sharedItemId, setSharedItemId] = useState<string | null>(null);
-  const toast = useToast();
+  const [shareFailedId, setShareFailedId] = useState<string | null>(null);
   const shareTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(shareTimer.current), []);
 
@@ -687,10 +686,14 @@ export function Storefront({
     try {
       await navigator.clipboard.writeText(url);
       setSharedItemId(item.id);
+      setShareFailedId(null);
       window.clearTimeout(shareTimer.current);
       shareTimer.current = window.setTimeout(() => setSharedItemId(null), 2000);
     } catch {
-      toast.error("Couldn't copy the link. Try again.");
+      setSharedItemId(null);
+      setShareFailedId(item.id);
+      window.clearTimeout(shareTimer.current);
+      shareTimer.current = window.setTimeout(() => setShareFailedId(null), 6000);
     }
   }
 
@@ -1883,6 +1886,23 @@ export function Storefront({
                 <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
                 {sharedItemId === qvItem.id ? 'Link copied' : 'Share this item'}
               </button>
+
+              {shareFailedId === qvItem.id ? (
+                <div className="mt-2">
+                  <p className="text-[11px] leading-snug text-danger">
+                    Couldn't copy. Long-press the link instead.
+                  </p>
+                  <input
+                    readOnly
+                    autoFocus
+                    value={`https://${domain}/${vendor.handle}/i/${qvItem.id}`}
+                    aria-label="Item link"
+                    spellCheck={false}
+                    className="mt-1 h-8 w-full rounded-[8px] border border-stone-200 bg-white px-2 text-[11px] text-stone-700"
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                </div>
+              ) : null}
 
               {qvItem.description ? (
                 <p className="max-w-[34ch] text-[15px] leading-relaxed text-stone-500">

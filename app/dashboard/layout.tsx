@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-page px-4 py-8 sm:px-6">
         <NavProgress />
         <div className="mx-auto max-w-[960px]">
-          <header className="flex items-center justify-between">
+          <header className="flex items-center justify-between" data-toast-anchor>
             <Link href="/" className="text-[20px] font-semibold tracking-[-0.03em] text-ink">
               sikatree
             </Link>
