@@ -1,5 +1,9 @@
 # Web signup and email sign-in
 
+> **Replanned 2026-11-10.** The flow below is what is live today. It is being replaced by
+> `docs/AUTH.md` (code-first, link-fast, server-side sessions, no credentials in notifications).
+> Update this file when auth Phase 1 lands.
+
 Status (2026-11-10): shipped. This is the off-Meta onboarding path: a vendor can create a shop and sign
 in without a WhatsApp Business account, which unblocks design partners while Meta verification is
 pending.
@@ -14,7 +18,7 @@ pending.
    person controls the email.
 4. `/auth/login` takes an email and sends a fresh link. The page always shows the same confirmation, so
    it cannot be used to discover which emails have shops.
-5. `/auth/verify` redeems the token and sets the 30-day vendor session.
+5. `/auth/verify` shows a confirmation page with the shop name and a masked account; tapping **Continue** POSTs to redeem the token and set the 30-day vendor session. A plain GET never consumes the token, so an email preview or scanner cannot burn the link (auth Phase 0, `docs/AUTH.md`).
 
 ## Rules
 

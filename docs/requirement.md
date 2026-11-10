@@ -172,7 +172,7 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | ID | Requirement | P |
 |---|---|---|
 | ONB-19 | When setup reaches the minimum, the bot sends the live page link, a ready-to-forward share message and a share-card image sized for WhatsApp status. | P0 |
-| ONB-20 | The bot offers an **"Open dashboard"** button that sends a single-use, expiring magic link which signs the vendor into the PWA without a password, and prompts to install the PWA. | P0 |
+| ONB-20 | The bot offers an **"Open dashboard"** action that sends a short-lived sign-in link and a one-time code; either signs the vendor in without a password. (The PWA install prompt is deferred until a PWA shell exists.) | P0 |
 | ONB-21 | Median time from first message to live page is tracked as a core product metric (target under 10 minutes). | P0 |
 
 **Ongoing management via chat**
@@ -194,11 +194,15 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 
 | ID | Requirement | P |
 |---|---|---|
-| AUTH-01 | Vendors sign in to the PWA via a magic link or one-time code delivered on WhatsApp. No passwords. | P0 |
-| AUTH-02 | Sessions persist on the device for a configurable period (default 30 days) and can be revoked from settings. | P0 |
-| AUTH-03 | Vendors can sign up from the PWA directly (phone number, WhatsApp OTP), which then continues into the same guided setup. | P1 |
+| AUTH-01 | Vendors sign in to the PWA without a password using a **one-time code (preferred) or a magic link**, delivered by **email or WhatsApp**. The code can be entered in the browser that needs the session. | P0 |
+| AUTH-02 | Sessions persist on the device and **slide with use**: 30 days of inactivity by default, configurable 7/30/90/365, absolute cap 365 days. Vendors can list devices and revoke one or all from settings. | P0 |
+| AUTH-03 | Vendors can sign up from the PWA directly (phone number, a code by WhatsApp or email), which then continues into the same guided setup. | P1 |
 | AUTH-04 | Clients do not need accounts (guest checkout). | P0 |
 | AUTH-05 | Admin accounts use stronger authentication (email plus second factor). | P0 |
+| AUTH-06 | Every sign-in email contains a one-time code as well as the link, so a preview, scanner or different browser cannot strand the vendor. | P0 |
+| AUTH-07 | Operational notifications (orders, stock, summaries) never contain authentication credentials; they deep-link to the dashboard. | P0 |
+
+**Authentication replan (2026-11-10).** The replan replaces the link-first flow with a code-first, link-fast, session-first design: server-side sessions with revocation, a 6-digit code as the resilient factor, and no credentials in notifications. The full design, schema and phased delivery are in `docs/AUTH.md`. `AUTH-06` and `AUTH-07` are new; `ONB-20` is narrowed to match.
 
 ### 6.3 Public vendor page (PG)
 

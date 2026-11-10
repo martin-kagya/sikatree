@@ -16,7 +16,7 @@ production Supabase, 22 migrations applied there; 0023 and 0024 ship with this c
 green). 15 signups, 8 reserved handles and 2,081 analytics events recorded in production.
 
 **Shipped beyond Phase L:** the WhatsApp onboarding bot (webhook, durable queue, conversation engine,
-photo and text item parsing, magic-link dashboard), the public storefront (accent themes, categories,
+photo and text item parsing, passwordless dashboard), the public storefront (accent themes, categories,
 quick view, cart, guest checkout, delivery fees and ETAs), the order loop (codes, lifecycle, tracking
 page, vendor WhatsApp alert), the vendor dashboard (catalogue with up to five photos, orders, settings,
 support, CSV export), service availability with the slot engine, web signup with email sign-in, the
@@ -63,12 +63,12 @@ repository; the Phase 0 items stay unchecked until someone confirms them.
 |---|---|---|---|
 | Web framework | **Next.js 15 (App Router) + TypeScript** | Decided, shipped | Landing, storefront, dashboard, bot and admin all run on it |
 | Styling | Tailwind CSS + a small in-repo component library | Decided, shipped | Tokens from `DESIGN.md`; no external UI dependency |
-| Database / auth / storage | **Supabase** Postgres, Storage and RLS | Decided, shipped | Custom WhatsApp magic-link auth, not Supabase Auth; item photos in Storage |
+| Database / auth / storage | **Supabase** Postgres, Storage and RLS | Decided, shipped; sessions replanned 2026-11-10 | Custom passwordless auth (one-time codes and links; server-side sessions in auth Phase 1), not Supabase Auth; item photos in Storage |
 | Queue / background jobs | Postgres table `wa_job` with `FOR UPDATE SKIP LOCKED`, retries and backoff; `/api/internal/jobs/run` for the scheduler | Decided, shipped | No pgmq or QStash; a Cron Trigger or external scheduler drains it |
 | PWA | Web App Manifest + service worker (e.g. Serwist) + Web Push | Proposed, not started | Android-first |
 | WhatsApp | **WhatsApp Business Platform, Cloud API** direct from Meta | Decided, shipped | `console` provider locally, `cloud` provider to the Graph API; no BSP |
 | Payments | **Paystack** (1.95% on cards, MoMo and bank transfer; GHS 1 per MoMo payout) | Adapter shipped, test mode; live pending compliance | Checkout initialization, server-side verification, signed webhook, paid state and settlement ledger exist (`docs/PAYMENTS.md`); fees, refunds and payouts do not |
-| Email | Resend HTTP API in production, console sender locally | Decided, shipped | Magic links for signup and sign-in only (`docs/EMAIL.md`); receipts and order updates pending |
+| Email | Resend HTTP API in production, console sender locally | Decided, shipped (links); codes in auth Phase 1 | Link sign-in ships today; code sign-in and the combined email land in auth Phase 1 (`docs/AUTH.md`, `docs/EMAIL.md`); receipts and order updates pending |
 | LLM parsing | Claude API with structured (JSON schema) output; rules-first for simple patterns | Proposed, not wired | Rules parser ships for text and photo captions; no model call and no vision |
 | Hosting | Cloudflare Workers + Hyperdrive for the web app, Supabase for Postgres | Decided, shipped | Live on `sikatree.africa`; recheck Cloudflare cost as traffic grows |
 | Observability | Sentry (errors), PostHog or similar (analytics), uptime monitor | Proposed, not started | Only the in-house `analytics_event` table exists (2,081 events) |
@@ -174,10 +174,15 @@ build step. Extract a package only when a second consumer appears (for example a
 - **Cost note (checked 2026-11-06):** from 1 Oct 2026 Meta charges replies inside the 24-hour window (service messages) at the utility rate after 1,000 free per business phone number a month, and also charges in-window utility templates. Ghana is in the Rest of Africa band: about $0.004 per utility, service or authentication message and $0.0225 per marketing message. Bot traffic is therefore a real cost line (section 16).
 
 ### 6.4 Authentication
-- Vendor identity = verified WhatsApp number (they messaged us from it).
-- **Magic link:** bot generates a single-use, short-lived token tied to the vendor, sent as an "Open dashboard" button. Exchange the token for a session on the web app.
-- Sessions via secure, HTTP-only cookies; device list and revocation in settings (sessions ship: signed 30-day cookie in `lib/vendor-auth.ts`; no device list or revocation yet).
-- Decided in Phase 1: a custom session, not Supabase Auth. A single-use, 15-minute magic link is exchanged for an HMAC-signed cookie; the server connects with the table-owner role and bypasses RLS.
+Replanned 2026-11-10; the full design and migration are in **`docs/AUTH.md`**.
+
+- Vendor identity = verified WhatsApp number (they messaged us from it). Email is a second identity for web-created shops.
+- **Code-first, link-fast, session-first.** A returning vendor signs in with a 6-digit one-time code entered in the browser that needs the session; the 15-minute single-use link stays as a one-tap shortcut. From auth Phase 1, every sign-in email carries both, so an email preview or a different browser cannot strand the vendor.
+- **Sessions are server-side rows**, not just signed cookies: opaque token in an HTTP-only cookie, hash at rest, 30-day sliding idle expiry (configurable, absolute cap 365 days), device list and revocation in Settings. A legacy HMAC cookie is accepted for one release so nobody is logged out on deploy.
+- **Notifications never carry credentials.** Order alerts deep-link to `/dashboard/orders`; the bot's "Open dashboard" sends a URL plus a code.
+- The bot's phone-first path (auth Phase 2) replies to `LOGIN` with a code; passkeys are auth Phase 3.
+- Decided in Phase 1: a custom passwordless system, not Supabase Auth. The server connects with the table-owner role and bypasses RLS.
+- **Shipped today:** email link redeemed on a POST confirmation page (auth Phase 0: scanners and previews can no longer consume the token), plus a signed 30-day cookie (`lib/vendor-auth.ts`), no revocation. **Next:** auth Phase 1 (sessions + codes) per `docs/AUTH.md` 13.
 
 ### 6.5 Payments
 - `PaymentProvider` interface: `createCollection`, `verifyCollection`, `refund`, `createPayout`, `lookupAccountName`, `parseWebhook`.
@@ -203,20 +208,27 @@ build step. Extract a package only when a second consumer appears (for example a
 ### 6.8 Security checklist
 RLS tests per table, webhook signature verification (WhatsApp and payments), rate limits on public endpoints and the bot, input validation on all parsed data, signed upload URLs, content-type checks on media, secrets management, dependency scanning, audit logging for admin actions. Account takeover is handled separately in 6.9.
 
-### 6.9 Account takeover hardening (deferred, not launch-blocking)
+### 6.9 Account takeover hardening (replanned 2026-11-10)
 
-The launch flow stays as it is: a WhatsApp magic link, single use, 15 minutes, then a 30-day device session. No PIN, no recovery codes and no second app during onboarding. That is a deliberate onboarding trade-off.
+The target launch flow stays passwordless: a single-use 15-minute link, then a sliding device session. No PIN, no recovery codes and no second app during onboarding. The code is offered on return, not during first-run setup.
 
-The risk is WhatsApp account takeover. With no second factor, whoever controls the vendor's WhatsApp can request a link and see customer contact details and the catalogue. We accept that for launch and stage the mitigation so it arrives after the vendor has seen value.
+The risk is WhatsApp account takeover. With no second factor, whoever controls the vendor's WhatsApp can request a link and see customer contact details and the catalogue. We accept that for launch and stage the mitigation so it arrives after the vendor has seen value. `docs/AUTH.md` is the detailed plan.
 
-**Wave 1: before payouts are enabled, and no later than Phase 3 exit**
-- Magic link confirmation page with a Continue button. Redeem only on POST, so previews and scanners cannot consume the token.
-- Link lifetime 5 to 10 minutes, one use, rate limits per phone and IP.
-- Device and session list with last seen, plus Sign out everywhere.
+**Auth Phase 0: shipped 2026-11-10**
+- Link confirmation page with a Continue button. Redeem only on POST, so previews and scanners cannot consume the token.
+- Show the shop name and masked account on the confirm page (the login-CSRF control).
+- Actionable expired/used state that requests a new link. No code copy yet; the code ships in auth Phase 1.
+- Set `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex` and `X-Frame-Options: DENY` in `next.config.mjs`; skip `/auth/*` in first-party analytics.
+
+**Auth Phase 1: before payouts are enabled, and no later than delivery Phase 3 exit**
+- One-time code (6 digits, 15 minutes, 5 attempts) as the primary factor, with the link as a shortcut. Every sign-in email carries both; a resend does not invalidate the code the vendor already has.
+- Server-side sessions: sliding 30-day idle expiry (configurable), absolute 365-day cap, device list, Sign out everywhere, legacy-cookie bridge.
+- 15-minute link and code lifetime, one use each, rate limits per email, IP and vendor tuned for shared NAT.
+- `requireVendor(nextPath)` and the dashboard deep links, so an order alert returns the vendor to the order after sign-in.
+- Notifications stop carrying credentials; order alerts deep-link to `/dashboard/orders`. Keep the bot's link for bot-created vendors until auth Phase 2.
 - Freeze process: support revokes sessions and pauses the page when a vendor reports a takeover.
 - WhatsApp two-step verification nudge after go-live.
 - Mask customer phone and address until the vendor taps reveal.
-- Optional passkey or PIN prompt after the first order, skippable.
 
 **Wave 2: before payouts go live**
 - Step-up re-authentication for payout number, phone, email and PIN changes.
@@ -225,12 +237,12 @@ The risk is WhatsApp account takeover. With no second factor, whoever controls t
 - Payout changes held for manual review at first.
 
 **Wave 3: after pilot**
-- Passkeys as the primary new-device factor.
+- Passkeys as the primary new-device factor, with an optional skippable prompt after the first order.
 - Login alerts on a second channel.
 - Anomaly checks on link requests and device changes.
 - Support can revoke sessions without a database console.
 
-**Do not** add a PIN or recovery codes to the onboarding chat, block go-live on these items, or make the magic link harder to use before Wave 1 ships. The current link plus 30-day session is the launch behaviour.
+**Do not** add a PIN or recovery codes to the onboarding chat, block go-live on these items, or lengthen first-run setup. The confirmation tap in auth Phase 0 is the only added step for a vendor; the code is the return path, not an onboarding step.
 
 ---
 
@@ -441,7 +453,7 @@ table below is the deferred register.
 - [ ] Notification routing with fallback logic (NOT-03 to NOT-05)
 - [ ] Refunds and cancellations (ORD-10, PAY-06) (partial: an order can be cancelled with a reason and stock is restored; no refunds and no Paid state)
 - [ ] Admin v1: vendor list, order/payment views, support inbox, fee settings, audit log (ADM-01 to ADM-03, ADM-05 to ADM-07) (partial: waitlist, support inbox and the onboarding funnel ship; no vendor list, order or payment views, fee settings or audit log)
-- [ ] Account takeover hardening wave 1 before payouts, wave 2 with payouts (6.9) (partial: the magic link is single use, 15 minutes, and rate-limited; redemption is still a GET behind no Continue step, and there is no device list, freeze drill, masking or passkey prompt)
+- [ ] Account takeover hardening wave 1 before payouts, wave 2 with payouts (6.9) (partial: the magic link is single use, 15 minutes, and rate-limited; auth Phase 0 shipped (POST-only redemption behind a Continue step, with shop-name and masked-account on the confirm page); still no device list, freeze drill or passkey prompt)
 - [ ] Twi translations for the bot's core flow (ONB-04, if time allows)
 
 **Test**
@@ -614,6 +626,9 @@ week's list, ordered by what is unblocked.
 - [x] Build the webhook receiver and prove the bot loop end to end (console provider locally; the Cloud API provider is wired)
 - [x] Write the payment adapter and the settlement ledger (test mode); `docs/PAYMENTS.md`
 - [x] Add web signup and email sign-in so vendors are not blocked on Meta (`docs/EMAIL.md`)
+- [x] Replan vendor authentication: code-first, link-fast, session-first (`docs/AUTH.md`)
+- [x] Implement auth Phase 0 of `docs/AUTH.md`: the link confirmation page, redeemed only on POST
+- [ ] Implement auth Phase 1 of `docs/AUTH.md`: one-time codes, server-side sessions, device list and cleanup
 - [ ] Set the Paystack test key in production, configure the webhook URL, run one end-to-end test payment and confirm the order shows **Paid online**
 - [ ] Set `NEXT_PUBLIC_WHATSAPP_NUMBER` in production and point the footer link at it; this needs the WhatsApp Business number first
 - [ ] Start (or finish) the Paystack compliance review and Meta Business verification

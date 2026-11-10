@@ -119,6 +119,10 @@ upload path runs.
 
 ## Magic link dashboard
 
+> **Replanned 2026-11-10.** The link and 30-day cookie below are live. `docs/AUTH.md` auth Phase 1
+> adds a one-time code and server-side sessions; auth Phase 2 adds the `LOGIN` intent. Update this
+> section when those phases land.
+
 The bot's `Open dashboard` button creates a single-use 15-minute link
 (`login_link` stores only the token hash). Tapping it hits `/auth/verify`, which exchanges the token for a
 30-day HTTP-only cookie (`AUTH_SECRET` is the signing key) and opens
