@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { LoginForm } from '@/app/auth/login/login-form';
 import { authEnabled } from '@/lib/vendor-auth';
 
 export const metadata: Metadata = {
@@ -30,14 +31,17 @@ export default async function LoginPage({
           </p>
         ) : params.error ? (
           <p className="mt-4 text-small text-danger">
-            That link is invalid, already used, or has expired. Reply to the bot with{' '}
-            <strong>dashboard</strong> for a fresh one.
+            That link is invalid, already used, or has expired. Request a new email link, or reply
+            to the bot with <strong>dashboard</strong>.
           </p>
         ) : (
-          <p className="mt-4 text-small text-ink-muted">
-            Open the link the bot sent you. This page only handles the link after you tap it.
+          <p className="mt-2 text-small text-ink-muted">
+            Enter the email on your shop and we will send a sign-in link. Shops created on WhatsApp
+            can use the bot instead.
           </p>
         )}
+
+        {disabled ? null : <LoginForm />}
 
         <p className="mt-6 text-small text-ink-muted">
           <Link href="/" className="text-green-deep underline underline-offset-2">

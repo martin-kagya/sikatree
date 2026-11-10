@@ -47,6 +47,8 @@ export function Footer() {
               <a href="#how-it-works" className="hover:text-white">How it works</a>
               <a href="#sample-stores" className="hover:text-white">Made for</a>
               <a href="#faq" className="hover:text-white">FAQ</a>
+              <a href="/start" className="hover:text-white">Open your shop</a>
+              <a href="/auth/login" className="hover:text-white">Vendor sign in</a>
             </div>
           </div>
         </div>
