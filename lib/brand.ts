@@ -14,6 +14,14 @@ export const site = {
   email: 'hello@sikatree.africa',
 } as const;
 
+// Server-facing base URL for links handed to third parties (magic links and
+// payment callbacks). Production uses the canonical domain; local testing and
+// tunnels set APP_URL, e.g. http://localhost:3000.
+export function appUrl(): string {
+  const configured = process.env.APP_URL?.trim();
+  return (configured || site.url).replace(/\/+$/, '');
+}
+
 export const ostra = {
   name: 'Ostra',
   mark: '/ostra-mark.svg',

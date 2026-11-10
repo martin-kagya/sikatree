@@ -94,8 +94,7 @@ export default async function DashboardPage({
             </div>
 
             <p className="mt-4 text-[12px] text-ink-muted">
-              Your customers can order from your page or message you on WhatsApp. Online payments
-              arrive in a later phase.
+              Your customers can order from your page or message you on WhatsApp.
             </p>
           </section>
 
@@ -268,7 +267,7 @@ export default async function DashboardPage({
             )}
           </section>
           <p className="text-center text-[12px] text-ink-muted">
-            Online payments, payouts and the full PWA follow.
+            Payouts and the full PWA follow.
           </p>
     </main>
   );

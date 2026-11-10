@@ -5,6 +5,7 @@ import { site } from '@/lib/brand';
 import { listManagedCategories } from '@/lib/catalogue';
 import { query } from '@/lib/db';
 import { normalizeHandle } from '@/lib/handle';
+import { paymentsEnabled } from '@/lib/payments/paystack';
 import { DELIVERY_FEE_MODES, type DeliveryFeeMode, type ShopItem } from '@/lib/shop';
 
 export const dynamic = 'force-dynamic';
@@ -187,6 +188,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
       }}
       items={items}
       categoryOrder={categoryOrder}
+      onlinePayments={paymentsEnabled()}
       pageUrl={`https://${site.domain}/${vendor.handle}`}
       domain={site.domain}
     />

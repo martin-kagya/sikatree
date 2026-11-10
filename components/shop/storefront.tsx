@@ -356,12 +356,14 @@ export function Storefront({
   categoryOrder = [],
   pageUrl,
   domain,
+  onlinePayments = false,
 }: {
   vendor: StorefrontVendor;
   items: ShopItem[];
   categoryOrder?: string[];
   pageUrl: string;
   domain: string;
+  onlinePayments?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -407,6 +409,9 @@ export function Storefront({
   const [leaving, setLeaving] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [order, setOrder] = useState<CheckoutOrder | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'offline'>(
+    onlinePayments ? 'online' : 'offline',
+  );
   const [fulfilment, setFulfilment] = useState<Fulfilment>(
     vendor.type === 'services' ? 'appointment' : 'delivery',
   );
@@ -758,11 +763,19 @@ export function Storefront({
     data.set('bookingTime', bookingTime);
     data.set('deliveryZone', deliveryZone);
     data.set('deliveryOnArrival', deliveryOnArrival ? 'on' : '');
+    data.set('paymentMethod', onlinePayments ? paymentMethod : 'offline');
 
     try {
       const result = await submitOrder(data);
       if (result.ok) {
         const placed = result.order;
+        if (placed.paymentUrl) {
+          // Hand the buyer to Paystack; the callback verifies before the order
+          // is marked paid, and the page they return to reflects the truth.
+          setLeaving(true);
+          window.location.assign(placed.paymentUrl);
+          return;
+        }
         setLeaving(true);
         window.setTimeout(() => {
           setOrder(placed);
@@ -1529,6 +1542,57 @@ export function Storefront({
                   </section>
                 )}
 
+                {onlinePayments ? (
+                  <section className="rounded-[12px] border border-[var(--shop-hair)] p-3">
+                    <p className="text-[13px] font-medium text-[var(--shop-ink)]">Payment</p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {[
+                        { value: 'online' as const, title: 'Pay now', hint: 'MoMo or card on Paystack' },
+                        {
+                          value: 'offline' as const,
+                          title:
+                            fulfilment === 'delivery'
+                              ? 'Pay on delivery'
+                              : fulfilment === 'pickup'
+                                ? 'Pay at pickup'
+                                : 'Pay at your appointment',
+                          hint: 'Settle directly with the vendor',
+                        },
+                      ].map((option) => {
+                        const active = paymentMethod === option.value;
+                        return (
+                          <label
+                            key={option.value}
+                            className={cn(
+                              'flex cursor-pointer items-start gap-2 rounded-[10px] border p-3 transition-colors',
+                              active
+                                ? 'border-[var(--shop-ink)] bg-white'
+                                : 'border-[var(--shop-hair)] hover:border-[var(--shop-muted)]',
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name="paymentMethod"
+                              value={option.value}
+                              checked={active}
+                              onChange={() => setPaymentMethod(option.value)}
+                              className="mt-0.5 accent-[var(--shop-ink)]"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-[13px] font-medium text-[var(--shop-ink)]">
+                                {option.title}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-[var(--shop-muted)]">
+                                {option.hint}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : null}
+
                 <section className="grid gap-3 sm:grid-cols-2">
                   <p className="text-[13px] font-medium text-[var(--shop-ink)] sm:col-span-2">
                     Your details
@@ -1580,16 +1644,25 @@ export function Storefront({
                 </section>
 
                 <p className="rounded-[10px] bg-page p-3 text-[12px] text-[var(--shop-muted)]">
-                  {sellingServices
-                    ? 'Pay at your appointment.'
-                    : fulfilment === 'delivery'
-                      ? deliveryToConfirm
-                        ? 'Pay on delivery. The vendor will confirm the delivery fee.'
-                        : deferDelivery
-                          ? 'Pay for your items on delivery; the delivery fee is paid on arrival.'
-                          : 'Pay on delivery.'
-                      : 'Pay at pickup.'}{' '}
-                  Online payment is not enabled yet.
+                  {paymentMethod === 'online' && onlinePayments ? (
+                    <>
+                      You will pay {formatShopPrice(totalPesewas)} on Paystack with Mobile Money or a
+                      card. {vendor.name} is notified once the payment clears.
+                    </>
+                  ) : (
+                    <>
+                      {sellingServices
+                        ? 'Pay at your appointment.'
+                        : fulfilment === 'delivery'
+                          ? deliveryToConfirm
+                            ? 'Pay on delivery. The vendor will confirm the delivery fee.'
+                            : deferDelivery
+                              ? 'Pay for your items on delivery; the delivery fee is paid on arrival.'
+                              : 'Pay on delivery.'
+                          : 'Pay at pickup.'}{' '}
+                      Online payment is not enabled yet.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -1632,15 +1705,20 @@ export function Storefront({
                   >
                     <span>
                       {placing
-                        ? 'Placing order…'
-                        : `Place order · ${formatShopPrice(totalPesewas)}`}
+                        ? paymentMethod === 'online' && onlinePayments
+                          ? 'Starting payment…'
+                          : 'Placing order…'
+                        : paymentMethod === 'online' && onlinePayments
+                          ? `Pay ${formatShopPrice(totalPesewas)}`
+                          : `Place order · ${formatShopPrice(totalPesewas)}`}
                     </span>
                     <ChevronRight className="pointer-events-none absolute right-4 h-5 w-5" />
                   </button>
 
                   <p className="mt-3 text-[11px] leading-snug text-[var(--shop-muted)]">
-                    Your email is saved for delivery and order updates. Payment happens on
-                    delivery, at pickup, or at your appointment.
+                    {paymentMethod === 'online' && onlinePayments
+                      ? 'You will be redirected to Paystack to pay. The order is confirmed after payment.'
+                      : 'Your email is saved for delivery and order updates. Payment happens on delivery, at pickup, or at your appointment.'}
                   </p>
                 </div>
               </aside>

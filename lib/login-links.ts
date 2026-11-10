@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
-import { site } from '@/lib/brand';
+import { appUrl } from '@/lib/brand';
 
 // Single-use, short-lived login links (ONB-20, AUTH-01). The raw token lives in
 // the URL; only its hash is stored, so a database read cannot forge a link.
@@ -23,7 +23,7 @@ export async function createLoginLink(vendorId: string): Promise<{ url: string }
      values ($1, $2, now() + make_interval(mins => $3))`,
     [vendorId, hash, LINK_TTL_MINUTES],
   );
-  return { url: `${site.url}/auth/verify?token=${raw}` };
+  return { url: `${appUrl()}/auth/verify?token=${raw}` };
 }
 
 export type RedeemResult =

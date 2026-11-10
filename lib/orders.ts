@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { bookingAllowed } from '@/lib/availability';
 import { db } from '@/lib/db';
+import { paymentsEnabled } from '@/lib/payments/paystack';
 import { normalizeGhanaPhone } from '@/lib/phone';
 import { hitRateLimit } from '@/lib/rate-limit';
 import {
@@ -26,6 +27,10 @@ class StockError extends Error {
 
 export type Fulfilment = 'delivery' | 'pickup' | 'appointment';
 
+export type PaymentMethod = 'online' | 'offline';
+
+export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
+
 export type CheckoutOrder = {
   code: string;
   totalPesewas: number;
@@ -36,6 +41,8 @@ export type CheckoutOrder = {
   deliveryFeeMode: DeliveryFeeMode;
   deliveryZone: DeliveryZone | null;
   deliveryOnArrival: boolean;
+  paymentMethod: PaymentMethod;
+  paymentUrl?: string;
   createdAt: string;
 };
 
@@ -100,6 +107,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   const bookingTime = String(formData.get('bookingTime') ?? '').trim();
   const deliveryZoneRaw = String(formData.get('deliveryZone') ?? '').trim();
   const deliveryOnArrivalRaw = String(formData.get('deliveryOnArrival') ?? '').trim();
+  const paymentMethod: PaymentMethod =
+    String(formData.get('paymentMethod') ?? '').trim() === 'online' ? 'online' : 'offline';
 
   if (!handle) return { ok: false, error: 'Shop not found.' };
   if (name.length < 2 || name.length > 80) {
@@ -110,6 +119,9 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
   if (!phone) return { ok: false, error: 'Enter a Ghana mobile number, like 024 123 4567.' };
   if (!EMAIL_RE.test(email)) return { ok: false, error: 'Enter a valid email for order updates.' };
   if (notes.length > 500) return { ok: false, error: 'Keep notes under 500 characters.' };
+  if (paymentMethod === 'online' && !paymentsEnabled()) {
+    return { ok: false, error: 'Online payment is not available right now. Choose pay on delivery.' };
+  }
 
   const lines = parseCart(rawCart);
   if (!lines) return { ok: false, error: 'Your cart is empty.' };
@@ -239,6 +251,9 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
     (deliveryOnArrivalRaw === 'on' || deliveryOnArrivalRaw === 'true');
 
   const total = subtotal + (deliveryOnArrival ? 0 : delivery);
+  if (paymentMethod === 'online' && total <= 0) {
+    return { ok: false, error: 'There is nothing to pay online for this order.' };
+  }
   const deliveryEta =
     deliveryZone === 'outside' ? vendor.eta_delivery_outside_text : vendor.eta_delivery_within_text;
   const eta = etaFor(fulfilment, bookingAt, deliveryEta, vendor.eta_pickup_text);
@@ -260,8 +275,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
              (code, vendor_id, customer_name, customer_phone, customer_email, fulfilment,
               address, notes, booking_at, subtotal_pesewas, delivery_pesewas, total_pesewas,
               status, eta_text, stock_reserved, delivery_fee_mode, delivery_zone,
-              delivery_on_arrival)
-           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14,$15,$16,$17)
+              delivery_on_arrival, payment_method, payment_status)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',$13,$14,$15,$16,$17,$18,$19)
            returning id, created_at`,
           [
             code,
@@ -281,6 +296,8 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             deliveryFeeMode,
             deliveryZone,
             deliveryOnArrival,
+            paymentMethod,
+            paymentMethod === 'online' ? 'pending' : 'unpaid',
           ],
         );
         const orderId = inserted.rows[0].id;
@@ -326,6 +343,7 @@ export async function placeOrder(formData: FormData): Promise<CheckoutState> {
             deliveryFeeMode,
             deliveryZone,
             deliveryOnArrival,
+            paymentMethod,
             createdAt: inserted.rows[0].created_at.toISOString(),
           },
         };
@@ -423,6 +441,9 @@ export type OrderRecord = {
   deliveryOnArrival: boolean;
   totalPesewas: number;
   status: OrderStatus;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  paidAt: string | null;
   cancellationReason: string | null;
   eta: string | null;
   createdAt: string;
@@ -451,6 +472,9 @@ type OrderRow = {
   delivery_on_arrival: boolean;
   total_pesewas: number;
   status: OrderStatus;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  paid_at: Date | null;
   eta_text: string | null;
   cancellation_reason: string | null;
   created_at: Date;
@@ -462,7 +486,8 @@ const ORDER_SELECT = `
          v.phone as vendor_phone, o.customer_name, o.customer_phone, o.customer_email,
          o.fulfilment, o.address, o.notes, o.booking_at, o.subtotal_pesewas,
          o.delivery_pesewas, o.delivery_fee_mode, o.delivery_zone, o.delivery_on_arrival,
-         o.total_pesewas, o.status, o.eta_text, o.cancellation_reason, o.created_at, o.updated_at
+         o.total_pesewas, o.status, o.payment_method, o.payment_status, o.paid_at,
+         o.eta_text, o.cancellation_reason, o.created_at, o.updated_at
     from orders o
     join vendors v on v.id = o.vendor_id
 `;
@@ -520,6 +545,9 @@ function toOrder(row: OrderRow, lines: OrderLine[]): OrderRecord {
     deliveryOnArrival: row.delivery_on_arrival,
     totalPesewas: row.total_pesewas,
     status: row.status,
+    paymentMethod: row.payment_method,
+    paymentStatus: row.payment_status,
+    paidAt: row.paid_at ? row.paid_at.toISOString() : null,
     cancellationReason: row.cancellation_reason,
     eta: row.eta_text,
     createdAt: row.created_at.toISOString(),
@@ -577,8 +605,11 @@ export async function updateOrderStatus(
       status: OrderStatus;
       stock_reserved: boolean;
       fulfilment: Fulfilment;
+      payment_method: PaymentMethod;
+      payment_status: PaymentStatus;
     }>(
-      'select status, stock_reserved, fulfilment from orders where id = $1 and vendor_id = $2 for update',
+      `select status, stock_reserved, fulfilment, payment_method, payment_status
+         from orders where id = $1 and vendor_id = $2 for update`,
       [orderId, vendorId],
     );
     const row = current.rows[0];
@@ -589,6 +620,12 @@ export async function updateOrderStatus(
     if (!nextStatusesFor(row.status, row.fulfilment).includes(next)) {
       await client.query('rollback');
       return { ok: false, error: `Cannot move an order from ${row.status} to ${next}.` };
+    }
+    // An online order is not work until the money is confirmed. Cancelling stays
+    // available; expiry cancels unpaid intents automatically.
+    if (next !== 'cancelled' && row.payment_method === 'online' && row.payment_status !== 'paid') {
+      await client.query('rollback');
+      return { ok: false, error: 'This online order has not been paid yet.' };
     }
 
     await client.query(
@@ -620,6 +657,21 @@ export async function updateOrderStatus(
            from order_items oi
            join items i on i.id = oi.item_id
           where oi.order_id = $1 and oi.item_id is not null and i.stock is not null`,
+        [orderId],
+      );
+    }
+
+    if (next === 'cancelled') {
+      // Cancelling releases any live payment intent, so a pending row cannot
+      // linger and the tracking page stops saying "Payment pending".
+      await client.query(
+        `update payments set status = 'abandoned', updated_at = now()
+          where order_id = $1 and status = 'pending'`,
+        [orderId],
+      );
+      await client.query(
+        `update orders set payment_status = 'failed'
+          where id = $1 and payment_status = 'pending'`,
         [orderId],
       );
     }

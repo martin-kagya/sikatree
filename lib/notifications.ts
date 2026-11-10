@@ -23,6 +23,7 @@ function fulfilmentLine(order: OrderRecord): string {
 }
 
 function paymentLine(order: OrderRecord): string {
+  if (order.paymentStatus === 'paid') return 'paid online';
   if (order.fulfilment === 'delivery') return 'pay on delivery';
   if (order.fulfilment === 'pickup') return 'pay at pickup';
   return 'pay at the appointment';

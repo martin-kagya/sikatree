@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { expireUnpaidPayments } from '@/lib/payments/service';
 import { drainOnce } from '@/lib/wa-jobs';
 
 export const runtime = 'nodejs';
@@ -24,7 +25,13 @@ export async function GET(request: Request): Promise<Response> {
     return 0;
   });
 
-  return NextResponse.json({ processed });
+  // Release orders whose online payment never completed and restore their stock.
+  const expiredPayments = await expireUnpaidPayments(20).catch((error) => {
+    console.error('[jobs] payment expiry failed', error);
+    return 0;
+  });
+
+  return NextResponse.json({ processed, expiredPayments });
 }
 
 export async function POST(request: Request): Promise<Response> {

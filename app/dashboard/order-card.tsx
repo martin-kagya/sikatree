@@ -74,7 +74,14 @@ export function OrderCard({ order }: { order: OrderRecord }) {
         >
           {STATUS_LABEL[order.status]}
         </span>
-        <p className="text-label text-ink">{formatCedis(order.totalPesewas)}</p>
+        <p className="text-label text-ink">
+          {formatCedis(order.totalPesewas)}
+          {order.paymentStatus === 'paid' ? (
+            <span className="ml-2 rounded-pill bg-mint-100 px-2 py-0.5 text-[11px] text-green-deep">
+              Paid online
+            </span>
+          ) : null}
+        </p>
       </div>
 
       <ul className="mt-3 space-y-1 text-[13px] text-ink">
@@ -120,20 +127,26 @@ export function OrderCard({ order }: { order: OrderRecord }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {nextStatusesFor(order.status, order.fulfilment)
-          .filter((status) => status !== 'cancelled')
-          .map((status) => (
-            <form key={status} action={updateOrderStatusAction}>
-              <input type="hidden" name="id" value={order.id} />
-              <input type="hidden" name="status" value={status} />
-              <button
-                type="submit"
-                className="h-9 rounded-pill bg-ink px-3 text-[12px] font-medium text-white"
-              >
-                {nextLabel(status, order.fulfilment)}
-              </button>
-            </form>
-          ))}
+        {order.paymentMethod === 'online' && order.paymentStatus !== 'paid' ? (
+          <p className="inline-flex h-9 items-center rounded-pill bg-warn-bg px-3 text-[12px] font-medium text-ink">
+            Waiting for online payment
+          </p>
+        ) : (
+          nextStatusesFor(order.status, order.fulfilment)
+            .filter((status) => status !== 'cancelled')
+            .map((status) => (
+              <form key={status} action={updateOrderStatusAction}>
+                <input type="hidden" name="id" value={order.id} />
+                <input type="hidden" name="status" value={status} />
+                <button
+                  type="submit"
+                  className="h-9 rounded-pill bg-ink px-3 text-[12px] font-medium text-white"
+                >
+                  {nextLabel(status, order.fulfilment)}
+                </button>
+              </form>
+            ))
+        )}
 
         <Link
           href={`/o/${order.code}`}

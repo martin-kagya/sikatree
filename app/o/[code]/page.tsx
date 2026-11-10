@@ -64,6 +64,13 @@ function statusLabel(order: OrderRecord): string {
 }
 
 function paymentNote(order: OrderRecord): string {
+  if (order.paymentStatus === 'paid') return 'Paid online.';
+  if (order.paymentMethod === 'online' && order.paymentStatus === 'pending') {
+    return 'Payment pending. This page updates once the payment clears.';
+  }
+  if (order.paymentMethod === 'online' && order.paymentStatus === 'failed') {
+    return 'The online payment did not go through. Message the vendor to arrange payment.';
+  }
   if (order.fulfilment === 'delivery') {
     if (order.deliveryFeeMode === 'confirm_after') {
       return 'Pay on delivery. The vendor will confirm the delivery fee.';
@@ -75,6 +82,16 @@ function paymentNote(order: OrderRecord): string {
   }
   if (order.fulfilment === 'pickup') return 'Pay at pickup.';
   return 'Pay at your appointment.';
+}
+
+function paymentLabel(order: OrderRecord): string {
+  if (order.paymentStatus === 'paid') return 'Paid online';
+  if (order.paymentMethod === 'online') {
+    return order.paymentStatus === 'failed' ? 'Payment failed' : 'Payment pending';
+  }
+  if (order.fulfilment === 'delivery') return 'Pay on delivery';
+  if (order.fulfilment === 'pickup') return 'Pay at pickup';
+  return 'Pay at appointment';
 }
 
 function deliveryLabel(order: OrderRecord): string {
@@ -101,10 +118,13 @@ function fulfilmentNote(order: OrderRecord): string {
 
 export default async function TrackOrderPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ payment?: string }>;
 }) {
   const { code } = await params;
+  const { payment } = await searchParams;
   const order = await getOrderByCode(decodeURIComponent(code));
   if (!order) notFound();
 
@@ -153,6 +173,16 @@ export default async function TrackOrderPage({
                 {statusLabel(order)}
               </span>
             </div>
+
+            {payment === 'paid' && order.paymentStatus === 'paid' ? (
+              <p className="mt-5 rounded-inner bg-mint-100 p-3 text-[13px] text-green-deep">
+                Payment received. {order.vendorName} has been notified.
+              </p>
+            ) : payment === 'pending' && order.paymentStatus !== 'paid' ? (
+              <p className="mt-5 rounded-inner bg-warn-bg p-3 text-[13px] text-ink">
+                We are confirming the payment with Paystack. This page updates once it clears.
+              </p>
+            ) : null}
 
             {order.status === 'cancelled' ? (
               <p className="mt-5 rounded-inner bg-danger-bg p-3 text-[13px] text-danger">
@@ -251,6 +281,10 @@ export default async function TrackOrderPage({
                   <dd className="text-ink">{deliveryLabel(order)}</dd>
                 </div>
               ) : null}
+              <div className="flex justify-between">
+                <dt className="text-ink-muted">Payment</dt>
+                <dd className="text-ink">{paymentLabel(order)}</dd>
+              </div>
               <div className="flex justify-between text-[15px] font-medium">
                 <dt>Total</dt>
                 <dd className="tabular-nums">{formatCedis(order.totalPesewas)}</dd>
