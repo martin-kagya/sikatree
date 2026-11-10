@@ -947,22 +947,24 @@ export function Storefront({
               {cartCount > 0 ? `${cartCount} item${cartCount === 1 ? '' : 's'} in cart` : ''}
             </span>
 
-            {cartCount > 0 ? (
-              <button
-                type="button"
-                onClick={openCheckout}
-                aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-                className="shop-cart-in relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] shadow-[0_1px_3px_rgba(16,17,31,0.08)]"
-              >
-                <ShoppingCart className="h-[18px] w-[18px]" />
-                <span
-                  key={cartCount}
-                  className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
+            <div className="relative h-11 w-11 shrink-0">
+              {cartCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={openCheckout}
+                  aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                  className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] shadow-[0_1px_3px_rgba(16,17,31,0.08)]"
                 >
-                  {cartCount}
-                </span>
-              </button>
-            ) : null}
+                  <ShoppingCart className="h-[18px] w-[18px]" />
+                  <span
+                    key={cartCount}
+                    className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
+                  >
+                    {cartCount}
+                  </span>
+                </button>
+              ) : null}
+            </div>
 
             {hasProducts ? (
               <div className="hidden shrink-0 sm:block">

@@ -331,6 +331,7 @@ Compact white card, radius 28px mobile and 32px desktop, 1px `--hairline`, paddi
 - Address chip `sikatree.africa/{handle}` in a soft pill with a copy button. Copy writes the full https URL, shows Copied for 1.5s and announces through `aria-live="polite"`.
 - CTA "Chat on WhatsApp" uses the Primary style, right aligned at 768px and above and full width below. The prefilled message is "Hi {store}, I found you on sikatree." 
 - No standalone sikatree wordmark and no Powered by line in the header. Those belong in the footer.
+- The 44px cart control sits in the full header beside the store name, so a small catalogue always has a visible route to checkout. It fades and scales in on the first add, in a slot that is reserved so the name does not jump. The WhatsApp CTA follows it on desktop.
 - After the header leaves the viewport, a 56px sticky bar shows a 32px initials logo and the store name on the left, and the cart alone on the right. The WhatsApp CTA stays in the full header; it is removed from the sticky bar so the bar does not feel crowded. Motion follows Section 8.
 
 ### 5.9 Link button
@@ -952,7 +953,7 @@ The sticky bar sits at `z-50`, above the card overlays at `z-30`: discount badge
 
 - Category chips when the store has at least 2 categories: one horizontal scroll-snap row with no visible scrollbar, 44px high, `--r-chip` 10px. Inactive white with a hairline, active `--ink` fill with white text, colour transition 200ms.
 - Sort appears above 8 products, search above 12. The Featured control uses the shared Dropdown at `--r-control` 12px, with a trailing chevron and a menu anchored 4px below. URL state keeps `q`, `category`, `sort` and `page`.
-- The cart control sits beside the sort control. 44px white circle, 1px `--hairline`, cart glyph, count in a black corner badge. It is hidden at zero and fades and scales in on the first add. Its slot is reserved so the sort control does not jump. The same control appears in the sticky bar.
+- The cart control sits in the vendor header beside the store name, not in the toolbar. 44px white circle, 1px `--hairline`, cart glyph, count in a black corner badge. It is hidden at zero and fades and scales in on the first add, in a reserved slot so the name does not jump. The same control appears in the sticky bar.
 - Sidebar filters only at 40 products or more and 1024px or more. Below that, filters use a bottom sheet. Otherwise the grid uses the full container.
 
 ### 14.4 Product card
