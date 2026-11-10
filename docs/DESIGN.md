@@ -267,6 +267,7 @@ Primary, Inverse, Secondary and Ghost are pills. Compact action buttons in check
 
 - Height 52px, padding 0 16px, radius `--r-inner`, 16px text, fill `--surface-soft`, 1px `--hairline` border. Focus: border `--green-main` plus the focus ring.
 - Compact checkout fields use `--r-control` 12px and 44 to 48px height. Standard forms keep `--r-inner`.
+- On touch-sized screens every text field, textarea and select computes to at least 16px, whatever its compact desktop size, so iOS Safari does not zoom the page when the field is focused. Do not disable pinch zoom to work around it.
 - Every select in the system uses the same custom Dropdown. No native select remains. A button with a 16px chevron opens a listbox 4px below the trigger, flipping above when the viewport is short. The menu matches the field width, with a 180px minimum and 420px maximum. It renders in a portal: the page body for admin and dashboard, `.shop-root` for the storefront, and the open dialog for checkout so it stays in the top layer. It closes on select, Escape or an outside click. The selected row uses `--mint-100` with `--green-deep` text, or ink with white text on the storefront.
 - Label above (15px medium), always visible, never placeholder-only. Helper or error below, 14px. Placeholders show example values only.
 - Phone field: fixed `+233` prefix, number formatting, numeric keyboard (`inputmode="tel"`). Set `autocomplete` and `enterkeyhint` on every field.

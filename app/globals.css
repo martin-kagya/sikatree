@@ -313,3 +313,14 @@ a[class*='rounded-pill']:active {
     animation: none;
   }
 }
+
+/* iOS Safari zooms the page when a focused text field computes to under 16px.
+   Compact desktop sizes stay, but every editable field is 16px on touch-sized
+   screens so focusing it never changes the viewport scale. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='range']):not([type='color']):not([type='file']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
