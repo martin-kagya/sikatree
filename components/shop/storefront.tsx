@@ -441,10 +441,17 @@ export function Storefront({
         if (parsed && typeof parsed === 'object') {
           const record = parsed as Record<string, unknown>;
           if ('product' in record || 'service' in record) {
-            setCarts({
-              product: (record.product as Record<string, number>) ?? {},
-              service: (record.service as Record<string, number>) ?? {},
-            });
+            const product = (record.product as Record<string, number>) ?? {};
+            const service = (record.service as Record<string, number>) ?? {};
+            setCarts({ product, service });
+            // A shared item link can land on a shop whose active tab does not
+            // hold the cart. Show the tab that actually has something in it.
+            if (vendor.type === 'both') {
+              const hasProduct = Object.keys(product).length > 0;
+              const hasService = Object.keys(service).length > 0;
+              if (hasService && !hasProduct) setActiveKind('service');
+              else if (hasProduct && !hasService) setActiveKind('product');
+            }
           } else {
             // Legacy single cart: treat it as the product cart.
             setCarts({ product: record as Record<string, number>, service: {} });
@@ -936,6 +943,27 @@ export function Storefront({
               </div>
             </div>
 
+            <span role="status" aria-live="polite" className="sr-only">
+              {cartCount > 0 ? `${cartCount} item${cartCount === 1 ? '' : 's'} in cart` : ''}
+            </span>
+
+            {cartCount > 0 ? (
+              <button
+                type="button"
+                onClick={openCheckout}
+                aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
+                className="shop-cart-in relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] shadow-[0_1px_3px_rgba(16,17,31,0.08)]"
+              >
+                <ShoppingCart className="h-[18px] w-[18px]" />
+                <span
+                  key={cartCount}
+                  className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
+                >
+                  {cartCount}
+                </span>
+              </button>
+            ) : null}
+
             {hasProducts ? (
               <div className="hidden shrink-0 sm:block">
                 <a
@@ -1066,24 +1094,7 @@ export function Storefront({
                   </div>
                 ) : null}
 
-                <div className="relative h-11 w-11 shrink-0">
-                  {cartCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={openCheckout}
-                      aria-label={`Cart, ${cartCount} item${cartCount === 1 ? '' : 's'}`}
-                      className="shop-cart-in absolute inset-0 flex items-center justify-center rounded-full border border-[var(--shop-hair)] bg-white text-[var(--shop-ink)] shadow-[0_1px_3px_rgba(16,17,31,0.08)]"
-                    >
-                      <ShoppingCart className="h-[18px] w-[18px]" />
-                      <span
-                        key={cartCount}
-                        className="shop-badge-pop absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--shop-ink)] px-1 text-[10px] font-semibold text-white"
-                      >
-                        {cartCount}
-                      </span>
-                    </button>
-                  ) : null}
-                </div>
+
               </div>
             </div>
           </div>
