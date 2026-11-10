@@ -85,6 +85,7 @@ Do not copy the Ostra hero layout, cream colorwash, Plus Jakarta Sans, mint grad
   --green-deep: #1f7a45; /* focus ring, links, small green text, success text */
   --green-mark: #6dbe58; /* Ostra pearl only */
   --mint-100: #ddf3e5; /* success tint, icon circles, chat bubble */
+  --mint-edge: #b9e3c7; /* success toast border */
 
   /* Status */
   --warn-bg: #fcf1c8;
@@ -93,6 +94,8 @@ Do not copy the Ostra hero layout, cream colorwash, Plus Jakarta Sans, mint grad
   --danger: #b3261e;
   --danger-bg: #fdecec;
   --danger-bg-strong: #fbe1e1; /* stronger error toast fill */
+  --danger-edge: #efbcbc; /* error toast border */
+  --danger-icon: #c53a31; /* error toast icon circle */
 
   /* Lines and overlays */
   --hairline: #e2e2df;
@@ -201,7 +204,7 @@ No radius under 16px on cards, tiles or inputs. Compact controls use `--r-contro
 ### 3.6 Shadows and borders
 
 - Default surfaces: **no shadow and no border**. White cards on the grey page separate by color. Use a 1px `--hairline` only for dividers and for white surfaces on white.
-- `--shadow-card: 0 8px 24px rgba(16,17,31,0.06)`: order success card, toasts, popovers.
+- `--shadow-card: 0 8px 24px rgba(16,17,31,0.06)`: order success card and popovers. Toasts use `0 8px 24px rgba(0,0,0,0.10)`.
 - `--shadow-float: 0 12px 32px rgba(16,17,31,0.10)`: modals and the app illustration frame.
 
 ### 3.7 Dark mode (reserved)
@@ -381,7 +384,7 @@ A horizontal date strip (7 days, swipeable), then a grid of time pills (3 column
 | Warning | --warn-bg        | --warn-edge   | --ink        |
 | Error   | --danger-bg      | --danger      | --danger     |
 
-- **Toast:** alert anatomy plus `--shadow-card`. Fixed at the top, below the sticky header: safe-area top plus `--app-header-height` plus 8px. The dashboard header is measured at runtime. 12px side margins on mobile; centered, 420px maximum, from 480px. Above sticky bars, dropdowns and sheets. One at a time. Auto-dismiss 3s (6s for errors), pause while pressed or focused. `aria-live="polite"`, errors `assertive`.
+- **Toast:** fixed at the top, below the sticky header: safe-area top plus `--app-header-height` plus 8px. The dashboard header is measured at runtime. 12px side margins on mobile; centered, 420px maximum, from 480px. Above sticky bars, dropdowns and sheets. 14px radius, 1px border one shade darker than the fill, shadow `0 8px 24px rgba(0,0,0,0.10)`. 12px padding, 15px weight 500 copy in the darkest tone at 4.5:1, a 22px filled icon circle with a white glyph, and about 48px for one line. Success has no close button; error keeps a 44px close with a dark icon. One at a time, 3s or 6s, paused while pressed or focused. `aria-live="polite"`, errors `assertive`.
 - **Copy failure:** inline on the button. Label "Copy failed" for 2s, then reveal a read-only selected input with the value. Never a toast.
 - **Skeleton:** `--surface-soft` or `--tile` blocks matching the final radius and size, 1.5s opacity pulse, static under reduced motion. No full-page spinners.
 - **Empty state:** centered, 56px `--surface-soft` circle with a Lucide icon, H3, one sentence, one Primary button. Example: "No orders yet. Share your link to get your first one."

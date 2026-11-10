@@ -25,6 +25,7 @@ const config: Config = {
         },
         mint: {
           100: 'var(--mint-100)',
+          edge: 'var(--mint-edge)',
         },
         warn: {
           bg: 'var(--warn-bg)',
@@ -35,6 +36,8 @@ const config: Config = {
           DEFAULT: 'var(--danger)',
           bg: 'var(--danger-bg)',
           strong: 'var(--danger-bg-strong)',
+          edge: 'var(--danger-edge)',
+          icon: 'var(--danger-icon)',
         },
         hairline: 'var(--hairline)',
         'hairline-dark': 'var(--hairline-dark)',

@@ -23,6 +23,7 @@
   --green-deep: #1f7a45;
   --green-mark: #6dbe58;
   --mint-100: #ddf3e5;
+  --mint-edge: #b9e3c7;
 
   /* Status */
   --warn-bg: #fcf1c8;
@@ -31,6 +32,8 @@
   --danger: #b3261e;
   --danger-bg: #fdecec;
   --danger-bg-strong: #fbe1e1;
+  --danger-edge: #efbcbc;
+  --danger-icon: #c53a31;
 
   /* Lines and overlays */
   --hairline: #e2e2df;

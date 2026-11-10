@@ -84,10 +84,11 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
       aria-atomic="true"
       aria-live={item.variant === 'error' ? 'assertive' : 'polite'}
       className={cn(
-        'pointer-events-auto flex w-full items-start gap-2.5 rounded-[14px] border px-4 py-3 shadow-card',
+        'pointer-events-auto relative flex min-h-12 w-full items-center gap-2.5 rounded-[14px] border px-4 py-3',
+        'shadow-[0_8px_24px_rgba(0,0,0,0.10)]',
         item.variant === 'error'
-          ? 'border-danger/40 bg-danger-strong text-danger'
-          : 'border-green-deep/30 bg-mint-100 text-green-deep',
+          ? 'border-danger-edge bg-danger-strong pr-12'
+          : 'border-mint-edge bg-mint-100',
       )}
       exit="exit"
       initial="hidden"
@@ -101,22 +102,37 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
       role={item.variant === 'error' ? 'alert' : 'status'}
       variants={reduceMotion ? reducedVariants : motionVariants}
     >
-      <span className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+      <span
+        className={cn(
+          'flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-white',
+          item.variant === 'error' ? 'bg-danger-icon' : 'bg-green-main',
+        )}
+        aria-hidden="true"
+      >
         {item.variant === 'error' ? (
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-3.5 w-3.5" />
         ) : (
-          <Check className="h-4 w-4" />
+          <Check className="h-3.5 w-3.5" />
         )}
       </span>
-      <p className="line-clamp-2 min-w-0 flex-1 text-[13px] leading-snug">{item.message}</p>
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss"
-        className="-my-2 -mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-deep"
+      <p
+        className={cn(
+          'line-clamp-2 min-w-0 flex-1 text-[15px] font-medium leading-5',
+          item.variant === 'error' ? 'text-danger' : 'text-green-deep',
+        )}
       >
-        <X className="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
+        {item.message}
+      </p>
+      {item.variant === 'error' ? (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="absolute right-0 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-danger transition-colors hover:bg-danger-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-deep"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      ) : null}
     </motion.div>
   );
 }
