@@ -11,7 +11,7 @@ export type EmailLoginResult = { configured: boolean; sent: boolean };
 // same confirmation either way, so this cannot be used to enumerate accounts.
 export async function requestEmailLogin(
   rawEmail: string,
-  options: { provider?: EmailProvider | null } = {},
+  options: { provider?: EmailProvider | null; nextPath?: string } = {},
 ): Promise<EmailLoginResult> {
   const provider = options.provider === undefined ? getEmailProvider() : options.provider;
   if (!provider) return { configured: false, sent: false };
@@ -26,7 +26,7 @@ export async function requestEmailLogin(
   const vendor = rows[0];
   if (!vendor) return { configured: true, sent: false };
 
-  const { url } = await createLoginLink(vendor.id);
+  const { url } = await createLoginLink(vendor.id, { nextPath: options.nextPath });
   await provider.send(
     magicLinkEmail({
       to: email,

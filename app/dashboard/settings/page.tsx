@@ -32,7 +32,7 @@ type VendorSettings = {
 };
 
 export default async function SettingsPage() {
-  const vendorId = await requireVendor();
+  const vendorId = await requireVendor('/dashboard/settings');
   const vendors = await query<VendorSettings>(
     `select name, type, delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas,
             eta_delivery_within_text, eta_delivery_outside_text, eta_pickup_text,

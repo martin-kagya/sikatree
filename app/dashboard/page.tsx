@@ -42,7 +42,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ item?: string }>;
 }) {
-  const vendorId = await requireVendor();
+  const vendorId = await requireVendor('/dashboard');
   const params = await searchParams;
 
   const [vendors, items, orders] = await Promise.all([

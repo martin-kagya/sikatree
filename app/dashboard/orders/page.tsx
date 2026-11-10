@@ -26,7 +26,7 @@ export default async function OrdersPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const vendorId = await requireVendor();
+  const vendorId = await requireVendor('/dashboard/orders');
   const params = await searchParams;
   const filter = FILTERS.find((entry) => entry.key === params.status) ?? FILTERS[0];
 

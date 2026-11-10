@@ -35,6 +35,7 @@ export type FoundSession = {
   vendorId: string;
   expiresAt: Date;
   absoluteExpiresAt: Date;
+  lastSeenAt: Date;
 };
 
 export type SessionSummary = {
@@ -203,8 +204,9 @@ export async function findVendorSession(
     vendor_id: string;
     expires_at: Date;
     absolute_expires_at: Date;
+    last_seen_at: Date;
   }>(
-    `select id, vendor_id, expires_at, absolute_expires_at
+    `select id, vendor_id, expires_at, absolute_expires_at, last_seen_at
        from vendor_session
       where token_hash = $1
         and revoked_at is null
@@ -220,6 +222,7 @@ export async function findVendorSession(
     vendorId: row.vendor_id,
     expiresAt: row.expires_at,
     absoluteExpiresAt: row.absolute_expires_at,
+    lastSeenAt: row.last_seen_at,
   };
 }
 
@@ -228,21 +231,42 @@ export async function findVendorSession(
 // caller should log a failure and keep serving the page.
 export async function touchVendorSession(
   sessionId: string,
-  idleSeconds: number = SESSION_IDLE_DAYS_DEFAULT * 24 * 60 * 60,
+  idleSeconds?: number,
 ): Promise<boolean> {
-  const seconds = Math.min(
-    Math.max(Math.floor(idleSeconds), 60),
-    SESSION_ABSOLUTE_DAYS * 24 * 60 * 60,
-  );
+  if (idleSeconds !== undefined) {
+    const seconds = Math.min(
+      Math.max(Math.floor(idleSeconds), 60),
+      SESSION_ABSOLUTE_DAYS * 24 * 60 * 60,
+    );
+    const result = await query<{ id: string }>(
+      `update vendor_session
+          set last_seen_at = now(),
+              expires_at = least(now() + make_interval(secs => $2), absolute_expires_at)
+        where id = $1
+          and revoked_at is null
+          and last_seen_at < now() - make_interval(secs => $3)
+        returning id`,
+      [sessionId, seconds, TOUCH_INTERVAL_SECONDS],
+    );
+    return result.length > 0;
+  }
+
+  // No override: use the vendor's current preference. A shared-device session
+  // cannot slide past its absolute expiry (12 hours), so this is still bounded.
   const result = await query<{ id: string }>(
-    `update vendor_session
+    `update vendor_session vs
         set last_seen_at = now(),
-            expires_at = least(now() + make_interval(secs => $2), absolute_expires_at)
-      where id = $1
-        and revoked_at is null
-        and last_seen_at < now() - make_interval(secs => $3)
-      returning id`,
-    [sessionId, seconds, TOUCH_INTERVAL_SECONDS],
+            expires_at = least(
+              now() + make_interval(days => coalesce(v.session_idle_days, 30)),
+              vs.absolute_expires_at
+            )
+       from vendors v
+      where vs.id = $1
+        and v.id = vs.vendor_id
+        and vs.revoked_at is null
+        and vs.last_seen_at < now() - make_interval(secs => $2)
+      returning vs.id`,
+    [sessionId, TOUCH_INTERVAL_SECONDS],
   );
   return result.length > 0;
 }

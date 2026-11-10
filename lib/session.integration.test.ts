@@ -149,6 +149,27 @@ describe('vendor sessions', () => {
     expect(unchanged[0].expires_at.getTime()).toBe(before);
   });
 
+  it('uses the vendor preference when sliding without an explicit idle', async () => {
+    const vendorId = await seedVendor(7);
+    const created = await createVendorSession(vendorId, {}, { idleSeconds: 60 * 60 });
+    await query(
+      `update vendor_session
+          set last_seen_at = now() - interval '2 hours',
+              expires_at = now() + interval '1 hour'
+        where id = $1`,
+      [created.id],
+    );
+
+    expect(await touchVendorSession(created.id)).toBe(true);
+    const rows = await query<{ expires_at: Date }>(
+      'select expires_at from vendor_session where id = $1',
+      [created.id],
+    );
+    const days = (rows[0].expires_at.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+    expect(days).toBeGreaterThan(6.9);
+    expect(days).toBeLessThan(7.1);
+  });
+
   it('revokes every session for sign out everywhere', async () => {
     const vendorId = await seedVendor();
     await createVendorSession(vendorId);

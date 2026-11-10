@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LoginForm } from '@/app/auth/login/login-form';
+import { safeNext } from '@/lib/safe-next';
 import { authEnabled } from '@/lib/vendor-auth';
 
 export const metadata: Metadata = {
@@ -13,10 +14,11 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; disabled?: string }>;
+  searchParams: Promise<{ error?: string; disabled?: string; next?: string }>;
 }) {
   const params = await searchParams;
   const disabled = !authEnabled();
+  const next = safeNext(params.next);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-4">
@@ -41,7 +43,7 @@ export default async function LoginPage({
           </p>
         )}
 
-        {disabled ? null : <LoginForm />}
+        {disabled ? null : <LoginForm next={next} />}
 
         <p className="mt-6 text-small text-ink-muted">
           <Link href="/" className="text-green-deep underline underline-offset-2">

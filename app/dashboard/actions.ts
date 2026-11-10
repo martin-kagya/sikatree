@@ -1,6 +1,5 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { saveAvailability } from '@/lib/availability';
@@ -18,11 +17,10 @@ import {
   type OrderStatus,
 } from '@/lib/orders';
 import { DELIVERY_FEE_MODES, type DeliveryFeeMode } from '@/lib/shop';
-import { VENDOR_COOKIE, requireVendor } from '@/lib/vendor-auth';
+import { requireVendor, revokeCurrentVendorSession } from '@/lib/vendor-auth';
 
 export async function logoutAction(): Promise<void> {
-  const store = await cookies();
-  store.delete(VENDOR_COOKIE);
+  await revokeCurrentVendorSession();
   redirect('/');
 }
 

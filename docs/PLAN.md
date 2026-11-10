@@ -182,7 +182,7 @@ Replanned 2026-11-10; the full design and migration are in **`docs/AUTH.md`**.
 - **Notifications never carry credentials.** Order alerts deep-link to `/dashboard/orders`; the bot's "Open dashboard" sends a URL plus a code.
 - The bot's phone-first path (auth Phase 2) replies to `LOGIN` with a code; passkeys are auth Phase 3.
 - Decided in Phase 1: a custom passwordless system, not Supabase Auth. The server connects with the table-owner role and bypasses RLS.
-- **Shipped today:** email link redeemed on a POST confirmation page (auth Phase 0), plus a signed 30-day cookie (`lib/vendor-auth.ts`), no revocation. The auth Phase 1 foundation (migration `0025`, `lib/session.ts`, `lib/login-codes.ts`) is in but not wired into the routes. **Next:** the auth Phase 1 cutover (sessions + codes) per `docs/AUTH.md` 13.
+- **Shipped today:** email link redeemed on a POST confirmation page (auth Phase 0), plus the auth Phase 1 session cutover: server-side rows, an opaque cookie with a legacy HMAC bridge, throttled sliding expiry, logout revocation and `next` deep links. Code login, the device list and cleanup are not wired yet. **Next:** the auth Phase 1 code/login/device work per `docs/AUTH.md` 13.
 
 ### 6.5 Payments
 - `PaymentProvider` interface: `createCollection`, `verifyCollection`, `refund`, `createPayout`, `lookupAccountName`, `parseWebhook`.
@@ -629,7 +629,8 @@ week's list, ordered by what is unblocked.
 - [x] Replan vendor authentication: code-first, link-fast, session-first (`docs/AUTH.md`)
 - [x] Implement auth Phase 0 of `docs/AUTH.md`: the link confirmation page, redeemed only on POST
 - [x] Add the auth Phase 1 foundation: migration `0025`, session and code primitives, integration tests
-- [ ] Implement the auth Phase 1 cutover: one-time codes, server-side sessions, device list and cleanup
+- [x] Cut sessions over to server-side rows with the legacy-cookie bridge and `next` deep links
+- [ ] Finish auth Phase 1: code login, session settings/device list, cleanup and rate-limit tuning
 - [ ] Set the Paystack test key in production, configure the webhook URL, run one end-to-end test payment and confirm the order shows **Paid online**
 - [ ] Set `NEXT_PUBLIC_WHATSAPP_NUMBER` in production and point the footer link at it; this needs the WhatsApp Business number first
 - [ ] Start (or finish) the Paystack compliance review and Meta Business verification

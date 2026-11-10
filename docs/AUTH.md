@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **Auth Phase 0 shipped 2026-11-10.** **Auth Phase 1 foundation shipped 2026-11-10** (migration `0025`, `lib/session.ts`, `lib/login-codes.ts`, 17 integration tests); the route cutover and Phases 2-3 are proposed. Refines `PLAN.md` 6.4 and 6.9; supersedes their implementation detail. |
+| **Status** | **Auth Phase 0 shipped 2026-11-10.** **Auth Phase 1 in progress:** the session cutover shipped 2026-11-10 (server-side rows, legacy-cookie bridge, `next` deep links, logout revokes the row). The code login/UI, device list, cleanup and Phases 2-3 are pending. Refines `PLAN.md` 6.4 and 6.9; supersedes their implementation detail. |
 | **Scope** | Vendor sign-in, session lifetime, recovery, and credentials embedded in notifications. |
 | **Out of scope** | Admin auth (AUTH-05), client accounts (AUTH-04), and payment step-up (PLAN 6.9 Wave 2), which is a separate gate before payouts and must not wait for auth Phase 3. |
 | **Decision** | **Code-first, link-fast, session-first.** A one-time code is the primary factor; the link stays as a one-tap shortcut; sessions become server-side, sliding and revocable. |
@@ -258,7 +258,7 @@ Existing `ska_vendor` cookies are `vendorId.expires.signature`. To avoid logging
 1. New sign-ins write a session row and an opaque token.
 2. `currentVendorId()` first tries the session table. If that fails and the cookie has the old three-part shape, it verifies the legacy HMAC and returns the vendor id.
 3. Legacy cookies are accepted until they expire (at most 30 days), then the fallback is deleted.
-4. A legacy cookie is upgraded to a real session on the first authenticated **server action or route handler** (where a cookie can be written), not during a server-component render. Until then, a legacy session cannot be listed or revoked; say so in the support runbook.
+4. The cutover accepts a legacy cookie until it expires. Automatic upgrade to a real session on the first authenticated **server action or route handler** is a follow-up, not shipped; until then a legacy session cannot be listed or revoked. Say so in the support runbook.
 
 This is a one-release bridge, not a permanent second auth system. It preserves the 30-day promise for existing vendors while new sessions gain revocation.
 
@@ -635,7 +635,7 @@ async function currentVendorId(): Promise<string | null> {
 
 Delete `verifyLegacyToken` after all old cookies have expired (30 days after deploy).
 
-A legacy cookie has no session row, so it cannot be listed or revoked. Upgrade it on the first authenticated **server action or route handler**: create a real session, set the new cookie, and let the legacy token expire. Do not try to write cookies from a server-component render. Support should know that a legacy session may not appear in the device list during the bridge month.
+A legacy cookie has no session row, so it cannot be listed or revoked. The shipped bridge accepts it until it expires; automatic upgrade on the first authenticated action is a follow-up. Do not try to write cookies from a server-component render. Support should know that a legacy session may not appear in the device list during the bridge month.
 
 ---
 
@@ -778,17 +778,17 @@ Shipped: the confirmation page (`app/auth/verify/page.tsx`), POST-only redemptio
 
 **Exit:** a prefetched link no longer produces "already used" for the human, and no auth token reaches the analytics table. This alone removes the most reported failure, before any schema change.
 
-### Auth Phase 1: Sessions and codes (foundation shipped; cutover pending)
+### Auth Phase 1: Sessions and codes (session cutover shipped; code login pending)
 
-- **Foundation shipped 2026-11-10:** `db/migrations/0025_vendor_sessions.sql`, `lib/session.ts`, `lib/login-codes.ts`, and 17 integration tests. The live routes still use the stateless cookie; the cutover is the rest of this phase.
-- Replace stateless session reads; keep the legacy fallback and upgrade legacy cookies in actions/route handlers.
-- `requireVendor(nextPath?)` and the roughly dozen call sites; validate `next` on every path.
+- **Foundation shipped 2026-11-10:** `db/migrations/0025_vendor_sessions.sql`, `lib/session.ts`, `lib/login-codes.ts`, and 18 integration tests.
+- **Session cutover shipped 2026-11-10:** sign-in writes a session row and an opaque cookie; reads use `findVendorSession` with the legacy HMAC fallback; sliding is throttled; logout revokes the row. Legacy cookies are accepted until they expire (no automatic upgrade yet).
+- **`requireVendor(nextPath?)` shipped 2026-11-10:** dashboard pages pass their path, the login form carries `next`, `login_link.next_path` persists it, and `safeNext` validates it. The order deep link now survives sign-in.
 - Two-step login: code primary; the same email also carries the link (one send action).
 - Minimal WhatsApp path: bot `LOGIN` intent issues a code, and the login page accepts a normalized phone + code. This closes the bot-created-vendor gap in the same release instead of leaving the bot link as the only door.
 - Combined sign-in email (code + link) and welcome email.
 - Multiple valid codes per vendor (no invalidation on resend); purpose filter; uniform timing.
-- Cleanup job and indexes.
-- Sessions section, sign out, sign out everywhere, idle-period setting; `logoutAction` revokes the row.
+- Cleanup job.
+- Sessions section, sign out everywhere, idle-period setting (single-device logout already revokes the row).
 - Rate-limit tuning; a limit never invalidates an existing code or link.
 - Structured `auth_event` logging.
 - Tests in `lib/` (the vitest include path); a scripted browser check if needed, not `@playwright/test`, which is not installed.

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function NewItemPage() {
-  const vendorId = await requireVendor();
+  const vendorId = await requireVendor('/dashboard/items/new');
   const [categories, vendorType] = await Promise.all([
     listCategories(vendorId),
     getVendorType(vendorId),

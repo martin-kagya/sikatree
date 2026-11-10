@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { clientIp } from '@/lib/admin-auth';
 import { hitRateLimit } from '@/lib/rate-limit';
+import { safeNext } from '@/lib/safe-next';
 import { requestEmailLogin } from '@/lib/vendor-login';
 
 export type LoginState =
@@ -16,6 +17,7 @@ export async function requestLoginAction(
 ): Promise<LoginState> {
   const ip = clientIp(await headers());
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const nextPath = safeNext(String(formData.get('next') ?? ''), '');
 
   const ipLimit = await hitRateLimit(`login:ip:${ip}`, 10, 900).catch(() => null);
   if (ipLimit && !ipLimit.allowed) {
@@ -27,7 +29,7 @@ export async function requestLoginAction(
   }
 
   try {
-    const result = await requestEmailLogin(email);
+    const result = await requestEmailLogin(email, { nextPath: nextPath || undefined });
     if (!result.configured) {
       return { status: 'error', error: 'Email sign-in is not configured yet.' };
     }

@@ -25,7 +25,7 @@ const supportHref = contact.whatsappNumber
   : `https://wa.me/?text=${encodeURIComponent('Help')}`;
 
 export default async function VendorSupportPage() {
-  const vendorId = await requireVendor();
+  const vendorId = await requireVendor('/dashboard/support');
   const tickets = await listVendorSupportTickets(vendorId);
 
   return (

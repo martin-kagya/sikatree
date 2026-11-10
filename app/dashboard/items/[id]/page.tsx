@@ -17,8 +17,8 @@ export default async function EditItemPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const vendorId = await requireVendor();
   const { id } = await params;
+  const vendorId = await requireVendor(`/dashboard/items/${id}`);
   const [item, categories, vendorType] = await Promise.all([
     getVendorItem(vendorId, id),
     listCategories(vendorId),

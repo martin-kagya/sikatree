@@ -30,10 +30,38 @@ describe('login links', () => {
     expect(token).toBeTruthy();
 
     const first = await redeemLoginToken(token!);
-    expect(first).toEqual({ ok: true, vendorId });
+    expect(first).toEqual({ ok: true, vendorId, nextPath: null });
 
     const second = await redeemLoginToken(token!);
     expect(second).toEqual({ ok: false, reason: 'used' });
+  });
+
+  it('stores a validated next path for deep links', async () => {
+    const vendorId = await seedVendor();
+    const { url } = await createLoginLink(vendorId, { nextPath: '/dashboard/orders' });
+    const token = new URL(url).searchParams.get('token')!;
+
+    expect(await peekLoginToken(token)).toMatchObject({
+      ok: true,
+      nextPath: '/dashboard/orders',
+    });
+    expect(await redeemLoginToken(token)).toEqual({
+      ok: true,
+      vendorId,
+      nextPath: '/dashboard/orders',
+    });
+  });
+
+  it('drops an off-site next path at creation', async () => {
+    const vendorId = await seedVendor();
+    const { url } = await createLoginLink(vendorId, { nextPath: 'https://evil.example' });
+    const token = new URL(url).searchParams.get('token')!;
+
+    expect(await redeemLoginToken(token)).toEqual({
+      ok: true,
+      vendorId,
+      nextPath: null,
+    });
   });
 
   it('rejects unknown and malformed tokens', async () => {
@@ -68,7 +96,7 @@ describe('peek (confirmation page)', () => {
     expect(peek2.ok).toBe(true);
 
     // The human then taps Continue (POST) and signs in.
-    expect(await redeemLoginToken(token)).toEqual({ ok: true, vendorId });
+    expect(await redeemLoginToken(token)).toEqual({ ok: true, vendorId, nextPath: null });
   });
 
   it('masks an email identifier', async () => {

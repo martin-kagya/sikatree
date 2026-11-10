@@ -9,12 +9,13 @@ const initial: LoginState = { status: 'idle' };
 const field =
   'mt-1.5 h-12 w-full rounded-inner border border-hairline bg-white px-4 text-[16px] text-ink outline-none focus:border-green-deep focus:ring-2 focus:ring-green-deep';
 
-export function LoginForm() {
+export function LoginForm({ next }: { next: string }) {
   const [state, action] = useActionState(requestLoginAction, initial);
 
   return (
     <div>
       <form action={action} className="mt-4 space-y-3">
+        <input type="hidden" name="next" value={next} />
         <label htmlFor="email" className="block text-label font-medium text-ink">
           Email
           <input

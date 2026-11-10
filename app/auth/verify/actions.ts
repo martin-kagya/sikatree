@@ -3,6 +3,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { redeemLoginToken } from '@/lib/login-links';
+import { safeNext } from '@/lib/safe-next';
 import { authEnabled, setVendorSessionCookie } from '@/lib/vendor-auth';
 
 // The magic link is redeemed only here, on an explicit POST from the
@@ -37,5 +38,5 @@ export async function verifyLinkAction(formData: FormData): Promise<void> {
 
   await setVendorSessionCookie(result.vendorId, { persist });
 
-  redirect('/dashboard');
+  redirect(safeNext(result.nextPath));
 }
