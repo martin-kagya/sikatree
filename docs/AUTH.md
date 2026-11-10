@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | **Auth Phase 0 shipped 2026-11-10** (POST-only redemption, confirmation page, headers, analytics guard). Auth Phases 1-3 proposed. Refines `PLAN.md` 6.4 and 6.9; supersedes their implementation detail. |
+| **Status** | **Auth Phase 0 shipped 2026-11-10.** **Auth Phase 1 foundation shipped 2026-11-10** (migration `0025`, `lib/session.ts`, `lib/login-codes.ts`, 17 integration tests); the route cutover and Phases 2-3 are proposed. Refines `PLAN.md` 6.4 and 6.9; supersedes their implementation detail. |
 | **Scope** | Vendor sign-in, session lifetime, recovery, and credentials embedded in notifications. |
 | **Out of scope** | Admin auth (AUTH-05), client accounts (AUTH-04), and payment step-up (PLAN 6.9 Wave 2), which is a separate gate before payouts and must not wait for auth Phase 3. |
 | **Decision** | **Code-first, link-fast, session-first.** A one-time code is the primary factor; the link stays as a one-tap shortcut; sessions become server-side, sliding and revocable. |
@@ -217,7 +217,7 @@ Auth Phase 3 can add passkeys as the "remembered" factor, which survives cookie 
 | **Idle expiry** | 30 days | Slides forward on use; configurable per vendor (7 / 30 / 90 / 365 days) in Settings, satisfying AUTH-02's "configurable period". |
 | **Absolute expiry** | 365 days | Hard cap from creation even with continuous use. Re-authentication after that is one code. |
 | **Cookie `Max-Age`** | 365 days | The cookie may outlive the server row; an expired row is rejected. The browser keeps the token, but it is useless. |
-| **Shared-device mode** | 12 hours idle, session cookie | "Keep me signed in" unchecked. |
+| **Shared-device mode** | 12 hours idle and absolute, session cookie | "Keep me signed in" unchecked. |
 | **Sliding write** | At most once per hour per session | `last_seen_at` and `expires_at` update only when the last touch is older than an hour, so a dashboard visit is not a write on every request. |
 
 Why not a 30-day cookie with a 30-day server session? Because active vendors would still be logged out on day 31. Sliding idle expiry is the difference between "sessions persist" and "sessions persist while you use them".
@@ -534,7 +534,7 @@ export type SessionMeta = { userAgent: string | null; ip: string | null };
 export async function createVendorSession(
   vendorId: string,
   meta: SessionMeta,
-  options?: { persistent?: boolean; idleDays?: number },
+  options?: { persistent?: boolean; idleSeconds?: number },
 ): Promise<{ token: string; expiresAt: Date }>;
 
 export async function currentSession(): Promise<{
@@ -778,10 +778,9 @@ Shipped: the confirmation page (`app/auth/verify/page.tsx`), POST-only redemptio
 
 **Exit:** a prefetched link no longer produces "already used" for the human, and no auth token reaches the analytics table. This alone removes the most reported failure, before any schema change.
 
-### Auth Phase 1: Sessions and codes (4 to 6 days)
+### Auth Phase 1: Sessions and codes (foundation shipped; cutover pending)
 
-- Migration `0025`.
-- `lib/session.ts` and `lib/login-codes.ts`.
+- **Foundation shipped 2026-11-10:** `db/migrations/0025_vendor_sessions.sql`, `lib/session.ts`, `lib/login-codes.ts`, and 17 integration tests. The live routes still use the stateless cookie; the cutover is the rest of this phase.
 - Replace stateless session reads; keep the legacy fallback and upgrade legacy cookies in actions/route handlers.
 - `requireVendor(nextPath?)` and the roughly dozen call sites; validate `next` on every path.
 - Two-step login: code primary; the same email also carries the link (one send action).
