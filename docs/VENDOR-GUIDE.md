@@ -181,6 +181,16 @@ Put the link in your WhatsApp status, your bio on Instagram or TikTok, your busi
 replies when someone asks for prices. When a customer taps it, they see your items, categories, prices
 and a cart.
 
+### Share one item
+
+Every item also has its own link. Under **Items** on your dashboard, tap **Item link** next to an item to
+copy it. It opens a page with that item's photo, price and description, with **Add to cart** and **Ask on
+WhatsApp** buttons.
+
+Send that link when someone asks about one product. On WhatsApp and social apps it previews with the
+item's photo, name and price, not just your shop logo. Buyers can share it too, from **Share this item**
+when they open an item's photo on your page.
+
 Before you send it to a customer, open the link on your own phone and place a test order. That is the
 fastest way to catch a wrong price or a missing delivery fee.
 

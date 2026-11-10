@@ -22,7 +22,7 @@ page, vendor WhatsApp alert), the vendor dashboard (catalogue with up to five ph
 support, CSV export), service availability with the slot engine, web signup with email sign-in, the
 Paystack adapter in test mode, and admin waitlist, support inbox and onboarding funnel.
 
-**Verified on 2026-11-10:** `pnpm typecheck` clean, `pnpm test` 160 tests in 25 files, and the CI gates
+**Verified on 2026-11-10:** `pnpm typecheck` clean, `pnpm test` 164 tests in 26 files, and the CI gates
 (typecheck, test, migrate, build, landing-page performance budget) run on every push to `main` and every
 pull request.
 
@@ -362,7 +362,7 @@ Backend detail, environment variables and the operational runbook live in
 **Goal:** Clients can buy products and pay with MoMo; vendors get orders on WhatsApp.
 
 **Build**
-- [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06) (partial: accent themes, categories, product/service tabs, quick view, vendor-page OG tags and a copy-link action ship; link buttons (PG-03) and per-item deep links (`/{handle}/i/{item}`, PG-05) are missing, and it is one accent per vendor, not the three themes in PG-04)
+- [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06) (partial: accent themes, categories, product/service tabs, quick view, vendor-page OG tags, share links and per-item pages with their own OG image (`/{handle}/i/{item}`, PG-05) ship; link buttons (PG-03) are missing, and it is one accent per vendor, not the three themes in PG-04)
 - [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04) (partial: static assets are prepared by `scripts/optimize-images.mjs` and served from the CDN; uploaded item photos are stored at full size with no compression or responsive variants)
 - [x] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
 - [x] Order codes and lifecycle (ORD-04, ORD-05); client tracking page (ORD-07) (offline lifecycle; the Paid state waits for payments)
@@ -395,7 +395,7 @@ can pay by MoMo or card on Paystack, the webhook is signature-checked and the tr
 the order is marked paid, abandoned payments expire and restore stock, and a settlement ledger records net
 cash and vendor payable. Still deferred: platform and buyer fees with the 1.95% gross-up, a retry-payment
 button, refunds, payment-time stock holds, variants, drag-and-drop, featured items, upload-time image
-compression, link buttons, item deep links, client notifications and interactive WhatsApp actions. The
+compression, link buttons, client notifications and interactive WhatsApp actions. The
 table below is the deferred register.
 
 **Deferred or partial from the order loop**

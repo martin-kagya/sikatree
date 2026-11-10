@@ -19,6 +19,7 @@ import {
   Copy,
   MessageCircle,
   Plus,
+  Share2,
   ShoppingCart,
   X,
 } from '@/components/icons';
@@ -388,6 +389,10 @@ export function Storefront({
   const copyTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(copyTimer.current), []);
 
+  const [sharedItemId, setSharedItemId] = useState<string | null>(null);
+  const shareTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(shareTimer.current), []);
+
   const headerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDialogElement>(null);
   const checkoutRef = useRef<HTMLDialogElement>(null);
@@ -650,6 +655,29 @@ export function Storefront({
       setCopied(true);
       window.clearTimeout(copyTimer.current);
       copyTimer.current = window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  async function shareItem(item: ShopItem) {
+    const url = `https://${domain}/${vendor.handle}/i/${item.id}`;
+    const text = `${item.name} · ${formatShopPrice(item.pricePesewas)} from ${vendor.name}`;
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: text, text, url });
+        return;
+      } catch {
+        /* cancelled or unsupported; fall back to copying the link */
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setSharedItemId(item.id);
+      window.clearTimeout(shareTimer.current);
+      shareTimer.current = window.setTimeout(() => setSharedItemId(null), 2000);
     } catch {
       /* clipboard unavailable */
     }
@@ -1821,6 +1849,15 @@ export function Storefront({
                   </p>
                 ) : null}
               </div>
+
+              <button
+                type="button"
+                onClick={() => shareItem(qvItem)}
+                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-stone-500 transition-colors hover:text-stone-900"
+              >
+                <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
+                {sharedItemId === qvItem.id ? 'Link copied' : 'Share this item'}
+              </button>
 
               {qvItem.description ? (
                 <p className="max-w-[34ch] text-[15px] leading-relaxed text-stone-500">

@@ -232,6 +232,10 @@ export default async function DashboardPage({
                         >
                           Edit
                         </Link>
+                        <CopyLink
+                          value={`https://${site.domain}/${vendor.handle}/i/${item.id}`}
+                          label="Item link"
+                        />
                         {item.status === 'active' && !soldOut ? (
                           <form action={setItemStatusAction}>
                             <input type="hidden" name="id" value={item.id} />
