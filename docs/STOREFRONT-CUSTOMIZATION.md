@@ -1,6 +1,8 @@
 # Storefront customization
 
-Status: Proposed. Version 1.0. 2026-11-10.
+Status: Proposed. Version 1.1. 2026-11-10.
+
+Changelog: v1.1 adds cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
 
 Companion docs: [`DESIGN.md`](DESIGN.md) sections 5.8, 5.9 and 14, [`requirement.md`](requirement.md) PG-02 to PG-09, and [`PLAN.md`](PLAN.md) Phase 2 and Phase 3.
 
@@ -24,8 +26,9 @@ before the pilot proves demand.
 4. **Nothing ships without a fallback.** Missing logo falls back to initials; missing tagline collapses.
 5. **No buyer-side JavaScript cost.** Themes are CSS variables; no per-vendor scripts or stylesheets.
 6. **Checkout is sacred.** Customization never changes cart, checkout, payment, tracking or status colours.
-7. **Preview and reverse.** Every change is visible immediately and can be reset.
+7. **Preview and reverse.** The editor shows a live preview, and every section can be reset to defaults before saving.
 8. **Mobile first.** 360px is the design width. Fields stay at 16px to avoid iOS focus zoom.
+9. **Polish through tokens, not options.** One radius scale, one shadow set, one icon set and semantic tokens. Vendors choose content and presets, not implementation details.
 
 ## 3. Current state
 
@@ -51,8 +54,8 @@ The highest-return work is therefore to expose what already exists, then add a l
 
 | Phase | Scope | Goal |
 | --- | --- | --- |
-| **Phase 1** | Brand fields, logo, links, accent, card ratio, live save | A vendor can make the shop recognisably theirs in ten minutes |
-| **Phase 2** | Theme presets, cover and header layouts, announcement, featured items, about and policy sections, draft and publish | A shop can have a distinct look without losing the system |
+| **Phase 1** | Brand fields, logo, cover, links, accent, card ratio, starter defaults, live preview, reset, generated Open Graph card, live save | A vendor can make the shop recognisably theirs in ten minutes, with a preview before saving |
+| **Phase 2** | Theme presets, header layouts and cover focal point, announcement, featured items, about and policy sections, draft and publish | A shop can have a distinct look without losing the system |
 | **Phase 3** | Custom domain, hide "Powered by Ostra", advanced themes, per-shop analytics | Pro revenue and a fully branded surface |
 
 This document specifies Phase 1 completely and outlines the later phases.
@@ -67,13 +70,15 @@ This document specifies Phase 1 completely and outlines the later phases.
 | Brand | Tagline | 2 to 80 characters, shown under the name |
 | Brand | About | Existing `bio`, up to 500 characters |
 | Brand | Location | Optional, up to 60 characters |
-| Brand | Category | Optional, up to 40 characters |
-| Brand | Logo | Square image, up to 2MB, with alt text |
-| Look | Accent | One of the existing allow-list keys |
+| Brand | Category | Optional fixed short list. Also suggests a default accent |
+| Brand | Logo | Square image, processed to WebP, with alt text |
+| Brand | Cover | Optional 16:9 image. Missing cover falls back to an accent gradient |
+| Look | Accent | One of the existing allow-list keys. Derives a soft tint |
 | Look | Card image ratio | `1/1`, `4/5` or `5/4` |
-| Links | Link buttons | Up to 8, ordered, show or hide |
+| Links | Link buttons | Up to 8. Vendor enters a handle, number or URL depending on kind; the server builds or validates it |
 
-Not in Phase 1: cover photo, announcement bar, themes, custom fonts, policies, featured items, custom domain.
+Not in Phase 1: announcement bar, themes, vendor-selected fonts, policies, featured items, header layouts, cover focal
+point, custom domain.
 
 ### 5.2 Schema
 
@@ -84,7 +89,11 @@ Existing columns are reused: `vendors.name`, `bio`, `location`, `category`, `acc
 alter table vendors
   add column if not exists tagline text,
   add column if not exists logo_url text,
-  add column if not exists logo_alt text;
+  add column if not exists logo_alt text,
+  add column if not exists logo_bg text not null default 'white'
+    check (logo_bg in ('white', 'mint')),
+  add column if not exists cover_url text,
+  add column if not exists verified_at timestamptz;
 
 create table if not exists vendor_links (
   id uuid primary key default gen_random_uuid(),
@@ -114,8 +123,12 @@ create unique index if not exists vendor_links_one_per_kind
 Notes:
 
 - No new bucket. Logo files go to the existing public storage bucket under
-  `${vendorId}/brand/logo-${uuid}.${ext}`.
-- Existing rows need no backfill. Null tagline, logo and links render exactly like today.
+  `${vendorId}/brand/logo-${uuid}.${ext}`; covers use `${vendorId}/brand/cover-${uuid}.${ext}`.
+- Existing rows need no backfill. Null tagline, logo, cover and links render exactly like today; `logo_bg` defaults to
+  white.
+- `verified_at` is set by admin only. The trust badge is hidden while it is null.
+- Existing free-text categories are preserved. The editor shows an unknown value as **Other** and saves one of the fixed
+  values on the next edit.
 - No draft table in Phase 1. Saves go live immediately. Phase 2 adds draft and publish once there are sections and
   themes worth staging.
 
@@ -129,24 +142,55 @@ All values are trimmed and length-checked on the server, not only in the browser
 | Tagline | 2 to 80 characters, plain text |
 | Bio | 500 characters or fewer |
 | Location | 60 characters or fewer, optional |
-| Category | 40 characters or fewer, optional |
-| Logo | JPG, PNG, WebP or AVIF, 2MB or less, at least 128 by 128. Square is recommended, not required |
+| Category | One of the fixed list, optional. Legacy values outside it map to **Other** |
+| Logo | Input JPG, PNG, WebP or AVIF, 2MB or less, at least 128 by 128. Stored WebP, max 512px, with the original as a decode-failure fallback |
 | Logo alt | 120 characters or fewer. Defaults to "{shop name} logo" |
-| Accent | Must be a key in `SHOP_ACCENTS` |
+| Logo background | Not user input. Editor samples the corner and stores `white` or `mint`; fallback white |
+| Cover | Input JPG, PNG, WebP or AVIF, 5MB or less. Stored WebP, max 1600px wide, 16:9, with the original as a decode-failure fallback |
+| Accent | Must be a key in `SHOP_ACCENTS`. The tint is derived, never set |
 | Card ratio | `1/1`, `4/5` or `5/4` |
-| Link count | 8 visible or hidden rows per vendor |
+| Link input | Handle, number or URL depending on kind, 300 characters or fewer. The server builds or validates the URL |
+| Link URL | Built URL, 300 characters or fewer, host and protocol checked |
+| Link count | 8 visible or hidden rows per vendor. One row per social, website, maps and phone |
 | Link label | 2 to 40 characters |
-| Link URL | 300 characters or fewer, protocol checked per kind |
-| Link kind | One of the allow-list values. One row per social, website, maps and phone |
 
-URL rules:
+Fixed category list and suggested accent:
+
+| Category | Suggested accent |
+| --- | --- |
+| Beauty | rose |
+| Fashion | ink |
+| Food and drink | clay |
+| Home | sage |
+| Health | green |
+| Services | green |
+| Photography | ink |
+| Arts and crafts | sand |
+| Electronics | sage |
+| Other | green |
+
+The server builds the canonical URL before storing it:
+
+| Kind | Vendor enters | Server stores |
+| --- | --- | --- |
+| WhatsApp | Phone number | `https://wa.me/<8 to 15 digits>` |
+| Instagram | Handle, with or without `@` | `https://instagram.com/<handle>` |
+| TikTok | Handle | `https://www.tiktok.com/@<handle>` |
+| Snapchat | Handle | `https://www.snapchat.com/add/<handle>` |
+| Facebook | Handle | `https://facebook.com/<handle>` |
+| Phone | Number | `tel:+<digits>` |
+| Website | Full URL | As entered, `https://` only |
+| Maps | Full URL | As entered, `https://` only |
+| Custom | Full URL | As entered, `https://` only |
+
+The host and protocol checks below remain a safety net on the built URL:
 
 | Kind | Accepted |
 | --- | --- |
-| WhatsApp | `https://wa.me/<8 to 15 digits>` |
+| WhatsApp | `https://wa.me/<digits>` |
 | Instagram | `https://instagram.com/...` or `https://www.instagram.com/...` |
 | TikTok | `https://tiktok.com/@...` or `https://www.tiktok.com/@...` |
-| Snapchat | `https://snapchat.com/add/...` |
+| Snapchat | `https://snapchat.com/add/...` or `https://www.snapchat.com/add/...` |
 | Facebook | `https://facebook.com/...` or `https://www.facebook.com/...` |
 | Website | Any `https://` URL |
 | Maps | `https://maps.google.com/...`, `https://www.google.com/maps/...` or `https://goo.gl/maps/...` |
@@ -154,7 +198,8 @@ URL rules:
 | Custom | Any `https://` URL |
 
 Reject `javascript:`, `data:`, `file:`, relative URLs and anything that is not `https` (except `tel:` and `wa.me`).
-Server-side rate limit: 30 storefront saves per vendor per hour.
+Server-side rate limit: 30 storefront saves per vendor per hour. Logo input may be 2MB; the stored WebP is normally under
+200KB.
 
 ### 5.4 Editor
 
@@ -164,55 +209,79 @@ Entry points:
 
 - A "Customize your shop" card on `/dashboard`, above Items.
 - A link from `/dashboard/settings`.
-- A link from the shop preview itself for the signed-in vendor is not needed in Phase 1.
 
-Sections, each with its own Save button and inline result:
+Starter defaults on the first visit, when the shop has no customization:
+
+- Initials avatar, no logo.
+- Accent suggested from the category (5.3).
+- Placeholder rows for WhatsApp, Instagram and Website. They are examples and are not saved until edited.
+
+Sections:
 
 1. **Brand**
-   - Shop name
-   - Tagline
-   - About
-   - Location
-   - Category
-   - Logo: upload, preview in a 56px circle with `object-contain`, alt text, remove
+   - Shop name, tagline, about, location.
+   - Category as a short Dropdown from the fixed list.
+   - Logo: upload, client-side resize and WebP conversion, 56px circle preview using the sampled background, alt text,
+     remove.
+   - Cover: upload, 16:9 preview, gradient fallback, remove.
 2. **Links**
-   - List of current links in order, each with a 32px icon, label and host
-   - Show or hide, move up, move down, delete
-   - Add link: kind picker (shared Dropdown), label, URL
-   - Empty state: "Add WhatsApp, Instagram or your website."
+   - Kind Dropdown, handle, number or URL input depending on kind, optional label.
+   - The row shows the canonical URL the server will store.
+   - List with icon, label and host, plus show or hide, move up, move down, delete and add.
+   - Link operations save immediately with their own pending state, because they are list operations.
 3. **Look**
-   - Accent swatches from `SHOP_ACCENTS`, each labelled and shown as the primary button fill
-   - Card ratio: three visual choices with a sample tile
-4. **Footer of the editor**
-   - "View shop" link, always available
-   - "Changes save immediately. Your shop updates as soon as you tap Save."
+   - Accent swatches from `SHOP_ACCENTS`, each shown with its derived tint.
+   - Card ratio: three visual choices with a sample tile.
+
+Single save:
+
+- One sticky **Save changes** button for brand, look and cover.
+- A dirty-state indicator ("Unsaved changes") appears when a field differs from the saved value.
+- `PendingButton`, inline result and toast on success, preserved input and a specific error on failure.
+- Links are outside this save; they save as list operations.
+
+Preview:
+
+- Desktop: a sticky, side-by-side mini header and sample product card that update as fields, logo, cover, accent and
+  ratio change.
+- Mobile: **View shop** instead of a second preview.
+- The preview uses the same tokens, cover and gradient rules as the live page.
+
+Reset:
+
+- **Reset brand** clears tagline, about, location, category, logo, cover and logo alt. The shop name stays.
+- **Reset look** returns the accent to green and the ratio to `1/1`.
+- **Remove cover** clears only the cover.
+- Reset marks the form dirty; the sticky Save persists it.
 
 Interaction rules:
 
-- `PendingButton` with "Saving…" for every save.
-- Success: inline mint note and a toast ("Storefront updated.").
-- Failure: inline error with the specific reason, input preserved, retry by saving again.
-- Logo upload uses the same multipart form action pattern as the item editor.
+- No autosave.
+- Copy: "Changes go live when you save."
 - Mobile fields are 16px through the global rule.
-- No autosave. Each section saves explicitly.
 
 ### 5.5 Storefront rendering
 
 Data additions in `app/[handle]/page.tsx` and the shared types:
 
-- `StorefrontVendor`: `tagline`, `logoUrl`, `logoAlt`, `links`.
-- Links are fetched once with the vendor and ordered by `position`, filtered to `visible`.
+- `StorefrontVendor`: `tagline`, `logoUrl`, `logoAlt`, `logoBg`, `coverUrl`, `links`, `verifiedAt`.
+- Links are fetched once with the vendor, ordered by `position` and filtered to `visible`.
 - Item pages (`app/[handle]/i/[item]/page.tsx`) also read the logo and tagline.
 
 Header changes:
 
-- Avatar becomes a 56px white or mint circle with the logo inside, `object-contain`, 8px inner padding.
-- No logo keeps the existing initials avatar.
-- Tagline replaces the current bio line under the name when present. Bio moves to the Phase 2 about section; it is not
-  shown in the header.
-- Location and category line is unchanged.
-- Copyable address chip and WhatsApp CTA are unchanged.
-- The header still respects the 200px desktop and 260px mobile maximum.
+- The cover is the header card background, `object-cover`, 16:9 source, cropped to the card. A fixed scrim keeps the name
+  and tagline at 4.5:1. No cover uses a soft gradient derived from the accent. The header still respects the 200px
+  desktop and 260px mobile maximum.
+- `--shop-tint` is the accent at about 8% over white. It paints the header fallback, pills and badges. Text on the tint
+  is checked at 4.5:1.
+- The logo is a 56px circle with an 8px inner padding and `object-contain`. The circle background is `logoBg`, white or
+  mint. No logo keeps the initials avatar.
+- The shop name uses the display font from 5.11. The tagline replaces the current bio line. Bio moves to the Phase 2 about
+  section; it is not shown in the header.
+- A quiet "Verified by sikatree" badge sits near the name only when `verifiedAt` is set. It is admin-controlled and
+  never a vendor toggle.
+- Location and category line, copyable address chip and WhatsApp CTA are unchanged.
 
 Link buttons:
 
@@ -229,47 +298,65 @@ Link buttons:
 Sticky bar:
 
 - Uses the logo if present, otherwise initials, at 32px.
-- Cart behaviour stays as it is.
+- It fades in on scroll with CSS only (5.11); the cart behaviour stays as it is.
 
 Open Graph:
 
-- Phase 1 uses the logo as `og:image` only when it is at least 400 by 400. Otherwise it keeps the existing brand card.
-- The title and description use the tagline when present.
+- A generated card route at `app/[handle]/opengraph-image.tsx` composes the logo, name, tagline, accent and location. It
+  replaces the old logo-only rule.
+- The route is cached and revalidated when the storefront is saved.
 - Item pages keep the item photo as their Open Graph image.
-- Phase 2 replaces this with a generated per-shop card that composes the logo, name and accent.
+
+Typography:
+
+- The shop name uses the one self-hosted display font from 5.11 on the storefront, item page and generated card. Body
+  copy keeps the current font.
 
 Fallbacks:
 
 - No logo: initials.
+- No cover: accent gradient.
 - No tagline: nothing, header height collapses.
 - No links: no row.
-- Broken or deleted logo URL: initials, with a server-side check that the URL is still a string.
+- Broken or deleted logo or cover URL: initials and gradient, with a server-side check that the URL is a string.
 
-### 5.6 Logo upload
+### 5.6 Logo and cover upload
 
 - Reuse the Supabase Storage setup from item images.
-- New helper `uploadVendorImage(vendorId, bytes, mime)` in `lib/vendor-assets.ts`, writing to
-  `${vendorId}/brand/logo-${uuid}.${ext}`.
-- Accept JPG, PNG, WebP and AVIF up to 2MB.
-- Client-side check that the image is at least 128 by 128; warn when it is not square but allow it.
-- Render with `object-contain`; never crop a wordmark.
-- Alt text is required in the UI only when the logo is present. Default to "{shop name} logo" when blank.
-- Replacing a logo leaves the old object in storage. Add a cleanup job in Phase 2; do not block Phase 1 on it.
-- Delete the database URL on remove; do not delete the object immediately.
+- New helper `uploadVendorImage(vendorId, kind, bytes, mime)` in `lib/vendor-assets.ts`, writing to
+  `${vendorId}/brand/logo-${uuid}.${ext}` or `${vendorId}/brand/cover-${uuid}.${ext}`.
+- Logo input accepts JPG, PNG, WebP and AVIF up to 2MB, at least 128 by 128. In the editor, resize to a maximum of 512px
+  and convert to WebP before upload; the stored output is WebP. If the browser cannot decode the file, upload the
+  original and keep the 2MB guard.
+- The logo circle background is chosen in the editor by sampling the logo corner pixel. Transparent or dark corners get
+  mint; light corners get white. If sampling is unavailable or ambiguous, fall back to white. Store the choice in
+  `logo_bg`; buyer pages read the stored value and run no sampling code.
+- Cover input accepts JPG, PNG, WebP and AVIF up to 5MB. Resize to a maximum of 1600px wide and convert to WebP, keeping a
+  16:9 preview. If processing fails, upload the original and keep the guard.
+- Render with `object-contain` for the logo and `object-cover` for the cover; never crop a wordmark.
+- Alt text is required in the UI only when the logo is present. Default to "{shop name} logo" when blank. Cover alt
+  defaults to "{shop name} cover".
+- Replacing an image leaves the old object in storage. Add a cleanup job in Phase 2; do not block Phase 1 on it.
+- Delete the database URL on remove; do not delete the object immediately. Removing the logo also resets `logo_bg` to
+  white.
 
 ### 5.7 Actions and data layer
 
 New server actions in `app/dashboard/storefront/actions.ts`:
 
-- `saveBrandAction` (name, tagline, bio, location, category, logo, logo alt, accent, card ratio)
+- `saveStorefrontAction` (name, tagline, bio, location, category, logo, logo alt, logo background, cover, accent and
+  card ratio) as one save for brand, look and cover.
 - `addLinkAction`
 - `updateLinkAction`
 - `deleteLinkAction`
 - `moveLinkAction`
 
-All return `{ ok?: true; error?: string }`, revalidate `/dashboard/storefront` and `/${handle}`, and are wrapped so an
-unexpected failure returns a readable error instead of an application error. Use the same toast then refresh pattern as
-the order actions.
+Link actions stay separate because they are list operations and save immediately. Reset is a client-side operation that
+clears the fields and marks the form dirty; the single save persists it.
+
+All actions return `{ ok?: true; error?: string }`, revalidate `/dashboard/storefront`, `/${handle}` and the generated
+Open Graph route, and are wrapped so an unexpected failure returns a readable error instead of an application error. Use
+the same toast then refresh pattern as the order actions.
 
 New domain helpers in `lib/storefront.ts`:
 
@@ -277,23 +364,32 @@ New domain helpers in `lib/storefront.ts`:
 - `saveStorefrontSettings(vendorId, input)`
 - `listVendorLinks(vendorId, options)`
 - `createVendorLink`, `updateVendorLink`, `deleteVendorLink`, `moveVendorLink`
-- `validateVendorLink(kind, url)` exported for unit tests.
+- `buildVendorLinkUrl(kind, input)` exported for unit tests
+- `validateVendorLink(kind, url)` exported for unit tests
+- `suggestAccentForCategory(category)` for starter defaults
 
 The storefront is `force-dynamic`, so no cache invalidation is required for correctness, but `revalidatePath` keeps the
-dashboard and any prefetched payload in step.
+dashboard, share card and any prefetched payload in step.
 
 ### 5.8 Tests
 
 Unit:
 
 - URL validation for every kind, including rejected protocols and wrong hosts.
-- Accent fallback and ratio validation.
-- Tagline and link label length.
+- `buildVendorLinkUrl` for every kind: handle cleanup, `@` removal, phone digits, `wa.me`, `tel:`, and pass-through for
+  website, maps and custom.
+- Category list validation, legacy mapping and `suggestAccentForCategory`.
+- Accent fallback, card ratio and tint contrast.
+- Tagline, label and cover validation.
+- Link count and one-per-kind rules.
 
 Integration (`lib/storefront.integration.test.ts`):
 
-- Save brand fields and read them back.
-- Logo URL and alt persist; removal sets null.
+- Save brand, look and cover in one `saveStorefrontAction`; read them back.
+- Logo URL, alt and `logo_bg` persist; removal sets null.
+- Cover persists and removal returns the gradient fallback.
+- Reset brand and reset look persist nulls, green accent and `1/1`.
+- Category saves only from the fixed list; an old free-text value maps to Other.
 - Add, reorder, hide and delete links.
 - One link per social kind; custom links can repeat.
 - Max 8 links.
@@ -302,26 +398,43 @@ Integration (`lib/storefront.integration.test.ts`):
 
 Browser smoke:
 
-- 360px and 1440px: logo and initials fallback, tagline, links order and hiding, accent and card ratio.
-- Item page uses the logo.
-- Open Graph tags use the logo only when it qualifies.
+- 360px and 1440px: cover or gradient fallback, logo circle background, tagline, links order and hiding, tint, accent and
+  card ratio.
+- The desktop live preview updates as fields and look change; the dirty indicator appears and reset clears a section.
+- Single save shows the toast and preserves input on error.
+- Item page uses the logo and tagline.
+- The generated Open Graph route returns an image and reflects the saved accent and logo.
+- Logo processing produces a WebP at 512px or less and falls back safely when decoding fails.
 - No horizontal overflow.
-- Save, toast, view shop.
+- The display font is preloaded and within its file budget.
 
 Budget:
 
 - Landing page JS unchanged.
 - Storefront adds no client JavaScript for themes; only the editor adds JS.
+- The display font is a single WOFF2 under 30KB.
+- The generated card route adds no buyer-side JavaScript.
 
 ### 5.9 Acceptance checklist
 
-- [ ] A vendor can upload a logo and see it in the header, sticky bar and item page.
+- [ ] A vendor can upload a cover and see it as the header background, or the accent gradient when none is set.
+- [ ] A vendor can upload a logo and see it in the header, sticky bar, item page and generated card.
+- [ ] The logo circle background is white or mint from the sampled corner, with white as the fallback.
 - [ ] A vendor can set a tagline and see it under the shop name.
-- [ ] Up to 8 links can be added, reordered, hidden and removed.
-- [ ] Invalid links, accents and ratios are rejected with a clear message and preserved input.
-- [ ] Changes are live on save, with an inline confirmation and a toast.
+- [ ] Up to 8 links can be added from a handle, number or URL, reordered, hidden and removed.
+- [ ] The category is chosen from the fixed list, and the suggested accent matches it.
+- [ ] The accent tint is derived, reaches 4.5:1 for text on it, and cannot be vendor-set.
+- [ ] The desktop live preview updates while editing; mobile has View shop.
+- [ ] Reset brand and reset look clear a section and mark the form dirty.
+- [ ] One sticky Save changes saves brand, look and cover, with a dirty indicator, inline result and toast.
+- [ ] Invalid links, accents, ratios, categories and images are rejected with a clear message and preserved input.
+- [ ] The generated Open Graph card route returns an image with the logo, name, tagline, accent and location.
+- [ ] Logo processing stores a WebP at 512px or less, with a safe fallback when decoding fails.
+- [ ] The verified badge appears only when an admin sets `verified_at`.
+- [ ] Item pages keep the item photo as their share image.
 - [ ] A vendor with no customization sees exactly the current storefront.
 - [ ] No buyer-side JavaScript is added by customization.
+- [ ] The display font is self-hosted, Latin subset, one weight, preloaded and within 30KB.
 - [ ] The mobile page has no horizontal overflow at 360px.
 - [ ] Every field is 16px on mobile.
 - [ ] The landing performance budget still passes.
@@ -331,11 +444,39 @@ Budget:
 1. Apply the migration. Existing shops are unchanged.
 2. Ship the editor behind a dashboard link, visible to all vendors. No public surface changes until they save.
 3. Update the vendor guide with "Customize your shop".
-4. Test with three design partners: upload a real logo, add two links, check the share preview.
+4. Test with three design partners: upload a real logo and cover, add two links, check the live preview, reset, and the
+   generated share card.
 5. Watch support tickets and contrast or layout complaints for a week.
 
 A feature flag is optional. The migration is additive and the UI is the only new surface, so an environment flag can gate
 the dashboard card if needed.
+
+### 5.11 Polish foundations
+
+These apply to the storefront and the editor preview.
+
+- **Tokens:** one radius scale (`--r-panel`, `--r-card`, `--r-tile`, `--r-control`, `--r-inner`, `--r-pill`), one soft
+  shadow set (`--shadow-card`, `--shadow-raised`), and semantic names (`--surface`, `--surface-muted`, `--text`,
+  `--text-muted`, `--border`, `--accent`, `--accent-tint`) aliased to the current values. Dark mode stays out, but the
+  names make it a later theme swap instead of a rewrite.
+- **Press and hover:** every pill and card has a 150ms press at scale 0.98. Hover lift only on fine pointers, and none
+  under reduced motion.
+- **Images:** every item image reserves its aspect ratio and shows a tiny blur-up placeholder or skeleton. Never a blank
+  white box, never a layout shift.
+- **Sticky bar:** CSS-only fade and slide on scroll where supported, with a visible fallback and no added JavaScript. The
+  current observer is replaced when this ships; flag the `DESIGN.md` change.
+- **Icons:** one local set, one stroke width (1.75) and two sizes (16 and 20). No mixed icon libraries.
+- **Trust badge:** quiet "Verified by sikatree" pill near the shop name, shown only when `verifiedAt` is set. It is not a
+  vendor toggle and not a paid feature in Phase 1.
+- **Display font:** **Playfair Display 500 roman**, self-hosted as one Latin-subset WOFF2, preloaded with
+  `next/font/local`, used for shop names on the storefront, item page and generated card. Target under 30KB. The existing
+  italic 400 stays for accent words and body copy keeps Inter Tight. No vendor font choice.
+- **Performance:** the display font is added to the font line in `PERFORMANCE.md`. None of these polish items may add
+  buyer-side JavaScript.
+- **Dark mode:** out of scope. Semantic tokens are ready for it later.
+
+Record the token names, display font, radius and shadow scale in `DESIGN.md`, and the font file in `PERFORMANCE.md`, before
+implementation.
 
 ## 6. Phase 2
 
@@ -351,8 +492,7 @@ No free-form colours, no custom fonts, no dark mode yet. Every preset is checked
 
 ### 6.2 Structure
 
-- Cover photo, 16:9, with focal point.
-- Header layout: compact or cover.
+- Cover focal point and header layouts: compact or cover.
 - Announcement bar, 80 characters, dismissible, no countdown.
 - Featured items section.
 - About section and two policy blocks: delivery and returns.
@@ -367,7 +507,6 @@ No free-form colours, no custom fonts, no dark mode yet. Every preset is checked
 
 ### 6.4 Sharing
 
-- Generated per-shop Open Graph card with logo, name, accent and location.
 - QR code for the shop and for items.
 - Share message uses the tagline.
 
@@ -383,10 +522,12 @@ No free-form colours, no custom fonts, no dark mode yet. Every preset is checked
 Non-negotiable:
 
 - No arbitrary CSS, HTML or JavaScript from vendors.
-- No free colour picker. Extend the accent allow-list instead.
+- No free colour picker. Extend the accent allow-list instead. The accent tint is derived from the allowed accent and
+  is never vendor-set.
 - No custom checkout, payment, tracking or status styling.
-- No external hotlinked images or fonts.
+- No external hotlinked images. No vendor-supplied fonts or custom CSS.
 - No per-vendor JavaScript.
+- No vendor toggle for the verified badge; verification is admin-set.
 - No vendor page that hides the sikatree trust footer until a paid plan explicitly allows it.
 - No customization that breaks the 360px layout, contrast or the performance budget.
 - No free-form page builder. Fixed sections only.
@@ -400,18 +541,22 @@ Non-negotiable:
 | Links | Up to 8 | Yes |
 | Accent and card ratio | Yes | Yes |
 | Theme presets | Classic only | All |
-| Cover and header layouts | No | Yes |
+| Cover photo (basic 16:9) | Yes | Yes |
+| Header layouts | No | Yes |
 | Announcement, featured, policies | No | Yes |
 | Draft and publish | No | Yes |
 | Custom domain | No | Yes |
 | Hide powered-by | No | Yes |
-| QR and generated share card | Basic | Custom |
+| Generated Open Graph card | Yes | Yes |
+| QR code | No | Yes |
 
 Pricing is not part of this document. The gating above matches the Pro direction in `PLAN.md` section 16.
 
 ## 10. Metrics
 
 - Share of live vendors with a logo, tagline or link within 7 days.
+- Share of live vendors with a cover within 7 days.
+- Share of shop shares whose preview is served by the generated card.
 - Share of vendors who save the editor twice within 30 days.
 - Storefront conversion for customized versus default shops, once there are orders.
 - Support tickets per vendor related to customization.
@@ -428,41 +573,43 @@ Pricing is not part of this document. The gating above matches the Pro direction
 | Slow storefront | CSS variables, no per-vendor JS, compressed images, budget |
 | Support load | Limited fields, defaults, no page builder |
 | Half-finished live pages | Phase 1 fields are small and reversible; Phase 2 adds draft and publish |
-| Storage abuse | 2MB logo limit, per-vendor quota, content moderation |
+| Storage abuse | 2MB logo and 5MB cover input limits, processed output, per-vendor quota, content moderation |
+| Logo background sampling edge cases | White fallback when canvas is unavailable or the corner is ambiguous; store `logo_bg` so buyer pages do not sample |
 | Vendor confusion | "Changes go live immediately" copy and View shop |
 
 ## 12. Decisions and recommendations
 
 | Decision | Recommendation |
 | --- | --- |
-| Draft and publish in Phase 1 | **No.** Save live with clear copy. Add draft and publish in Phase 2 with sections and themes |
+| Draft and publish in Phase 1 | **No.** One save goes live with clear copy. Phase 2 adds draft and publish |
+| Single save | **Yes.** One sticky Save for brand, look and cover; links save immediately as list operations |
 | Shop name editable | **Yes.** Display name can change; handle stays immutable |
-| Logo crop | **No crop in Phase 1.** Square recommended, `object-contain` in a circle |
-| Cover photo | **Phase 2.** Logo, tagline and links first |
+| Logo crop | **No crop in Phase 1.** Square recommended, `object-contain` in a circle, client resized to 512px WebP |
+| Logo circle background | **Sampled in the editor**, white or mint, white fallback, stored in `logo_bg` |
+| Cover photo | **Phase 1, basic 16:9.** Focal point and header layouts in Phase 2 |
+| Category | **Fixed list.** Unknown legacy values map to Other |
 | Link count | **Eight.** Enough for socials, website, maps and phone |
 | One link per social | **Yes.** Unique except custom links |
 | Themes | **Phase 2.** Accent and card ratio first |
-| Open Graph | **Phase 1 logo only when 400 by 400 or larger**, else the brand card |
-| Gating | Basics free; themes, domain and powered-by removal Pro |
+| Open Graph | **Phase 1 generated card.** Item pages keep the item photo |
+| Accent tint | **Derived only.** Never vendor-set |
+| Display font | **One self-hosted font, no vendor choice** |
+| Verified badge | **Admin-set.** Hidden until `verifiedAt`, not a paid feature in Phase 1 |
+| Gating | Basics free; themes, header layouts, domain and powered-by removal Pro |
 
 ## 13. Open questions
 
-1. Should the vendor be able to hide the location and category entirely, or only clear them? Clearing is the same as
-   hiding for now.
-2. Should a custom link allow `mailto:`? Recommendation: yes, add a `mailto:` kind rather than a free protocol.
-3. Is a 2MB logo limit enough for real vendor files? Most logos are under 500KB after export.
-4. Can a vendor delete the logo and fall back to initials? Yes, that must be possible.
-5. Who reviews reported logos and shop pages during the pilot? Probably the operator, manually.
-6. Should Phase 1 ship to every vendor or only design partners first? Recommendation: design partners first, then all.
+1. Should a custom link allow `mailto:`, or should email be a separate kind?
+2. Who reviews reported logos, covers and shop pages during the pilot, and how fast?
+3. Should Phase 1 ship to every vendor or only design partners first? Recommendation: design partners first.
 
 ## 14. Build order for Phase 1
 
-1. Migration `0025_storefront_customization.sql` and the link table.
-2. `lib/storefront.ts` validation, reads and writes, with unit and integration tests.
-3. Server actions and the editor route.
-4. Storefront and item page rendering with fallbacks.
-5. Logo upload through the existing storage path.
-6. Open Graph tagline and logo rules.
+1. Migration (tagline, logo, cover, links) and `lib/storefront.ts` with tests.
+2. Handle-to-URL link building.
+3. Header with cover or gradient fallback, accent tint and sticky bar.
+4. Single-save editor with live preview and reset.
+5. Logo and cover upload with client-side processing.
+6. Generated Open Graph card.
 7. Browser smoke at 360px and 1440px, plus the performance budget.
-8. Vendor guide and dashboard entry.
-9. Design partner review.
+8. Vendor guide, dashboard entry and design partner review.
