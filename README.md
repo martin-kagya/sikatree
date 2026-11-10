@@ -13,6 +13,7 @@ web signup with email sign-in, and the Paystack payment adapter (test mode).
 - Payments (Paystack): [`docs/PAYMENTS.md`](docs/PAYMENTS.md)
 - Web signup and email sign-in: [`docs/EMAIL.md`](docs/EMAIL.md)
 - Vendor guide (share with shop owners): [`docs/VENDOR-GUIDE.md`](docs/VENDOR-GUIDE.md)
+- Storefront customization spec: [`docs/STOREFRONT-CUSTOMIZATION.md`](docs/STOREFRONT-CUSTOMIZATION.md)
 
 ## Stack
 

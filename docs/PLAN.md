@@ -361,6 +361,10 @@ Backend detail, environment variables and the operational runbook live in
 
 **Goal:** Clients can buy products and pay with MoMo; vendors get orders on WhatsApp.
 
+**Customization:** brand fields, logo, links, accent and card ratio are specified in
+[`STOREFRONT-CUSTOMIZATION.md`](STOREFRONT-CUSTOMIZATION.md), with themes, draft and publish, and custom domains in
+later phases.
+
 **Build**
 - [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06) (partial: accent themes, categories, product/service tabs, quick view, vendor-page OG tags, share links and per-item pages with their own OG image (`/{handle}/i/{item}`, PG-05) ship; link buttons (PG-03) are missing, and it is one accent per vendor, not the three themes in PG-04)
 - [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04) (partial: static assets are prepared by `scripts/optimize-images.mjs` and served from the CDN; uploaded item photos are stored at full size with no compression or responsive variants)
