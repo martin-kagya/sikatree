@@ -2,10 +2,38 @@
 
 | | |
 |---|---|
-| **Version** | 0.3 (draft): fee model, Pro tier, payouts and referral program decided (section 16) |
-| **Date** | 2026-11-06 |
+| **Version** | 0.4: checklists and status notes reconciled with the shipped code |
+| **Date** | 2026-11-10 |
 | **Companion docs** | `requirement.md` (requirement IDs such as `ONB-10` and `LP-12` are referenced below), `DESIGN.md` |
 | **Parent brand** | Ostra (minor design accents only; see `DESIGN.md`) |
+
+---
+
+## Status snapshot (2026-11-10)
+
+**Live.** Landing page, waitlist and admin at `https://sikatree.africa` (Cloudflare Workers, Hyperdrive,
+production Supabase, 22 migrations applied there; 0023 and 0024 ship with this change, `/api/health`
+green). 15 signups, 8 reserved handles and 2,081 analytics events recorded in production.
+
+**Shipped beyond Phase L:** the WhatsApp onboarding bot (webhook, durable queue, conversation engine,
+photo and text item parsing, magic-link dashboard), the public storefront (accent themes, categories,
+quick view, cart, guest checkout, delivery fees and ETAs), the order loop (codes, lifecycle, tracking
+page, vendor WhatsApp alert), the vendor dashboard (catalogue with up to five photos, orders, settings,
+support, CSV export), service availability with the slot engine, web signup with email sign-in, the
+Paystack adapter in test mode, and admin waitlist, support inbox and onboarding funnel.
+
+**Verified on 2026-11-10:** `pnpm typecheck` clean, `pnpm test` 160 tests in 25 files, and the CI gates
+(typecheck, test, migrate, build, landing-page performance budget) run on every push to `main` and every
+pull request.
+
+**Not started:** platform and buyer fees (PAY-03, PAY-04), refunds, payouts, client notifications, Web
+Push, the PWA shell, booking deposits and reminders, admin vendor/payment/audit views, and monitoring.
+
+**Blocked outside the code:** Meta Business verification and a WhatsApp Business number (so
+`NEXT_PUBLIC_WHATSAPP_NUMBER` is unset and "Confirm on WhatsApp" is hidden in production), Paystack
+compliance for live collection (test mode works today), WhatsApp template approvals, and legal review
+plus Data Protection registration. These are external, so their status cannot be verified from the
+repository; the Phase 0 items stay unchecked until someone confirms them.
 
 ---
 
@@ -33,18 +61,19 @@
 
 | Area | Choice | Status | Notes |
 |---|---|---|---|
-| Web framework | **Next.js (App Router) + TypeScript** | Proposed | SSR for fast public pages; the same codebase serves the PWA |
-| Styling | Tailwind CSS + a small component library | Proposed | Keep bundle small |
-| Database / auth / storage | **Supabase** (Postgres, Storage, RLS, Edge Functions) | Proposed | Custom auth via WhatsApp magic link (see 6.4) |
-| Queue / background jobs | Postgres-based queue (`pgmq`) or a hosted queue (e.g. QStash) + scheduled jobs (`pg_cron`) | To decide | Needed for webhooks, retries, reminders, hold expiry |
-| PWA | Web App Manifest + service worker (e.g. Serwist) + Web Push | Proposed | Android-first |
-| WhatsApp | **WhatsApp Business Platform, Cloud API** (direct from Meta, or via a BSP) | To decide | Direct is cheaper; a BSP can ease approval and tooling |
-| Payments | **Paystack** (1.95% on cards, MoMo and bank transfer; GHS 1 per MoMo payout) | Decided, pending KYC | Keep the provider interface so a second provider can plug in; criteria in 3.1 guide the fallback |
-| LLM parsing | Claude API with structured (JSON schema) output; rules-first for simple patterns | Proposed | Cheaper model for text, vision-capable model for photos; cost and accuracy tracked |
-| Hosting | Cloudflare (web, about $5 per month on the current implementation) + Supabase Pro (data/functions, about $25 per month) | Decided | Check regional latency for Ghana users; CDN images; recheck Cloudflare cost as traffic grows |
-| Observability | Sentry (errors), PostHog or similar (analytics), uptime monitor | Proposed | |
-| Testing | Vitest/Jest (unit), Playwright (e2e), WhatsApp payload fixtures | Proposed | |
-| CI/CD | GitHub Actions, preview deployments per PR | Proposed | |
+| Web framework | **Next.js 15 (App Router) + TypeScript** | Decided, shipped | Landing, storefront, dashboard, bot and admin all run on it |
+| Styling | Tailwind CSS + a small in-repo component library | Decided, shipped | Tokens from `DESIGN.md`; no external UI dependency |
+| Database / auth / storage | **Supabase** Postgres, Storage and RLS | Decided, shipped | Custom WhatsApp magic-link auth, not Supabase Auth; item photos in Storage |
+| Queue / background jobs | Postgres table `wa_job` with `FOR UPDATE SKIP LOCKED`, retries and backoff; `/api/internal/jobs/run` for the scheduler | Decided, shipped | No pgmq or QStash; a Cron Trigger or external scheduler drains it |
+| PWA | Web App Manifest + service worker (e.g. Serwist) + Web Push | Proposed, not started | Android-first |
+| WhatsApp | **WhatsApp Business Platform, Cloud API** direct from Meta | Decided, shipped | `console` provider locally, `cloud` provider to the Graph API; no BSP |
+| Payments | **Paystack** (1.95% on cards, MoMo and bank transfer; GHS 1 per MoMo payout) | Adapter shipped, test mode; live pending compliance | Checkout initialization, server-side verification, signed webhook, paid state and settlement ledger exist (`docs/PAYMENTS.md`); fees, refunds and payouts do not |
+| Email | Resend HTTP API in production, console sender locally | Decided, shipped | Magic links for signup and sign-in only (`docs/EMAIL.md`); receipts and order updates pending |
+| LLM parsing | Claude API with structured (JSON schema) output; rules-first for simple patterns | Proposed, not wired | Rules parser ships for text and photo captions; no model call and no vision |
+| Hosting | Cloudflare Workers + Hyperdrive for the web app, Supabase for Postgres | Decided, shipped | Live on `sikatree.africa`; recheck Cloudflare cost as traffic grows |
+| Observability | Sentry (errors), PostHog or similar (analytics), uptime monitor | Proposed, not started | Only the in-house `analytics_event` table exists (2,081 events) |
+| Testing | Vitest (unit and Postgres integration), Playwright (landing perf budget) | Decided, shipped | 131 tests; no e2e journey suite and no WhatsApp payload fixture corpus |
+| CI/CD | GitHub Actions; `wrangler deploy` for production | Decided, shipped | No preview deployment per PR |
 
 ### 3.1 Payment provider decision criteria (Phase 0)
 Score each candidate on: MoMo collection fee, card fee, payout-to-MoMo availability and fee, settlement speed, split payments or sub-accounts (for platform fees), refund API, MoMo name-lookup API, webhook reliability and signature scheme, KYC and onboarding time for a platform business, support responsiveness, and sandbox quality. Pick one primary; design the interface so a second can plug in.
@@ -82,24 +111,24 @@ Cloud API                (verify signature,    notifications)          │
 
 ---
 
-## 5. Repository layout (suggested)
+## 5. Repository layout (actual)
 
 ```
-/apps
-  /web                 Next.js: public pages, checkout, vendor PWA, admin
-/packages
-  /domain              business logic: catalogue, orders, bookings, ledger
-  /whatsapp            client, message builders, templates, conversation engine
-  /parsing             rules + LLM parsers, schemas, eval fixtures
-  /payments            provider interface + adapter(s)
-  /notifications       channel routing, templates, fallbacks
-  /db                  migrations, seed data, generated types
-  /i18n                translation catalogues (en, tw)
-/docs                  requirement.md, PLAN.md, ADRs, runbooks
-/scripts               one-off tooling (template sync, data fixes)
+/app                   Next.js App Router: landing, /[handle], /o/[code], dashboard, admin, auth
+  /api                 availability, handles, analytics ingest, health, WhatsApp webhook, jobs runner
+/components            landing sections, phone hero, WaitlistForm, storefront, dashboard forms
+/lib                   domain services: waitlist, catalogue, orders, inventory, availability, shop,
+                       notifications, handle, offer, money, db; /lib/whatsapp (engine, copy, provider)
+/db/migrations         plain Postgres migrations, applied by scripts/migrate.mjs
+/scripts               migrate, db-check, image optimizer, perf budget, demo seeds, WhatsApp simulator
+/tests                 Vitest global setup (creates and migrates the throwaway sikatree_test database)
+/docs                  requirement, plan, design, storefront, waitlist, WhatsApp, performance
+/public                static images, Ostra marks, Cloudflare `_headers`
 ```
 
-A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, begin with folders inside one Next.js app and extract packages as boundaries solidify.
+The plan originally proposed a pnpm monorepo with `domain`, `whatsapp`, `parsing`, `payments` and
+`notifications` packages. The single Next.js app won on purpose: one deploy, shared types, no package
+build step. Extract a package only when a second consumer appears (for example a standalone job worker).
 
 ---
 
@@ -107,11 +136,11 @@ A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, b
 
 ### 6.1 Data model essentials
 - Money stored as **integer pesewas**; currency fixed to GHS.
-- `booking` uses a time range column with a **Postgres exclusion constraint** (`btree_gist`) to prevent overlapping bookings for the same vendor/resource; this is the final guard against double-booking, with a transaction around slot confirmation.
+- `booking` uses a time range column with a **Postgres exclusion constraint** (`btree_gist`) to prevent overlapping bookings for the same vendor/resource; this is the final guard against double-booking, with a transaction around slot confirmation (planned for Phase 4; not built).
 - Order and booking codes: short, uppercase, Crockford-style base32 without ambiguous characters, with a prefix (`ORD-`, `BKG-`), generated with collision retry.
 - `wa_message.provider_message_id` is **unique**, which gives idempotency for webhook retries.
-- `ledger_entry` is append-only; balances are derived.
-- Stock holds: a `stock_hold` table with expiry; a scheduled job releases expired holds.
+- `ledger_entry` is append-only; balances are derived (planned for Phase 2; not built).
+- Stock holds: a `stock_hold` table with expiry; a scheduled job releases expired holds (planned for Phase 2/3; not built).
 - Row-level security on every vendor-owned table; service-role access only in server code.
 
 ### 6.2 WhatsApp conversation engine
@@ -147,8 +176,8 @@ A simple monorepo (pnpm workspaces) is enough. If it feels heavy at the start, b
 ### 6.4 Authentication
 - Vendor identity = verified WhatsApp number (they messaged us from it).
 - **Magic link:** bot generates a single-use, short-lived token tied to the vendor, sent as an "Open dashboard" button. Exchange the token for a session on the web app.
-- Sessions via secure, HTTP-only cookies; device list and revocation in settings.
-- Implement through a custom auth flow that issues sessions compatible with Supabase RLS (e.g. a signed JWT carrying the vendor ID), or use Supabase auth with a custom phone provider. Decide in Phase 1 with a short spike.
+- Sessions via secure, HTTP-only cookies; device list and revocation in settings (sessions ship: signed 30-day cookie in `lib/vendor-auth.ts`; no device list or revocation yet).
+- Decided in Phase 1: a custom session, not Supabase Auth. A single-use, 15-minute magic link is exchanged for an HMAC-signed cookie; the server connects with the table-owner role and bypasses RLS.
 
 ### 6.5 Payments
 - `PaymentProvider` interface: `createCollection`, `verifyCollection`, `refund`, `createPayout`, `lookupAccountName`, `parseWebhook`.
@@ -226,20 +255,25 @@ The risk is WhatsApp account takeover. With no second factor, whoever controls t
 | 7 | Public launch push (see distribution below); watch analytics; fix the top drop-off |
 
 **Build checklist**
-- [ ] Landing page sections and copy (LP-01, LP-02), with at least 2 headline variants wired for testing (LP-24, P1)
-- [ ] Gallery hero with tilted tiles and a static fallback (LP-03)
+- [x] Landing page sections and copy (LP-01, LP-02): hero, problem gallery, sample stores, how it works, why sikatree, founding vendors, FAQ, waitlist, footer
+- [ ] Headline variants wired for testing (LP-24, P1): one headline ships; there is no variant switch and no experiment measurement
+- [x] Hero (LP-03): the phone-demo hero ships with a reduced-motion path; the tilted-tile gallery was superseded by the phone-demo direction (`DESIGN.md` §9)
 - [x] Performance budget enforced in CI: LCP, JS size, image weights (LP-04; JS budget set at 130 kB because the Next framework floor is 102 kB, see `docs/PERFORMANCE.md`)
 - [x] SEO metadata, Open Graph image, favicon, WhatsApp share preview (LP-05, LP-06)
 - [x] Waitlist form with 3 fields, Ghana phone formats, consent line (LP-09, LP-10)
 - [x] Handle reservation with real-time availability (LP-11)
 - [x] Duplicate detection and position-in-line (LP-12, LP-14)
-- [x] "Confirm on WhatsApp" deep link opening the 24-hour window (LP-12)
+- [ ] "Confirm on WhatsApp" deep link opening the 24-hour window (LP-12): the link is built in `components/WaitlistForm.tsx`, but `NEXT_PUBLIC_WHATSAPP_NUMBER` is unset in production, so the button is hidden today; the footer also hardcodes a bare `https://wa.me/` (`components/footer.tsx`)
 - [ ] WhatsApp welcome template submitted for approval and sent after signup (LP-13); until approved, show the confirmation on-page and via SMS or email fallback if collected
 - [x] Founding Vendor offer block, configurable (LP-16, `lib/offer.ts`)
-- [ ] Anti-abuse: rate limits, honeypot, bot challenge (LP-19)
-- [x] Analytics funnel and UTM capture (LP-20)
+- [x] Anti-abuse: honeypot, time trap and Postgres rate limits (LP-19); Turnstile is optional and unwired
+- [x] Analytics funnel and UTM capture (LP-20): capture and the onboarding funnel in admin; no per-section funnel dashboard
 - [x] Basic admin: waitlist list, filters, CSV export, status field (LP-21)
-- [ ] Unsubscribe and privacy notice (LP-23, LP-25)
+- [ ] Unsubscribe and privacy notice (LP-23, LP-25): privacy and terms are published; unsubscribing from admin frees the handle, but a bot `STOP` does not yet mark the waitlist row unsubscribed
+
+**Status (2026-11-10):** live on `sikatree.africa`. Still open in this phase: the WhatsApp welcome
+template, the `wa.me` footer handoff and the success-state Confirm button (all three need the Business
+account), headline experiments, and unsubscribe from the bot.
 
 Backend detail, environment variables and the operational runbook live in
 `docs/WAITLIST.md`.
@@ -272,7 +306,8 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Start Meta Business verification and create a WhatsApp Business account with a dedicated number
 - [ ] Choose and apply for the payment aggregator account (KYC can take days to weeks); get sandbox keys
 - [ ] Submit WhatsApp message templates for approval (list in 6.3)
-- [ ] Register the domain; reserve social handles; decide the working name
+- [x] Register the domain and decide the working name: `sikatree.africa` is live under the Ostra parent brand
+- [ ] Reserve social handles: the footer's social icons are non-interactive placeholders
 - [ ] Get legal input on Terms, Privacy Policy and Data Protection registration; confirm whether any planned feature (escrow) needs extra licensing
 
 **Validation**
@@ -282,9 +317,10 @@ Backend detail, environment variables and the operational runbook live in
 - [ ] Decide the launch niche. Fee model decided on 2026-11-06 (section 16); confirm the buyer-facing 1.5% with a checkout test in the pilot
 
 **Engineering setup**
-- [ ] Repo, CI, environments (dev, staging, prod), error tracking
-- [ ] Project skeleton, database migrations setup, seed data
-- [ ] Architecture decision records for open decisions in Section 3
+- [x] Repo, CI, dev and production environments: GitHub Actions gates (typecheck, test, migrate, build, perf budget) and `wrangler deploy`
+- [ ] Staging environment and error tracking: no staging target, no Sentry and no uptime monitor
+- [x] Project skeleton, database migrations setup, seed data
+- [ ] Architecture decision records for open decisions in Section 3: the decisions are made (see the Status column), the ADRs are not written
 
 **Exit criteria:** Meta verification and aggregator applications in progress or done; at least 5 design-partner vendors committed; test dataset exists; dev environment running with a WhatsApp test number receiving webhooks.
 
@@ -295,24 +331,25 @@ Backend detail, environment variables and the operational runbook live in
 **Goal:** A vendor can message the bot, set up a business, add products by photo or text, and get a live page link. The page can be basic.
 
 **Build**
-- [ ] Database: vendors, links, items, categories, wa_message, wa_conversation, notifications
+- [ ] Database: vendors, items, categories, wa_message, wa_conversation, wa_job, orders, stock and availability tables (partial: no `links` table and no `notifications` table; notifications are sent directly from the order path)
 - [x] WhatsApp webhook receiver (signature check, idempotent store, durable queue with retries)
-- [ ] Message sender with interactive buttons and lists; delivery status tracking
+- [ ] Message sender with interactive buttons and lists; delivery status tracking (partial: reply buttons ship in `lib/whatsapp/messages.ts`; no list messages, no template messages and no delivered/read status tracking)
 - [x] Conversation engine: state machine, global intents (menu, help, stop, language), resume
-- [ ] Onboarding steps (ONB-01 to ONB-09): consent, business name, type, handle, optional logo
-- [ ] Item creation by photo plus caption and by text list (ONB-10 to ONB-16) with confirmation
-- [ ] Parsers: price formats, list splitting, rules-first then LLM fallback, validation
+- [ ] Onboarding steps (ONB-01 to ONB-09): consent, business name, type, handle, optional logo (partial: consent, name, type, handle and resume ship; category, bio and logo are not asked, and MoMo payout details (ONB-08) wait for payments)
+- [x] Item creation by photo plus caption and by text list (ONB-10 to ONB-16) with confirmation: photos are stored in Supabase Storage and the caption goes through the rules parser
+- [ ] Parsers: price formats, list splitting, rules-first then LLM fallback, validation (partial: the rules parser covers price formats, comma lists, stock and validation; no LLM fallback and no real-vendor corpus)
 - [x] Handle availability and reserved-handle checks
-- [x] Minimal public page `/{handle}`: name, bio, links, items with prices (PG-01 to PG-03 basics)
-- [x] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01)
-- [ ] Funnel analytics: step reached, time to live page, parse-correction rate (partial: median time to live is in admin; step dropout and correction rate still follow)
+- [x] Minimal public page `/{handle}`: name, items with prices (PG-01 to PG-03 basics; since replaced by the full storefront)
+- [x] Magic link generation and a bare-bones session exchange (ONB-20, AUTH-01): delivered by WhatsApp in the bot and by email from the web
+- [x] Web onboarding and email sign-in (added 2026-11-10, not in the original plan): `/start` creates a shop and emails a 15-minute link, `/auth/login` resends one, so design partners are not blocked on Meta verification (`docs/EMAIL.md`)
+- [ ] Funnel analytics: step reached, time to live page, parse-correction rate (partial: median time to live and conversation/live/order counts are in admin; step dropout and parse-correction rate are not measured)
 - [x] Support handoff: "Help" forwards to an internal inbox or a human WhatsApp number (ONB-25)
-- [ ] English copy catalogue with i18n structure ready for Twi
+- [ ] English copy catalogue with i18n structure ready for Twi (partial: all copy lives in `lib/whatsapp/copy.ts`, English only, no locale switch)
 - [x] Waitlist handoff: recognize waitlist members by WhatsApp number, prefill business type, name and reserved handle, and mark them "onboarded" on go-live (LP-22)
-- [ ] Apply the `DESIGN.md` tokens, tile component and pill buttons to the public vendor page so it matches the landing page's gallery look
+- [x] Apply the `DESIGN.md` tokens and pill buttons to the public vendor page: the storefront has its own token set (`docs/STOREFRONT.md`), accent themes and Products/Services tabs
 
 **Test**
-- [ ] Fixture-based tests for parsers using the Phase 0 message set
+- [ ] Fixture-based tests for parsers using the Phase 0 message set (partial: formats, comma lists, stock and validation cases are covered in `lib/parsing/text-items.test.ts`; the real-vendor message set does not exist yet)
 - [x] Simulated conversation tests (scripted message sequences through the engine)
 - [ ] Run onboarding with 3 to 5 design partners, watching real behavior
 
@@ -325,42 +362,55 @@ Backend detail, environment variables and the operational runbook live in
 **Goal:** Clients can buy products and pay with MoMo; vendors get orders on WhatsApp.
 
 **Build**
-- [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06)
-- [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04)
-- [ ] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
+- [ ] Polished public page with themes, link buttons, categories, item detail pages, OG tags, share links (PG-02 to PG-05, CAT-01 to CAT-06) (partial: accent themes, categories, product/service tabs, quick view, vendor-page OG tags and a copy-link action ship; link buttons (PG-03) and per-item deep links (`/{handle}/i/{item}`, PG-05) are missing, and it is one accent per vendor, not the three themes in PG-04)
+- [ ] Image pipeline: compression, responsive sizes, CDN (CAT-04) (partial: static assets are prepared by `scripts/optimize-images.mjs` and served from the CDN; uploaded item photos are stored at full size with no compression or responsive variants)
+- [x] Cart and guest checkout: contact, pickup or delivery, address, notes (ORD-01 to ORD-03)
 - [x] Order codes and lifecycle (ORD-04, ORD-05); client tracking page (ORD-07) (offline lifecycle; the Paid state waits for payments)
-- [ ] Payment provider adapter: MoMo and card collection, webhook verification (PAY-01, PAY-02, PAY-09)
-- [ ] Ledger and fee calculation: 1.5% buyer fee + 1.5% vendor fee, buyer total grossed up for Paystack's 1.95% (PAY-03, PAY-04)
-- [ ] Pay-offline / pay-on-delivery mode (ORD-08)
-- [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06) (partial: atomic decrement and Sold out shipped; payment-time holds and the toggle UI are deferred)
-- [x] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04) (text alert with a dashboard link; action buttons wait for approved templates)
+- [x] Payment provider adapter: MoMo and card collection through Paystack Checkout, signed webhook, server-side verification, paid state (PAY-01, PAY-02, PAY-09). Shipped 2026-11-10 in test mode; live collection waits on Paystack compliance, and a real MoMo pass across MTN/Telecel/AirtelTigo is still a KYC-day task
+- [ ] Ledger and fee calculation: 1.5% buyer fee + 1.5% vendor fee, buyer total grossed up for Paystack's 1.95% (PAY-03, PAY-04) (partial: a settlement ledger records net cash and vendor payable per paid order; the platform/buyer fee split and gross-up are not applied yet)
+- [x] Pay-offline / pay-on-delivery mode (ORD-08): cash on delivery or arrival, and appointment bookings pay on the day
+- [ ] Inventory: optional stock, holds, sold-out (INV-01 to INV-03, INV-06) (partial: atomic decrement at placement, restore on cancellation, stock movement log, sold out, manual sold out and low-stock WhatsApp alerts ship; payment-time holds and the dashboard stock-history view are deferred)
+- [ ] Vendor order notifications on WhatsApp with action buttons (ONB-24, NOT-01, NOT-04) (partial: text alert with a dashboard link; action buttons wait for approved templates)
 - [ ] Client confirmation (WhatsApp template with opt-in, or on-page code) (NOT-02, CLI-05)
 - [ ] Chat commands: sold out, change price, my orders (ONB-22, ONB-23 partial)
-- [ ] Performance budget and Lighthouse checks on public pages
+- [ ] Performance budget and Lighthouse checks on public pages (partial: the budget in CI covers `/` only; no Lighthouse and no storefront or tracking-page coverage)
 
 **Test**
 - [ ] Payment sandbox end-to-end tests; duplicate webhook tests; timeout and failure paths
-- [ ] Stock race tests (two buyers, one item)
+- [x] Stock race tests (two buyers, one item): `lib/orders.integration.test.ts` covers oversell refusal, the two-buyer race for the last unit, and stock restore on cancel
 - [ ] Real-money test with small amounts across MTN, Telecel and AirtelTigo
 - [ ] Load test on public pages and webhook receivers (modest scale)
 
 **Exit criteria:** A real client completes a real MoMo payment to a design-partner vendor; vendor sees the order on WhatsApp within seconds; ledger balances match the aggregator; no oversold stock in race tests.
 
-**Status (2026-11-05):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note and the order success state shipped early on the public storefront. The order loop now also includes a vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public `/o/{code}` tracking page. Tracked stock now decrements atomically at placement and restores on cancellation. The support inbox and the ONB-21 time-to-live metric are live in admin. Vendors can now add and edit items, upload one photo, set price, stock, category, visibility and manual sold out from the dashboard. Online payment, payment-time stock holds, the stock movement log, low-stock alerts, multiple images, variants, drag reorder, category management, client notifications and interactive WhatsApp actions remain deferred. The table below is the deferred register.
+**Status (2026-11-10):** the cart, guest checkout, server-computed totals, order codes, pay-on-delivery note
+and the order success state shipped early on the public storefront. The order loop now also includes a
+vendor orders section with status actions, a WhatsApp alert with a dashboard login link, and a public
+`/o/{code}` tracking page. Tracked stock decrements atomically at placement, restores on cancellation and
+is logged in `stock_movement`; low-stock WhatsApp alerts fire on order placement. The support inbox and the
+ONB-21 time-to-live metric are live in admin. Vendors can add and edit items with up to five photos, price,
+compare-at, category, product/service kind, stock, visibility, badge, position and manual sold out, with
+managed categories and separate Products/Services tabs. Online payment now ships in test mode: the buyer
+can pay by MoMo or card on Paystack, the webhook is signature-checked and the transaction verified before
+the order is marked paid, abandoned payments expire and restore stock, and a settlement ledger records net
+cash and vendor payable. Still deferred: platform and buyer fees with the 1.95% gross-up, a retry-payment
+button, refunds, payment-time stock holds, variants, drag-and-drop, featured items, upload-time image
+compression, link buttons, item deep links, client notifications and interactive WhatsApp actions. The
+table below is the deferred register.
 
 **Deferred or partial from the order loop**
 
 | Area | What ships now | Deferred | Requirement | Target |
 |---|---|---|---|---|
-| Online payments | Pay on delivery, pickup or appointment | MoMo/card collection, signed webhooks, retries | PAY-01, PAY-02, PAY-09 | Phase 2, after aggregator KYC |
-| Ledger and fees | None | Double-entry ledger, platform fee split (1.5% buyer, 1.5% vendor), grossed-up buyer total, referral accruals, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
+| Online payments | Paystack Checkout for MoMo and card (test mode), signed webhook, server-side verification, paid state, abandoned-payment expiry with stock restore | Live keys and compliance, a retry-payment button, provider failover | PAY-01, PAY-02, PAY-09 | Shipped in test mode (2026-11-10); live after Paystack compliance |
+| Ledger and fees | A settlement ledger per paid order: debit `provider_clearing`, credit `vendor_payable`, net of the Paystack fee; gross amount and fee stored on the payment | Platform fee split (1.5% buyer, 1.5% vendor), grossed-up buyer total, referral accruals, reconciliation | PAY-03, PAY-04, PAY-10 | Phase 2 |
 | Delivery fee | Vendor-configurable free / fixed (with within-region and outside-region rates) / confirm-after, set from the dashboard; clients can pay the delivery fee in cash on arrival, and confirm-after orders let the vendor set the fee on the order | None | ORD-03 | Done (2026-11-05) |
 | Order lifecycle | `pending → confirmed → ready → completed` or `cancelled` from the dashboard, with an optional cancellation reason shown on the tracking page | Paid and Refunded states, refunds, client WhatsApp notification, WhatsApp action buttons | ORD-05, ORD-10 | Phase 2/3 |
 | Vendor notification | WhatsApp text with the code, items, total, customer, delivery details and a dashboard login link | Interactive Confirm/Decline/Mark ready buttons, approved templates, delivery fallback | ORD-06, ONB-24, NOT-01, NOT-04 | Phase 2 |
 | Client tracking | `/o/{code}` shows status, items, total and ETA, plus a reorder button; the customer's address, email and phone are not shown | Phone verification for sensitive details, live ETA | ORD-07, ORD-12 | Phase 2/3 |
 | Client notifications | Email captured and stored | Email sending, receipts, status emails | NOT-02, PAY-07 | Notifications phase (email is P2) |
 | Order tools | Active orders on the dashboard, a `/dashboard/orders` archive with All / Active / Completed / Cancelled filters, a hamburger menu and vendor CSV export | None | DASH-03, ORD-11, ORD-12 | Done (2026-11-06) |
-| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out, a stock movement log and low-stock alerts | Payment-time 15-minute holds | INV-01 to INV-06 | Phase 2/3 |
+| Inventory | Tracked stock decrements atomically at placement and restores on cancellation; zero stock shows Sold out; unlimited stock stays null; manual sold out; a stock movement log (written to `stock_movement`, no dashboard history view yet); a low-stock threshold with a WhatsApp alert on order placement | Payment-time 15-minute holds | INV-01 to INV-06 | Phase 2/3 |
 | Catalogue tools | Create and edit items with up to five photos (cover + tap-to-open lightbox gallery), price, compare-at, description, category, product/service kind, stock, visibility, badge and position; a vendor selling both gets separate Products/Services tabs and carts; up/down reorder; managed, ordered categories; hide and manual sold out | Variants, the featured flag, drag-and-drop, image compression and responsive sizes | CAT-02, CAT-04, CAT-05, CAT-09, DASH-05 | Phase 3 |
 | Services | Weekly availability (multiple windows/day), blocked dates, optional weekly cap and a slot engine; the storefront offers only open slots and the server re-checks them; service items have no stock and read "Unavailable" | Buffers, minimum notice, advance windows, deposits, rescheduling, calendar, DB exclusion constraint | BK-02, BK-04 (partial BK-01, BK-05) | Phase 4 (partial) |
 | Discounts and taxes | None | Discount codes and tax lines | Not yet specified | Post-MVP |
@@ -375,21 +425,21 @@ Backend detail, environment variables and the operational runbook live in
 
 **Build**
 - [ ] PWA shell, manifest, install prompt, service worker (DASH-01, DASH-16)
-- [x] Catalogue management: create, edit, hide, manual sold out, stock and one photo (DASH-05, DASH-06 partial)
-- [ ] Home, order screens, page editor, settings (DASH-02, 03, 09, 15) (partial: `/dashboard/settings` holds delivery-fee configuration and delivery/pickup ETA text)
-- [ ] Image upload from camera, drag reorder, hide and show items
-- [ ] Inventory screens and sold-out toggles (DASH-06)
+- [x] Catalogue management: create and edit items with up to five photos, price, compare-at, description, category, product/service kind, stock, visibility, badge and position; hide and manual sold out (DASH-05, DASH-06 partial)
+- [ ] Home, order screens, page editor, settings (DASH-02, 03, 09, 15) (partial: dashboard home, active orders, `/dashboard/orders` archive, settings (availability, delivery fee, delivery time, categories, low-stock) and support ship; there is no page editor for the vendor name, bio, logo or accent, and no payments screen)
+- [ ] Image upload from camera, drag reorder, hide and show items (partial: multi-photo upload through the file picker, which mobile browsers can point at the camera; no `capture` attribute and no drag reorder, only up/down position)
+- [ ] Inventory screens and sold-out toggles (DASH-06) (partial: stock edit, Sold out/Show and the low-stock threshold ship; no stock-history view)
 - [ ] Payments screen: balance, transactions, fees, payout settings (DASH-08)
 - [ ] **Payouts:** MoMo account verification (name lookup), weekly batch payout job, instant payout for a fee, status notifications (PAY-05, ONB-08)
 - [ ] Web Push opt-in and delivery; notification center (NOT-06, DASH-14)
 - [ ] Notification routing with fallback logic (NOT-03 to NOT-05)
-- [ ] Refunds and cancellations (ORD-10, PAY-06)
-- [ ] Admin v1: vendor list, order/payment views, support inbox, fee settings, audit log (ADM-01 to ADM-03, ADM-05 to ADM-07)
-- [ ] Account takeover hardening wave 1 before payouts, wave 2 with payouts (6.9)
+- [ ] Refunds and cancellations (ORD-10, PAY-06) (partial: an order can be cancelled with a reason and stock is restored; no refunds and no Paid state)
+- [ ] Admin v1: vendor list, order/payment views, support inbox, fee settings, audit log (ADM-01 to ADM-03, ADM-05 to ADM-07) (partial: waitlist, support inbox and the onboarding funnel ship; no vendor list, order or payment views, fee settings or audit log)
+- [ ] Account takeover hardening wave 1 before payouts, wave 2 with payouts (6.9) (partial: the magic link is single use, 15 minutes, and rate-limited; redemption is still a GET behind no Continue step, and there is no device list, freeze drill, masking or passkey prompt)
 - [ ] Twi translations for the bot's core flow (ONB-04, if time allows)
 
 **Test**
-- [ ] Device matrix: low-end and mid-range Android, Samsung Internet, iOS Safari
+- [ ] Device matrix: low-end and mid-range Android, Samsung Internet, iOS Safari (not recorded)
 - [ ] Push and WhatsApp delivery tests including window-expired scenarios
 - [ ] Security review: RLS tests, magic-link abuse, rate limiting
 
@@ -405,16 +455,16 @@ Backend detail, environment variables and the operational runbook live in
 - [x] Service availability: weekly windows, blocked dates and an optional weekly cap in `/dashboard/settings`, with a slot engine and server-side checks (BK-02, BK-04 partial; BK-01/03/05 still open)
 - [ ] WhatsApp setup for services and natural-language availability parser (ONB-17, ONB-18)
 - [x] Slot calculation engine (availability windows, booked slots, blocked dates, weekly cap) with integration tests (BK-04 partial)
-- [ ] Booking flow with deposit or full payment, holds and exclusion constraint (BK-05, BK-07, BK-08)
+- [ ] Booking flow with deposit or full payment, holds and exclusion constraint (BK-05, BK-07, BK-08) (partial: a service slot can be booked as an order and pays on the day; no deposit, no hold and no database exclusion constraint)
 - [ ] Instant vs request confirmation modes (BK-06)
-- [ ] Booking notifications with Accept / Decline / Reschedule buttons (ONB-24)
+- [ ] Booking notifications with Accept / Decline / Reschedule buttons (ONB-24) (partial: the same text WhatsApp alert as shop orders reaches the vendor; no booking-specific buttons)
 - [ ] Reminders at 24 hours and 1 hour (BK-10)
-- [ ] PWA calendar view and availability editor (DASH-04, DASH-07, BK-12)
-- [ ] Basic cancellation and reschedule flows (BK-11)
-- [ ] Client booking page with accessible date and time selection
+- [ ] PWA calendar view and availability editor (DASH-04, DASH-07, BK-12) (partial: the availability editor ships in `/dashboard/settings`; no calendar view)
+- [ ] Basic cancellation and reschedule flows (BK-11) (partial: cancelling the booking order ships; rescheduling does not)
+- [x] Client booking page with accessible date and time selection: the storefront offers only open slots and the server re-checks them
 
 **Test**
-- [ ] Concurrency tests for double-booking; boundary tests for buffers, notice windows, midnight edges
+- [ ] Concurrency tests for double-booking; boundary tests for buffers, notice windows, midnight edges (partial: taken slots and slots that are no longer bookable are covered; no true concurrent double-booking test, and buffers and notice windows do not exist yet)
 - [ ] Reminder timing tests
 - [ ] Pilot with 5 to 8 service providers (makeup, photography, braiding, barbering)
 
@@ -427,12 +477,12 @@ Backend detail, environment variables and the operational runbook live in
 **Build and verify**
 - [ ] Monitoring and alerting (payment failures, webhook failures, queue backlog, WhatsApp quality rating)
 - [ ] Backup and restore drill
-- [ ] Terms, Privacy Policy and Refund Policy published; Data Protection registration complete
+- [ ] Terms, Privacy Policy and Refund Policy published; Data Protection registration complete (partial: terms and privacy are live and cover the shipped system; no refund policy page and no Data Protection registration)
 - [ ] Support playbook: common issues, response times, escalation, and the takeover freeze drill (6.9)
 - [ ] Cost review per vendor (messaging, AI parsing, storage) and fee adjustments
-- [ ] Referral links and "Founding Vendor" configuration (BIL-04): 20% fee share for 6 months plus one free Pro month on activation (section 16.5)
+- [ ] Referral links and "Founding Vendor" configuration (BIL-04): 20% fee share for 6 months plus one free Pro month on activation (section 16.5) (partial: referral codes, referral bumps and the configurable Founding Vendor block ship; the fee share and free Pro month need billing, which does not exist)
 - [ ] Leakage monitoring per vendor: share of pay-on-delivery orders, cancellations and unpaid orders, compared to similar vendors (section 16.4)
-- [ ] Share cards and QR codes (PG-06)
+- [ ] Share cards and QR codes (PG-06) (partial: vendor pages get an OG image; no QR code and no per-item share card)
 - [ ] Final pass on performance and accessibility
 
 **Pilot launch**
@@ -479,12 +529,21 @@ Backend detail, environment variables and the operational runbook live in
 
 ## 10. Environments and release process
 
-- **Environments:** local, staging (WhatsApp test number, payment sandbox), production.
-- **Branching:** trunk-based with short-lived branches; preview deployment per pull request.
-- **Migrations:** versioned, reviewed, applied through CI; never edit applied migrations.
-- **Feature flags:** for risky or in-progress features (booking, escrow, Twi) so they can ship dark and be enabled per vendor.
-- **Release cadence:** deploy small changes often; avoid deploying payment changes late in the day; have a rollback path.
-- **Runbooks:** webhook failure, stuck payout, WhatsApp template rejection, quality rating drop, refund error.
+- **Environments:** local (console WhatsApp provider, local Postgres) and production (Cloudflare Workers,
+  Hyperdrive, Supabase). Staging is planned, not built: no separate WhatsApp test number, no payment
+  sandbox.
+- **Branching:** trunk-based on `main`; CI runs on every push to `main` and every pull request. There is
+  no preview deployment per pull request (the plan proposed one; it is still open).
+- **Migrations:** versioned in `db/migrations` and applied by `scripts/migrate.mjs`; CI runs them against
+  its Postgres service, the test setup migrates the throwaway `sikatree_test` database, and production runs
+  them before a deploy. Never edit an applied migration.
+- **Feature flags:** environment-driven today: `WHATSAPP_PROVIDER` (console or cloud),
+  `NEXT_PUBLIC_WHATSAPP_NUMBER`, `FOUNDING_VENDORS_ENABLED` and `FOUNDING_VENDORS_CAPACITY`. No per-vendor
+  flags yet.
+- **Release cadence:** `wrangler deploy` after CI passes. Rollback is a redeploy of the previous Worker
+  version. The "no payment deploys late in the day" rule starts when payments exist.
+- **Runbooks:** the webhook, queue and provider failure paths are covered in `docs/WHATSAPP.md`; payout,
+  template rejection, quality-rating and refund runbooks wait for those features.
 
 ---
 
@@ -540,21 +599,25 @@ Backend detail, environment variables and the operational runbook live in
 
 ---
 
-## 14. Next 7 days checklist
+## 14. Current week (2026-11-10)
 
-1. [ ] Decide the working name and register the domain
-2. [ ] **Ship the landing page and waitlist** (Phase L): finalize 2 to 3 headline variants, build the page, wire the waitlist, launch to your own network
-3. [ ] Submit the `waitlist_welcome` WhatsApp template and set up the `wa.me` "Confirm on WhatsApp" link
-4. [ ] Reply to every inbound website request with the waitlist link
-2. [ ] Start Meta Business verification; set up the WhatsApp Business account and dedicated number
-3. [ ] Apply for the payment aggregator account(s); request sandbox access
-4. [ ] Write and submit the first batch of WhatsApp templates
-5. [ ] Shortlist 10 vendors from inbound website requests; book interviews or concierge setups
-6. [ ] Create the repo, CI, staging environment, and Supabase project
-7. [ ] Build the webhook receiver and send a "hello" reply from the test number (proves the loop end-to-end)
-8. [ ] Start the parser test set with real vendor messages and price formats
-9. [ ] Write ADRs for the open decisions: aggregator, queue approach, auth approach
-10. [ ] Sketch the public page and the first four bot screens (consent, name, type, handle)
+This replaces the project-start checklist. The launch items on it are done; what follows is the
+week's list, ordered by what is unblocked.
+
+- [x] Decide the working name and register the domain (`sikatree.africa`)
+- [x] Ship the landing page and waitlist, and launch to your network (live on `sikatree.africa`)
+- [x] Build the webhook receiver and prove the bot loop end to end (console provider locally; the Cloud API provider is wired)
+- [x] Write the payment adapter and the settlement ledger (test mode); `docs/PAYMENTS.md`
+- [x] Add web signup and email sign-in so vendors are not blocked on Meta (`docs/EMAIL.md`)
+- [ ] Set the Paystack test key in production, configure the webhook URL, run one end-to-end test payment and confirm the order shows **Paid online**
+- [ ] Set `NEXT_PUBLIC_WHATSAPP_NUMBER` in production and point the footer link at it; this needs the WhatsApp Business number first
+- [ ] Start (or finish) the Paystack compliance review and Meta Business verification
+- [ ] Add an email to dashboard settings so vendors created by the bot can use email sign-in
+- [ ] Verify phone ownership on web signup (SMS or WhatsApp code) before opening it to the public; today it is the one piece the bot proves and the web path does not
+- [ ] Write and submit the first batch of WhatsApp templates: `waitlist_welcome`, the order alert with buttons, and the client confirmation
+- [ ] Reply to every inbound website request; shortlist 10 vendors for design-partner onboarding
+- [ ] Collect the first real vendor message set and turn it into parser fixtures
+- [ ] Write the ADRs for aggregator, queue and auth: all three are built, the reasons are not recorded
 
 ---
 

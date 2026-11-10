@@ -1,18 +1,22 @@
 # sikatree
 
 sikatree gives Ghanaian vendors a shop link from photos and a few WhatsApp messages: prices,
-MoMo payments, orders and bookings. This repository holds the landing page and waitlist
-(Phase L of `docs/PLAN.md`) and grows into the product.
+MoMo payments, orders and bookings. The repository holds the whole product so far: the landing page
+and waitlist, the WhatsApp onboarding bot, the public storefront and checkout, the vendor dashboard,
+web signup with email sign-in, and the Paystack payment adapter (test mode).
 
 - Product requirements: [`docs/requirement.md`](docs/requirement.md)
-- Delivery plan: [`docs/PLAN.md`](docs/PLAN.md)
+- Delivery plan and status: [`docs/PLAN.md`](docs/PLAN.md)
 - Design language: [`docs/DESIGN.md`](docs/DESIGN.md)
 - Waitlist backend and operations: [`docs/WAITLIST.md`](docs/WAITLIST.md)
+- WhatsApp bot: [`docs/WHATSAPP.md`](docs/WHATSAPP.md)
+- Payments (Paystack): [`docs/PAYMENTS.md`](docs/PAYMENTS.md)
+- Web signup and email sign-in: [`docs/EMAIL.md`](docs/EMAIL.md)
 
 ## Stack
 
-Next.js 15 (App Router) and TypeScript, Tailwind CSS, Postgres for the waitlist (Supabase in
-production), pnpm.
+Next.js 15 (App Router) and TypeScript, Tailwind CSS, Postgres (Supabase in production), Paystack for
+payments, Resend for email, pnpm.
 
 ## Local setup
 
@@ -48,6 +52,18 @@ Item photos use the public Supabase Storage bucket named by
 `SUPABASE_STORAGE_BUCKET` (default `items`).
 Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
 
+## Web signup and email sign-in
+
+`/start` creates a shop without WhatsApp; `/auth/login` emails a single-use sign-in link. Set
+`RESEND_API_KEY` and `EMAIL_FROM` in production. Locally, links print to the server log as
+`[email:out]`. Details in [`docs/EMAIL.md`](docs/EMAIL.md).
+
+## Payments
+
+Checkout offers **Pay now** when `PAYSTACK_SECRET_KEY` is set (use the `sk_test_` key until compliance
+is done). The webhook lives at `/api/payments/paystack`; the job runner also expires abandoned payments
+and restores stock. Details, ledger notes and limits in [`docs/PAYMENTS.md`](docs/PAYMENTS.md).
+
 ## Scripts
 
 | Command | What it does |
@@ -67,8 +83,9 @@ Details in [`docs/WHATSAPP.md`](docs/WHATSAPP.md).
 ## Environment
 
 See `.env.example`. `DATABASE_URL` is required in production. The `admin_credential` table
-enables the admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button. Never commit
-`.env.local`.
+enables the admin. `NEXT_PUBLIC_WHATSAPP_NUMBER` turns on the "Confirm on WhatsApp" button.
+`PAYSTACK_SECRET_KEY` turns on online payment, `RESEND_API_KEY` turns on email sign-in, and
+`AUTH_SECRET` signs vendor sessions. Never commit `.env.local`.
 
 ## Deployment
 
