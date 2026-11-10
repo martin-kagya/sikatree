@@ -205,11 +205,11 @@ This module is the core of vendor acquisition. It must feel like chatting with a
 | ID | Requirement | P |
 |---|---|---|
 | PG-01 | Each vendor has a public page at `/{handle}` rendered server-side with fast first paint. | P0 |
-| PG-02 | Page shows logo, name, bio, verification badge (if any), link buttons, and the catalogue. | P0 |
-| PG-03 | Link buttons: WhatsApp (with prefilled message), Instagram, Snapchat, TikTok, Facebook, website, Google Maps location, phone, and custom links. Reorderable. | P0 |
+| PG-02 | Page shows cover photo, logo, name, tagline, bio, link buttons, and the catalogue. A verification badge is deferred to TRU-01. | P0 |
+| PG-03 | Link buttons: WhatsApp (with prefilled message), Instagram, Snapchat, TikTok, Facebook, website, Google Maps location, phone, and custom links. Reorderable. Vendor enters a handle, number or URL depending on kind; the server builds or validates the canonical URL. | P0 |
 | PG-04 | Vendor can choose from a small set of themes (colors, button style, light/dark). | P0 (3 themes), P1 (more) |
 | PG-05 | Every item has a shareable deep link (`/{handle}/i/{item}`) with correct Open Graph tags so it previews well on WhatsApp and social apps. | P0 |
-| PG-06 | A downloadable QR code and share cards for the page and for individual items. | P1 |
+| PG-06 | A generated Open Graph card for the page ships in Phase 1. A downloadable QR code and item share cards follow in Phase 2. | P1 |
 | PG-07 | Page works without JavaScript for browsing the catalogue and links (progressive enhancement). | P1 |
 | PG-08 | "Powered by" footer with a link to create your own page; removable on paid plans. | P1 |
 | PG-09 | Custom domain support. | P2 |
