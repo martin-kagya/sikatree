@@ -45,6 +45,25 @@ export function verifySessionToken(token: string | undefined): string | null {
   return vendorId;
 }
 
+// The single place that writes the vendor session cookie, so the attributes and
+// lifetime cannot drift between call sites. maxAge is derived from
+// SESSION_TTL_MS so the cookie never outlives (or dies before) the signed token.
+// persist=false yields a session cookie that dies on browser close, for the
+// shared-device case.
+export async function setVendorSessionCookie(
+  vendorId: string,
+  options: { persist: boolean },
+): Promise<void> {
+  const store = await cookies();
+  store.set(VENDOR_COOKIE, createSessionToken(vendorId), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    ...(options.persist ? { maxAge: SESSION_TTL_MS / 1000 } : {}),
+  });
+}
+
 export async function currentVendorId(): Promise<string | null> {
   const store = await cookies();
   return verifySessionToken(store.get(VENDOR_COOKIE)?.value);

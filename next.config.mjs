@@ -19,6 +19,21 @@ const nextConfig = {
     // the prerender pass in sync; the build is still comfortably fast.
     cpus: 1,
   },
+  // Auth pages carry single-use tokens in the URL. Keep them out of caches,
+  // referrers, frames and search indexes. no-referrer also stops the token
+  // leaking into our first-party analytics when the verify page redirects.
+  async headers() {
+    const authHeaders = [
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Robots-Tag', value: 'noindex' },
+      { key: 'Cache-Control', value: 'no-store' },
+    ];
+    return [
+      { source: '/auth/verify', headers: authHeaders },
+      { source: '/auth/login', headers: authHeaders },
+    ];
+  },
 };
 
 export default nextConfig;

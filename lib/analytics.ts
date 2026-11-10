@@ -72,15 +72,30 @@ export function attribution(): Attribution {
   return next;
 }
 
+// The referrer can be an /auth/verify?token=… URL. Drop the query string and
+// fragment so a one-time sign-in token never lands in analytics.
+function safeReferrer(): string | null {
+  const raw = document.referrer;
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
 export function track(name: string, props: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
+  // Never record auth pages; their URLs can carry tokens.
+  if (window.location.pathname.startsWith('/auth/')) return;
 
   const attrs = attribution();
   const body = JSON.stringify({
     name,
     props,
     path: window.location.pathname,
-    referrer: document.referrer || null,
+    referrer: safeReferrer(),
     anonId: anonId(),
     utm: {
       source: attrs.utmSource,
