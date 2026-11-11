@@ -1,8 +1,8 @@
 # Storefront customization
 
-Status: Phase 1 brand/look/images/links shipped 2026-11-11; item-page branding, the generated card and image re-encoding are pending. Version 1.3. 2026-11-11.
+Status: Phase 1 brand/look/images/links/item-page branding/generated card shipped 2026-11-11; image re-encoding is pending. Version 1.4. 2026-11-11.
 
-Changelog: v1.3 adds the links editor and storefront link pills. v1.2 records the first shipped slice: tagline, logo, cover, the brand/look editor, live preview, reset, accent tint and fallback gradient. v1.1 added cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
+Changelog: v1.4 adds item-page logo/tagline and the generated shop card. v1.3 adds the links editor and storefront link pills. v1.2 records the first shipped slice: tagline, logo, cover, the brand/look editor, live preview, reset, accent tint and fallback gradient. v1.1 added cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
 
 Companion docs: [`DESIGN.md`](DESIGN.md) sections 5.8, 5.9 and 14, [`requirement.md`](requirement.md) PG-02 to PG-09, and [`PLAN.md`](PLAN.md) Phase 2 and Phase 3.
 
@@ -49,8 +49,6 @@ Shipped 2026-11-11:
 
 Missing today:
 
-- Logo and tagline on item pages.
-- The generated Open Graph card.
 - Client-side WebP resizing and the logo dimension guard; uploads are currently server-checked for type and size only.
 - Announcement, themes and later Phase 2 sections.
 

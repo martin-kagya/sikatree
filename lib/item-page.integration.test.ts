@@ -14,9 +14,11 @@ beforeEach(async () => {
   );
 
   const vendor = await query<{ id: string }>(
-    `insert into vendors (phone, name, handle, type, status, consent_at, location, category)
+    `insert into vendors
+       (phone, name, handle, type, status, consent_at, location, category, tagline, logo_url, logo_alt)
      values ('+233241234567', 'Ama''s Glow Studio', 'amasglow', 'products', 'live', now(),
-             'Kumasi', 'Beauty')
+             'Kumasi', 'Beauty', 'Skin that feels like you',
+             'https://cdn.example.com/logo.webp', 'Ama logo')
      returning id`,
   );
   vendorId = vendor[0].id;
@@ -77,7 +79,13 @@ describe('shared item page data', () => {
       kind: 'product',
       badge: 'popular',
     });
-    expect(item.vendor).toMatchObject({ name: "Ama's Glow Studio", handle: 'amasglow' });
+    expect(item.vendor).toMatchObject({
+      name: "Ama's Glow Studio",
+      handle: 'amasglow',
+      tagline: 'Skin that feels like you',
+      logoUrl: 'https://cdn.example.com/logo.webp',
+      logoAlt: 'Ama logo',
+    });
     expect(item.images).toEqual([
       'https://cdn.example.com/serum-cover.jpg',
       'https://cdn.example.com/serum-alt.jpg',

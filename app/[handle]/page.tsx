@@ -155,7 +155,7 @@ export async function generateMetadata({
       type: 'website',
       images: [
         {
-          url: `${site.url}/opengraph-image`,
+          url: `${site.url}/${data.vendor.handle}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: `${data.vendor.name} on sikatree`,

@@ -28,8 +28,11 @@ export type SharedItem = {
     handle: string;
     phone: string;
     bio: string | null;
+    tagline: string | null;
     location: string | null;
     category: string | null;
+    logoUrl: string | null;
+    logoAlt: string | null;
   };
 };
 
@@ -64,14 +67,18 @@ export async function getSharedItem(
     vendor_handle: string;
     vendor_phone: string;
     vendor_bio: string | null;
+    vendor_tagline: string | null;
     vendor_location: string | null;
     vendor_category: string | null;
+    vendor_logo_url: string | null;
+    vendor_logo_alt: string | null;
   }>(
     `select i.id, i.name, i.description, i.price_pesewas, i.compare_at_pesewas, i.category,
             i.stock, i.status, i.kind, i.badge, i.image_url, i.image_url_alt, i.created_at,
             v.id as vendor_id, v.name as vendor_name, v.handle as vendor_handle,
-            v.phone as vendor_phone, v.bio as vendor_bio, v.location as vendor_location,
-            v.category as vendor_category
+            v.phone as vendor_phone, v.bio as vendor_bio, v.tagline as vendor_tagline,
+            v.location as vendor_location, v.category as vendor_category,
+            v.logo_url as vendor_logo_url, v.logo_alt as vendor_logo_alt
        from items i
        join vendors v on v.id = i.vendor_id
       where v.handle = $1 and v.status = 'live' and i.id = $2 and i.status <> 'hidden'`,
@@ -109,8 +116,11 @@ export async function getSharedItem(
       handle: row.vendor_handle,
       phone: row.vendor_phone,
       bio: row.vendor_bio,
+      tagline: row.vendor_tagline,
       location: row.vendor_location,
       category: row.vendor_category,
+      logoUrl: row.vendor_logo_url,
+      logoAlt: row.vendor_logo_alt,
     },
   };
 }

@@ -633,6 +633,7 @@ week's list, ordered by what is unblocked.
 - [ ] Finish auth Phase 1: code login, session settings/device list, cleanup and rate-limit tuning
 - [x] Ship the first storefront customization slice: brand/look editor, tagline, logo, cover, live preview and reset
 - [x] Add storefront link buttons (PG-03) and their dashboard list actions
+- [x] Add item-page logo/tagline and the generated shop Open Graph card
 - [ ] Set the Paystack test key in production, configure the webhook URL, run one end-to-end test payment and confirm the order shows **Paid online**
 - [ ] Set `NEXT_PUBLIC_WHATSAPP_NUMBER` in production and point the footer link at it; this needs the WhatsApp Business number first
 - [ ] Start (or finish) the Paystack compliance review and Meta Business verification

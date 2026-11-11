@@ -64,7 +64,7 @@ export async function generateMetadata({
         image
           ? { url: image, alt: `${data.name} from ${data.vendor.name}` }
           : {
-              url: `${site.url}/opengraph-image`,
+              url: `${site.url}/${data.vendor.handle}/opengraph-image`,
               width: 1200,
               height: 630,
               alt: `${data.name} on sikatree`,
@@ -75,7 +75,7 @@ export async function generateMetadata({
       card: 'summary_large_image',
       title,
       description,
-      images: image ? [image] : [`${site.url}/opengraph-image`],
+      images: image ? [image] : [`${site.url}/${data.vendor.handle}/opengraph-image`],
     },
     robots: { index: true, follow: true },
   };
@@ -205,13 +205,24 @@ export default async function SharedItemPage({ params }: { params: Promise<Param
             ) : null}
 
             <div className="mt-6 flex items-center gap-3 rounded-panel border border-hairline bg-white p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-mint-100 text-[14px] font-medium text-green-deep">
-                {initials(vendor.name)}
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-hairline">
+                {vendor.logoUrl ? (
+                  <img
+                    src={vendor.logoUrl}
+                    alt={vendor.logoAlt ?? `${vendor.name} logo`}
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <span className="text-[14px] font-medium text-green-deep">
+                    {initials(vendor.name)}
+                  </span>
+                )}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-body text-ink">{vendor.name}</p>
                 <p className="truncate text-[12px] text-ink-muted">
-                  {[vendor.location, vendor.category].filter(Boolean).join(' · ') ||
+                  {vendor.tagline ||
+                    [vendor.location, vendor.category].filter(Boolean).join(' · ') ||
                     `sikatree.africa/${vendor.handle}`}
                 </p>
               </div>
