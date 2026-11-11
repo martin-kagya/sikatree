@@ -159,6 +159,15 @@ export function X(props: IconProps) {
   );
 }
 
+export function Sparkles(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m12 3 1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" />
+    </Icon>
+  );
+}
+
 export function Settings(props: IconProps) {
   return (
     <Icon {...props}>

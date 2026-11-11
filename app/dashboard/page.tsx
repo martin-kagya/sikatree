@@ -99,6 +99,23 @@ export default async function DashboardPage({
           </section>
 
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-h2 text-ink">Make it yours</h2>
+                <p className="mt-1 text-small text-ink-muted">
+                  Add a logo, cover and tagline, and pick the accent customers see.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/storefront"
+                className="pressable inline-flex h-9 shrink-0 items-center rounded-pill bg-green-main px-4 text-small text-ink hover:bg-green-main/90"
+              >
+                Customize your shop
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
                 <h2 className="text-h2 text-ink">Orders</h2>

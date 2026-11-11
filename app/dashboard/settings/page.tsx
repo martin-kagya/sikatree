@@ -54,9 +54,17 @@ export default async function SettingsPage() {
           <Link href="/dashboard" className="text-[13px] text-ink-muted hover:text-ink">
             Back to dashboard
           </Link>
-          <div>
-            <p className="text-[12px] uppercase tracking-wide text-ink-muted">Settings</p>
-            <h1 className="mt-1 text-h1 text-ink">{vendor.name}</h1>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[12px] uppercase tracking-wide text-ink-muted">Settings</p>
+              <h1 className="mt-1 text-h1 text-ink">{vendor.name}</h1>
+            </div>
+            <Link
+              href="/dashboard/storefront"
+              className="pressable inline-flex h-9 items-center rounded-pill border border-hairline bg-white px-4 text-[12px] text-ink hover:border-ink/40"
+            >
+              Customize your shop
+            </Link>
           </div>
 
           {sellsServices ? (

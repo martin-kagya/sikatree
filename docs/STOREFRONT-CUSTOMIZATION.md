@@ -1,8 +1,8 @@
 # Storefront customization
 
-Status: Proposed. Version 1.1. 2026-11-10.
+Status: Phase 1 brand/look/images shipped 2026-11-11; links, item-page branding, the generated card and image re-encoding are pending. Version 1.2. 2026-11-11.
 
-Changelog: v1.1 adds cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
+Changelog: v1.2 records the first shipped slice: tagline, logo, cover, the brand/look editor, live preview, reset, accent tint and fallback gradient. v1.1 added cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
 
 Companion docs: [`DESIGN.md`](DESIGN.md) sections 5.8, 5.9 and 14, [`requirement.md`](requirement.md) PG-02 to PG-09, and [`PLAN.md`](PLAN.md) Phase 2 and Phase 3.
 
@@ -40,15 +40,21 @@ Already in the database and rendered by the storefront:
 - Category order, item badges, item positions, item deep links and per-item Open Graph tags.
 - The vendor header, sticky bar, cart, checkout and item page all read these values.
 
+Shipped 2026-11-11:
+
+- `/dashboard/storefront` with brand fields, tagline, logo, cover, accent, card ratio, live preview and reset.
+- Logo and cover uploads to the existing public bucket (`/brand`), with a gradient fallback when no cover is set.
+- Tagline, logo, cover and the derived accent tint on the public header and sticky bar.
+
 Missing today:
 
-- No editor for any of the fields above.
-- No logo, tagline, cover or announcement.
-- No link buttons (PG-03).
-- No preview or reset.
-- The storefront has one layout.
+- Link buttons (PG-03) and their list actions.
+- Logo and tagline on item pages.
+- The generated Open Graph card.
+- Client-side WebP resizing and the logo dimension guard; uploads are currently server-checked for type and size only.
+- Announcement, themes and later Phase 2 sections.
 
-The highest-return work is therefore to expose what already exists, then add a logo and links.
+The highest-return work is therefore the links editor, then the item-page and share-card surfaces.
 
 ## 4. Scope
 
@@ -85,7 +91,7 @@ layouts, cover focal point, custom domain.
 Existing columns are reused: `vendors.name`, `bio`, `location`, `category`, `accent`, `card_image_ratio`.
 
 ```sql
--- 0025_storefront_customization.sql
+-- 0026_storefront_customization.sql (0025 is the vendor-session migration)
 alter table vendors
   add column if not exists tagline text,
   add column if not exists logo_url text,

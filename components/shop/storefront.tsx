@@ -28,7 +28,7 @@ import { Spinner } from '@/components/system/spinner';
 import type { CheckoutOrder, Fulfilment } from '@/lib/orders';
 import { OstraMark } from '@/components/ui/ostra-mark';
 import { Dropdown } from '@/components/ui/dropdown';
-import { accentFor } from '@/lib/shop-accent';
+import { accentFor, tintForAccent } from '@/lib/shop-accent';
 import {
   badgeLabel,
   filterItems,
@@ -54,10 +54,14 @@ export type StorefrontVendor = {
   handle: string;
   phone: string;
   bio: string | null;
+  tagline: string | null;
   location: string | null;
   category: string | null;
   accent: string | null;
   cardImageRatio: string;
+  logoUrl: string | null;
+  logoAlt: string | null;
+  coverUrl: string | null;
   type: 'products' | 'services' | 'both' | null;
   deliveryFeeMode: DeliveryFeeMode;
   deliveryFeePesewas: number;
@@ -607,6 +611,7 @@ export function Storefront({
   }, [sellingServices, checkoutOpen, bookingDate, vendor.handle]);
 
   const accent = accentFor(vendor.accent);
+  const coverTint = tintForAccent(accent.hex, 0.16);
   const themeStyle = {
     '--shop-bg': 'var(--bg-page)',
     '--shop-card': '#ffffff',
@@ -616,6 +621,7 @@ export function Storefront({
     '--shop-accent': accent.hex,
     '--shop-accent-label': accent.label,
     '--shop-accent-deep': 'var(--green-deep)',
+    '--shop-tint': tintForAccent(accent.hex),
     '--shop-low': 'var(--danger)',
     '--card-image-ratio': vendor.cardImageRatio || '1 / 1',
     '--shop-ease': 'cubic-bezier(0.2, 0.7, 0.2, 1)',
@@ -862,8 +868,16 @@ export function Storefront({
         <div className="border-b border-[var(--shop-hair)] bg-white/95 backdrop-blur">
           <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint-100 text-[11px] font-semibold text-green-deep">
-                {initials(vendor.name)}
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-[11px] font-semibold text-green-deep ring-1 ring-[var(--shop-hair)]">
+                {vendor.logoUrl ? (
+                  <img
+                    src={vendor.logoUrl}
+                    alt={vendor.logoAlt ?? `${vendor.name} logo`}
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  initials(vendor.name)
+                )}
               </span>
               <span className="min-w-0 truncate text-[15px] font-medium text-[var(--shop-ink)]">
                 {vendor.name}
@@ -898,11 +912,39 @@ export function Storefront({
           ref={headerRef}
           className="rounded-[28px] border border-[var(--shop-hair)] bg-[var(--shop-card)] p-5 sm:rounded-[32px] sm:p-7"
         >
-          <div className="flex items-start gap-3 sm:items-center sm:gap-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-mint-100 text-[18px] font-semibold text-green-deep">
-              {initials(vendor.name)}
+          <div className="relative mb-9">
+            <div className="overflow-hidden rounded-[20px]" style={{ aspectRatio: '16 / 9' }}>
+              {vendor.coverUrl ? (
+                <img
+                  src={vendor.coverUrl}
+                  alt={`${vendor.name} cover`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="h-full w-full"
+                  style={{
+                    background: `linear-gradient(135deg, ${coverTint}, #ffffff 72%)`,
+                  }}
+                />
+              )}
             </div>
+            <div className="absolute -bottom-7 left-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white p-1 shadow-sm">
+              {vendor.logoUrl ? (
+                <img
+                  src={vendor.logoUrl}
+                  alt={vendor.logoAlt ?? `${vendor.name} logo`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-[18px] font-semibold text-green-deep">
+                  {initials(vendor.name)}
+                </span>
+              )}
+            </div>
+          </div>
 
+          <div className="flex items-start gap-3 sm:items-center sm:gap-5">
             <div className="min-w-0 flex-1">
               <h1
                 className="font-medium text-[var(--shop-ink)]"
@@ -915,9 +957,9 @@ export function Storefront({
                 {vendor.name}
               </h1>
 
-              {vendor.bio ? (
+              {vendor.tagline || vendor.bio ? (
                 <p className="mt-1 line-clamp-1 text-[14px] leading-snug text-[var(--shop-muted)] sm:line-clamp-2">
-                  {vendor.bio}
+                  {vendor.tagline || vendor.bio}
                 </p>
               ) : null}
 

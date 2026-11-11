@@ -17,10 +17,14 @@ type VendorRow = {
   phone: string;
   type: 'products' | 'services' | 'both' | null;
   bio: string | null;
+  tagline: string | null;
   location: string | null;
   category: string | null;
   accent: string | null;
   card_image_ratio: string;
+  logo_url: string | null;
+  logo_alt: string | null;
+  cover_url: string | null;
   delivery_fee_mode: string;
   delivery_fee_pesewas: number;
   delivery_fee_outside_pesewas: number;
@@ -51,7 +55,8 @@ async function loadVendor(
   if (!handle) return null;
 
   const vendors = await query<VendorRow>(
-    `select id, name, handle, phone, type, bio, location, category, accent, card_image_ratio,
+    `select id, name, handle, phone, type, bio, tagline, location, category, accent,
+            card_image_ratio, logo_url, logo_alt, cover_url,
             delivery_fee_mode, delivery_fee_pesewas, delivery_fee_outside_pesewas
        from vendors
       where handle = $1 and status = 'live'`,
@@ -177,10 +182,14 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         handle: vendor.handle,
         phone: vendor.phone,
         bio: vendor.bio,
+        tagline: vendor.tagline,
         location: vendor.location,
         category: vendor.category,
         accent: vendor.accent,
         cardImageRatio: vendor.card_image_ratio,
+        logoUrl: vendor.logo_url,
+        logoAlt: vendor.logo_alt,
+        coverUrl: vendor.cover_url,
         type: vendor.type,
         deliveryFeeMode,
         deliveryFeePesewas: vendor.delivery_fee_pesewas,

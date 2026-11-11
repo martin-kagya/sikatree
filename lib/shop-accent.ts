@@ -36,6 +36,16 @@ function luminance(hex: string): number {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
+// The only derived storefront token: the accent at ~8% over white. It paints
+// the cover fallback and pill backgrounds; vendors never set it directly.
+export function tintForAccent(hex: string, amount = 0.08): string {
+  const value = hex.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(value)) return '#f4f4f2';
+  const channels = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16));
+  const mixed = channels.map((channel) => Math.round(channel * amount + 255 * (1 - amount)));
+  return `#${mixed.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+}
+
 export function contrastRatio(a: string, b: string): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (light + 0.05) / (dark + 0.05);

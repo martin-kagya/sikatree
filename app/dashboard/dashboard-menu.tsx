@@ -2,7 +2,7 @@
 
 import Link, { useLinkStatus } from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Menu, MessageCircle, Settings, ShoppingCart, X } from '@/components/icons';
+import { Menu, MessageCircle, Settings, ShoppingCart, Sparkles, X } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { logoutAction } from './actions';
 
@@ -18,6 +18,7 @@ function PendingDot() {
 }
 
 const LINKS = [
+  { href: '/dashboard/storefront', label: 'Customize', icon: Sparkles },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/dashboard/support', label: 'Support', icon: MessageCircle },
