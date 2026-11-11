@@ -7,6 +7,7 @@ import { query } from '@/lib/db';
 import { normalizeHandle } from '@/lib/handle';
 import { paymentsEnabled } from '@/lib/payments/paystack';
 import { DELIVERY_FEE_MODES, type DeliveryFeeMode, type ShopItem } from '@/lib/shop';
+import type { StorefrontLink } from '@/lib/storefront-shared';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,12 @@ type ItemRow = {
 
 async function loadVendor(
   rawHandle: string,
-): Promise<{ vendor: VendorRow; items: ShopItem[]; categoryOrder: string[] } | null> {
+): Promise<{
+  vendor: VendorRow;
+  items: ShopItem[];
+  categoryOrder: string[];
+  links: StorefrontLink[];
+} | null> {
   const handle = normalizeHandle(decodeURIComponent(rawHandle));
   if (!handle) return null;
 
@@ -110,8 +116,15 @@ async function loadVendor(
   }));
 
   const categoryOrder = await listManagedCategories(vendor.id);
+  const links = await query<{ kind: StorefrontLink['kind']; label: string; url: string }>(
+    `select kind, label, url
+       from vendor_links
+      where vendor_id = $1 and visible = true
+      order by position, created_at`,
+    [vendor.id],
+  );
 
-  return { vendor, items, categoryOrder };
+  return { vendor, items, categoryOrder, links };
 }
 
 export async function generateMetadata({
@@ -167,7 +180,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
   }
   if (!data) notFound();
 
-  const { vendor, items, categoryOrder } = data;
+  const { vendor, items, categoryOrder, links } = data;
 
   const deliveryFeeMode: DeliveryFeeMode = DELIVERY_FEE_MODES.includes(
     vendor.delivery_fee_mode as DeliveryFeeMode,
@@ -190,6 +203,7 @@ export default async function VendorPage({ params }: { params: Promise<{ handle:
         logoUrl: vendor.logo_url,
         logoAlt: vendor.logo_alt,
         coverUrl: vendor.cover_url,
+        links,
         type: vendor.type,
         deliveryFeeMode,
         deliveryFeePesewas: vendor.delivery_fee_pesewas,

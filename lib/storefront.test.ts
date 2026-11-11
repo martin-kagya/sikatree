@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildVendorLinkUrl,
+  normalizeVendorLink,
   suggestAccentForCategory,
   validateStorefrontInput,
   validateVendorLink,
@@ -83,6 +84,14 @@ describe('link URL building', () => {
     expect(buildVendorLinkUrl('instagram', 'bad handle')).toBeNull();
     expect(buildVendorLinkUrl('whatsapp', '123')).toBeNull();
     expect(buildVendorLinkUrl('phone', 'call me')).toBeNull();
+  });
+
+  it('normalizes either a handle or an existing canonical URL', () => {
+    expect(normalizeVendorLink('instagram', '@amaglow')).toBe('https://instagram.com/amaglow');
+    expect(normalizeVendorLink('instagram', 'https://instagram.com/amaglow')).toBe(
+      'https://instagram.com/amaglow',
+    );
+    expect(normalizeVendorLink('website', 'http://amaglow.com')).toBeNull();
   });
 });
 

@@ -5,14 +5,17 @@ import { redirect } from 'next/navigation';
 import {
   getStorefrontSettings,
   saveStorefrontSettings,
+  saveVendorLinks,
   validateStorefrontInput,
   type CardImageRatio,
   type StorefrontInput,
+  type VendorLinkInput,
 } from '@/lib/storefront';
 import { uploadVendorImage } from '@/lib/vendor-assets';
 import { requireVendor } from '@/lib/vendor-auth';
 
 export type StorefrontFormState = { error?: string; ok?: true };
+export type LinksFormState = { error?: string };
 
 function text(formData: FormData, name: string): string {
   return String(formData.get(name) ?? '').trim();
@@ -86,4 +89,46 @@ export async function saveStorefrontAction(
   }
 
   redirect('/dashboard/storefront?saved=1');
+}
+
+
+export async function saveLinksAction(
+  _previous: LinksFormState,
+  formData: FormData,
+): Promise<LinksFormState> {
+  const vendorId = await requireVendor('/dashboard/storefront');
+  const existing = await getStorefrontSettings(vendorId);
+  if (!existing) return { error: 'Shop not found.' };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(formData.get('links') ?? '[]'));
+  } catch {
+    return { error: 'Could not read the links. Remove the last change and try again.' };
+  }
+  if (!Array.isArray(parsed)) return { error: 'Could not read the links.' };
+
+  const inputs: VendorLinkInput[] = [];
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== 'object') return { error: 'One of the links is not valid.' };
+    const row = entry as Record<string, unknown>;
+    inputs.push({
+      kind: String(row.kind ?? '') as VendorLinkInput['kind'],
+      label: String(row.label ?? ''),
+      raw: String(row.raw ?? ''),
+      visible: row.visible !== false,
+    });
+  }
+
+  try {
+    const saved = await saveVendorLinks(vendorId, inputs);
+    if (!saved.ok) return { error: saved.error };
+    revalidatePath('/dashboard/storefront');
+    revalidatePath(`/${existing.handle}`);
+  } catch (error) {
+    console.error('[storefront] link save failed', error instanceof Error ? error.message : error);
+    return { error: 'Could not save the links. Try again.' };
+  }
+
+  redirect('/dashboard/storefront?saved=links');
 }

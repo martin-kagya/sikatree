@@ -13,11 +13,19 @@ import {
 } from 'react';
 import {
   ArrowRight,
+  ArrowUpRight,
+  AtSign,
   Check,
   ChevronLeft,
   ChevronRight,
   Copy,
+  Facebook,
+  Ghost,
+  Globe,
+  MapPin,
   MessageCircle,
+  Music,
+  Phone,
   Plus,
   Share2,
   ShoppingCart,
@@ -46,6 +54,7 @@ import {
   type ShopItem,
   type SortKey,
 } from '@/lib/shop';
+import type { StorefrontLink } from '@/lib/storefront-shared';
 import { cn } from '@/lib/utils';
 import './shop.css';
 
@@ -62,6 +71,7 @@ export type StorefrontVendor = {
   logoUrl: string | null;
   logoAlt: string | null;
   coverUrl: string | null;
+  links: StorefrontLink[];
   type: 'products' | 'services' | 'both' | null;
   deliveryFeeMode: DeliveryFeeMode;
   deliveryFeePesewas: number;
@@ -84,6 +94,29 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() ?? '')
     .join('');
+}
+
+function linkIcon(kind: StorefrontLink['kind']) {
+  switch (kind) {
+    case 'whatsapp':
+      return MessageCircle;
+    case 'instagram':
+      return AtSign;
+    case 'tiktok':
+      return Music;
+    case 'snapchat':
+      return Ghost;
+    case 'facebook':
+      return Facebook;
+    case 'maps':
+      return MapPin;
+    case 'phone':
+      return Phone;
+    case 'website':
+      return Globe;
+    default:
+      return ArrowUpRight;
+  }
 }
 
 function whatsappNumber(phone: string): string {
@@ -1042,6 +1075,31 @@ export function Storefront({
             </div>
           ) : null}
         </div>
+
+        {vendor.links.length ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {vendor.links.map((link) => {
+              const Icon = linkIcon(link.kind);
+              const single = vendor.links.length === 1;
+              return (
+                <a
+                  key={`${link.kind}-${link.url}`}
+                  href={link.url}
+                  target={link.url.startsWith('tel:') ? undefined : '_blank'}
+                  rel="noreferrer"
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-pill border border-[var(--shop-hair)] px-4 text-[13px] font-medium text-[var(--shop-ink)] transition-transform duration-150 active:scale-[0.98]',
+                    single ? 'h-[52px] w-full justify-center' : 'h-11',
+                  )}
+                  style={{ backgroundColor: 'var(--shop-tint)' }}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="truncate">{link.label}</span>
+                </a>
+              );
+            })}
+          </div>
+        ) : null}
 
         {/* Shop and services live side by side without mixing. */}
         {vendor.type === 'both' ? (

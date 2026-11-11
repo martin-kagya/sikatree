@@ -1,6 +1,12 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { db, query } from '@/lib/db';
-import { getStorefrontSettings, saveStorefrontSettings, type StorefrontInput } from '@/lib/storefront';
+import {
+  getStorefrontSettings,
+  listVendorLinks,
+  saveStorefrontSettings,
+  saveVendorLinks,
+  type StorefrontInput,
+} from '@/lib/storefront';
 
 beforeEach(async () => {
   await query(
@@ -114,5 +120,70 @@ describe('storefront settings', () => {
     const settings = await getStorefrontSettings(vendorId);
     expect(settings?.accent).toBe('green');
     expect(settings?.bio).toBe('Old bio');
+  });
+});
+
+
+describe('vendor links', () => {
+  it('saves, orders, hides and deletes links', async () => {
+    const vendorId = await seedVendor();
+    const saved = await saveVendorLinks(vendorId, [
+      { kind: 'whatsapp', label: 'Chat', raw: '024 111 1111', visible: true },
+      { kind: 'instagram', label: 'Instagram', raw: '@amaglow', visible: true },
+      { kind: 'website', label: 'Shop site', raw: 'https://amaglow.com', visible: false },
+    ]);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+
+    expect(saved.value.map((link) => link.kind)).toEqual(['whatsapp', 'instagram', 'website']);
+    expect(saved.value[0].url).toBe('https://wa.me/233241111111');
+    expect(saved.value[1].url).toBe('https://instagram.com/amaglow');
+    expect(saved.value[2].visible).toBe(false);
+
+    const visible = await listVendorLinks(vendorId, { visibleOnly: true });
+    expect(visible.map((link) => link.kind)).toEqual(['whatsapp', 'instagram']);
+
+    const reordered = await saveVendorLinks(vendorId, [
+      { kind: 'instagram', label: 'Instagram', raw: '@amaglow', visible: true },
+      { kind: 'whatsapp', label: 'Chat', raw: '024 111 1111', visible: true },
+    ]);
+    expect(reordered.ok).toBe(true);
+    const after = await listVendorLinks(vendorId);
+    expect(after.map((link) => link.kind)).toEqual(['instagram', 'whatsapp']);
+    expect(after.map((link) => link.position)).toEqual([0, 1]);
+  });
+
+  it('allows repeated custom links but one per social kind', async () => {
+    const vendorId = await seedVendor();
+    const custom = await saveVendorLinks(vendorId, [
+      { kind: 'custom', label: 'Press', raw: 'https://press.example', visible: true },
+      { kind: 'custom', label: 'Lookbook', raw: 'https://look.example', visible: true },
+    ]);
+    expect(custom.ok).toBe(true);
+
+    const duplicate = await saveVendorLinks(vendorId, [
+      { kind: 'instagram', label: 'One', raw: '@one', visible: true },
+      { kind: 'instagram', label: 'Two', raw: '@two', visible: true },
+    ]);
+    expect(duplicate.ok).toBe(false);
+  });
+
+  it('rejects more than eight links and invalid URLs', async () => {
+    const vendorId = await seedVendor();
+    const tooMany = await saveVendorLinks(
+      vendorId,
+      Array.from({ length: 9 }, (_, index) => ({
+        kind: 'custom' as const,
+        label: `Link ${index}`,
+        raw: `https://example.com/${index}`,
+        visible: true,
+      })),
+    );
+    expect(tooMany.ok).toBe(false);
+
+    const invalid = await saveVendorLinks(vendorId, [
+      { kind: 'website', label: 'Site', raw: 'http://example.com', visible: true },
+    ]);
+    expect(invalid.ok).toBe(false);
   });
 });

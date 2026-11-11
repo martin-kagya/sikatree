@@ -50,6 +50,31 @@ export type StorefrontSettings = {
 
 export type StorefrontInput = Omit<StorefrontSettings, 'vendorId' | 'handle'>;
 
+export type StorefrontLink = {
+  kind: VendorLinkKind;
+  label: string;
+  url: string;
+};
+
+export type VendorLinkInput = {
+  kind: VendorLinkKind;
+  label: string;
+  raw: string;
+  visible: boolean;
+};
+
+export const LINK_LABELS: Record<VendorLinkKind, string> = {
+  whatsapp: 'WhatsApp',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  snapchat: 'Snapchat',
+  facebook: 'Facebook',
+  website: 'Website',
+  maps: 'Directions',
+  phone: 'Call',
+  custom: 'Link',
+};
+
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
 function textValue(value: string | null | undefined): string {
@@ -192,6 +217,15 @@ export function buildVendorLinkUrl(kind: VendorLinkKind, raw: string): string | 
     default:
       return null;
   }
+}
+
+// Accept either the canonical URL (editing an existing row) or the raw handle,
+// number or URL the vendor types.
+export function normalizeVendorLink(kind: VendorLinkKind, raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  if (validateVendorLink(kind, value)) return value;
+  return buildVendorLinkUrl(kind, value);
 }
 
 export function validateVendorLink(kind: VendorLinkKind, raw: string): boolean {

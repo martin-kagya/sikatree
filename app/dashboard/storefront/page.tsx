@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getStorefrontSettings } from '@/lib/storefront';
+import { getStorefrontSettings, listVendorLinks } from '@/lib/storefront';
 import { requireVendor } from '@/lib/vendor-auth';
 import { StorefrontEditor } from './storefront-editor';
 
@@ -20,6 +20,7 @@ export default async function StorefrontSettingsPage({
   const vendorId = await requireVendor('/dashboard/storefront');
   const settings = await getStorefrontSettings(vendorId);
   if (!settings) notFound();
+  const links = await listVendorLinks(vendorId);
 
   const params = await searchParams;
 
@@ -46,7 +47,7 @@ export default async function StorefrontSettingsPage({
         </Link>
       </div>
 
-      <StorefrontEditor settings={settings} saved={params.saved === '1'} />
+      <StorefrontEditor settings={settings} links={links} saved={Boolean(params.saved)} />
     </main>
   );
 }

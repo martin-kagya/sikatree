@@ -159,6 +159,60 @@ export function X(props: IconProps) {
   );
 }
 
+export function MapPin(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </Icon>
+  );
+}
+
+export function Phone(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 3h3l1.5 4.5-2 1.5a15 15 0 0 0 5.5 5.5l1.5-2L21 14v3a2 2 0 0 1-2.2 2A17 17 0 0 1 3 5.2 2 2 0 0 1 5 3Z" />
+    </Icon>
+  );
+}
+
+export function ArrowUpRight(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 17 17 7" />
+      <path d="M8 7h9v9" />
+    </Icon>
+  );
+}
+
+export function Facebook(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14 8h3V5h-3a4 4 0 0 0-4 4v2H7v3h3v7h3v-7h3l1-3h-4V9a1 1 0 0 1 1-1Z" />
+    </Icon>
+  );
+}
+
+export function Music(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9 18V5l10-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="16" cy="16" r="3" />
+    </Icon>
+  );
+}
+
+export function Ghost(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3a7 7 0 0 0-7 7v10l2.3-1.8L9.6 20l2.4-1.8L14.4 20l2.3-1.8L19 20V10a7 7 0 0 0-7-7Z" />
+      <circle cx="9.5" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="10" r="1" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
 export function Sparkles(props: IconProps) {
   return (
     <Icon {...props}>

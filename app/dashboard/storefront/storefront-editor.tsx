@@ -10,6 +10,7 @@ import {
   type StorefrontSettings,
 } from '@/lib/storefront-shared';
 import { SHOP_ACCENTS, accentFor, tintForAccent } from '@/lib/shop-accent';
+import { LinksEditor } from './links-editor';
 import { saveStorefrontAction, type StorefrontFormState } from './actions';
 
 const initial: StorefrontFormState = {};
@@ -45,9 +46,11 @@ function fieldsFrom(settings: StorefrontSettings): Fields {
 
 export function StorefrontEditor({
   settings,
+  links,
   saved,
 }: {
   settings: StorefrontSettings;
+  links: { kind: 'whatsapp' | 'instagram' | 'tiktok' | 'snapchat' | 'facebook' | 'website' | 'maps' | 'phone' | 'custom'; label: string; url: string; visible: boolean }[];
   saved: boolean;
 }) {
   const [state, action] = useActionState(saveStorefrontAction, initial);
@@ -113,7 +116,8 @@ export function StorefrontEditor({
   } as CSSProperties;
 
   return (
-    <form action={action} encType="multipart/form-data" className="mt-6">
+    <>
+      <form action={action} encType="multipart/form-data" className="mt-6">
       <input type="hidden" name="accent" value={fields.accent} />
       <input type="hidden" name="cardImageRatio" value={fields.cardImageRatio} />
       <input type="hidden" name="removeLogo" value={removeLogo ? 'on' : ''} />
@@ -121,7 +125,7 @@ export function StorefrontEditor({
 
       {saved ? (
         <p className="feedback-rise mb-5 rounded-card bg-mint-100 p-4 text-small text-green-deep">
-          Saved. Your shop is live with the new look.
+          Saved. Your shop is live.
         </p>
       ) : null}
 
@@ -540,6 +544,8 @@ export function StorefrontEditor({
           </div>
         </aside>
       </div>
-    </form>
+      </form>
+      <LinksEditor links={links} />
+    </>
   );
 }
