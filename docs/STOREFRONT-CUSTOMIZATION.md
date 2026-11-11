@@ -1,8 +1,8 @@
 # Storefront customization
 
-Status: Phase 1 brand/look/images/links/item-page branding/generated card shipped 2026-11-11; image re-encoding is pending. Version 1.4. 2026-11-11.
+Status: Phase 1 shipped 2026-11-11: brand, look, logo, cover, links, item-page branding, generated card and browser-side image processing. Phase 2 is next. Version 1.5. 2026-11-11.
 
-Changelog: v1.4 adds item-page logo/tagline and the generated shop card. v1.3 adds the links editor and storefront link pills. v1.2 records the first shipped slice: tagline, logo, cover, the brand/look editor, live preview, reset, accent tint and fallback gradient. v1.1 added cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
+Changelog: v1.5 adds browser-side WebP resizing, the 16:9 cover crop and the 128px logo guard. v1.4 adds item-page logo/tagline and the generated shop card. v1.3 adds the links editor and storefront link pills. v1.2 records the first shipped slice: tagline, logo, cover, the brand/look editor, live preview, reset, accent tint and fallback gradient. v1.1 added cover and tint, starter defaults, client-side logo processing, a category dropdown, handle-based links, one-save editing with live preview and reset, generated Open Graph cards, and polish tokens.
 
 Companion docs: [`DESIGN.md`](DESIGN.md) sections 5.8, 5.9 and 14, [`requirement.md`](requirement.md) PG-02 to PG-09, and [`PLAN.md`](PLAN.md) Phase 2 and Phase 3.
 
@@ -49,8 +49,7 @@ Shipped 2026-11-11:
 
 Missing today:
 
-- Client-side WebP resizing and the logo dimension guard; uploads are currently server-checked for type and size only.
-- Announcement, themes and later Phase 2 sections.
+- Phase 2: theme presets, header layouts, announcement, featured items, about/policy sections and draft/publish.
 
 The highest-return work is therefore the links editor, then the item-page and share-card surfaces.
 

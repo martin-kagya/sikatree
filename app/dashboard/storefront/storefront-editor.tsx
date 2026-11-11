@@ -31,6 +31,138 @@ type Fields = {
   logoAlt: string;
 };
 
+const LOGO_LIMIT_BYTES = 2 * 1024 * 1024;
+const COVER_LIMIT_BYTES = 5 * 1024 * 1024;
+const LOGO_MIN_PX = 128;
+const LOGO_MAX_PX = 512;
+const COVER_MAX_WIDTH = 1600;
+
+type DecodedImage = {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  cleanup: () => void;
+};
+
+async function decodeImage(file: File): Promise<DecodedImage> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file);
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        cleanup: () => bitmap.close(),
+      };
+    } catch {
+      /* fall back to an <img> decode */
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = url;
+    if (typeof image.decode === 'function') {
+      await image.decode();
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('Could not read that image.'));
+      });
+    }
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      cleanup: () => URL.revokeObjectURL(url),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+// Returns null when the browser cannot decode or encode the file; the caller
+// then uploads the original and the server's type/size guard still applies.
+async function prepareImage(file: File, kind: 'logo' | 'cover'): Promise<File | null> {
+  let decoded: DecodedImage;
+  try {
+    decoded = await decodeImage(file);
+  } catch {
+    // The browser could not decode this file. Let the action upload the
+    // original within the server-side type and size guard.
+    return null;
+  }
+  try {
+    if (!decoded.width || !decoded.height) return null;
+    if (kind === 'logo' && Math.min(decoded.width, decoded.height) < LOGO_MIN_PX) {
+      throw new Error(`Use a logo at least ${LOGO_MIN_PX} × ${LOGO_MIN_PX} pixels.`);
+    }
+
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = decoded.width;
+    let sourceHeight = decoded.height;
+    let outWidth: number;
+    let outHeight: number;
+
+    if (kind === 'logo') {
+      const scale = Math.min(1, LOGO_MAX_PX / Math.max(decoded.width, decoded.height));
+      outWidth = Math.max(1, Math.round(decoded.width * scale));
+      outHeight = Math.max(1, Math.round(decoded.height * scale));
+    } else {
+      const targetRatio = 16 / 9;
+      if (decoded.width / decoded.height > targetRatio) {
+        sourceWidth = decoded.height * targetRatio;
+        sourceX = (decoded.width - sourceWidth) / 2;
+      } else {
+        sourceHeight = decoded.width / targetRatio;
+        sourceY = (decoded.height - sourceHeight) / 2;
+      }
+      outWidth = Math.min(COVER_MAX_WIDTH, Math.round(sourceWidth));
+      outHeight = Math.max(1, Math.round(outWidth * (9 / 16)));
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = outWidth;
+    canvas.height = outHeight;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+    context.drawImage(
+      decoded.source,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      outWidth,
+      outHeight,
+    );
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/webp', 0.85);
+    });
+    if (!blob || blob.type !== 'image/webp') return null;
+    return new File([blob], `${kind}-${Date.now()}.webp`, { type: 'image/webp' });
+  } finally {
+    decoded.cleanup();
+  }
+}
+
+function setInputFile(input: HTMLInputElement | null, file: File): boolean {
+  if (!input) return false;
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function fieldsFrom(settings: StorefrontSettings): Fields {
   return {
     name: settings.name,
@@ -60,6 +192,8 @@ export function StorefrontEditor({
   const [removeLogo, setRemoveLogo] = useState(false);
   const [removeCover, setRemoveCover] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<'logo' | 'cover' | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
 
@@ -68,17 +202,59 @@ export function StorefrontEditor({
     setDirty(true);
   }
 
-  function chooseImage(kind: 'logo' | 'cover', file: File | undefined) {
+  async function chooseImage(kind: 'logo' | 'cover', file: File | undefined) {
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (kind === 'logo') {
-      setLogoPreview(url);
-      setRemoveLogo(false);
-    } else {
-      setCoverPreview(url);
-      setRemoveCover(false);
+    const input = kind === 'logo' ? logoInput.current : coverInput.current;
+    const limit = kind === 'logo' ? LOGO_LIMIT_BYTES : COVER_LIMIT_BYTES;
+    setImageError(null);
+
+    if (file.size > limit) {
+      setImageError(`Use an image under ${kind === 'logo' ? '2MB' : '5MB'}.`);
+      if (input) input.value = '';
+      return;
     }
-    setDirty(true);
+
+    setProcessing(kind);
+    try {
+      const prepared = await prepareImage(file, kind);
+      if (prepared && !setInputFile(input, prepared)) {
+        // The browser would submit the original while the preview showed the
+        // processed file; keep the original rather than lie about it.
+        setImageError('Could not prepare that image. Try another file.');
+        if (input) input.value = '';
+        return;
+      }
+
+      const previewUrl = URL.createObjectURL(prepared ?? file);
+      if (kind === 'logo') {
+        setLogoPreview(previewUrl);
+        setRemoveLogo(false);
+      } else {
+        setCoverPreview(previewUrl);
+        setRemoveCover(false);
+      }
+      setDirty(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not read that image.';
+      if (message.includes('at least')) {
+        setImageError(message);
+        if (input) input.value = '';
+        return;
+      }
+      // Decode or encode failed: keep the original selection and let the
+      // server's type/size guard handle it.
+      const previewUrl = URL.createObjectURL(file);
+      if (kind === 'logo') {
+        setLogoPreview(previewUrl);
+        setRemoveLogo(false);
+      } else {
+        setCoverPreview(previewUrl);
+        setRemoveCover(false);
+      }
+      setDirty(true);
+    } finally {
+      setProcessing(null);
+    }
   }
 
   function resetBrand() {
@@ -96,6 +272,7 @@ export function StorefrontEditor({
     setRemoveCover(true);
     if (logoInput.current) logoInput.current.value = '';
     if (coverInput.current) coverInput.current.value = '';
+    setImageError(null);
     setDirty(true);
   }
 
@@ -245,8 +422,17 @@ export function StorefrontEditor({
           <section className="rounded-panel bg-white p-6 shadow-card sm:p-8">
             <h2 className="text-h2 text-ink">Images</h2>
             <p className={hint}>
-              A logo and cover make the page recognisably yours. Use JPG, PNG, WebP or AVIF.
+              A logo and cover make the page recognisably yours. JPG, PNG, WebP or AVIF; images
+              are resized and converted to WebP in your browser before upload.
             </p>
+            {imageError ? (
+              <p role="alert" className="mt-3 rounded-[12px] bg-danger-bg p-3 text-[12px] text-danger">
+                {imageError}
+              </p>
+            ) : null}
+            {processing ? (
+              <p className="mt-3 text-[12px] text-ink-muted">Preparing the {processing}…</p>
+            ) : null}
 
             <div className="mt-5 grid gap-6 sm:grid-cols-[180px_1fr]">
               <div>
@@ -271,10 +457,10 @@ export function StorefrontEditor({
                   name="logo"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/avif"
-                  onChange={(event) => chooseImage('logo', event.target.files?.[0])}
+                  onChange={(event) => void chooseImage('logo', event.target.files?.[0])}
                   className="mt-3 block w-full text-[12px] text-ink-muted file:mr-3 file:rounded-pill file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[12px] file:text-white"
                 />
-                <p className={hint}>Square, up to 2MB.</p>
+                <p className={hint}>At least 128 × 128, up to 2MB. Resized to WebP.</p>
                 {showLogo ? (
                   <button
                     type="button"
@@ -332,10 +518,10 @@ export function StorefrontEditor({
                   name="cover"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/avif"
-                  onChange={(event) => chooseImage('cover', event.target.files?.[0])}
+                  onChange={(event) => void chooseImage('cover', event.target.files?.[0])}
                   className="mt-3 block w-full text-[12px] text-ink-muted file:mr-3 file:rounded-pill file:border-0 file:bg-ink file:px-3 file:py-2 file:text-[12px] file:text-white"
                 />
-                <p className={hint}>16:9, up to 5MB.</p>
+                <p className={hint}>Cropped to 16:9, up to 5MB. Resized to WebP.</p>
                 {showCover ? (
                   <button
                     type="button"
